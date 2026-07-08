@@ -48,7 +48,7 @@ npm run dev
 
 4. Open `http://localhost:3000`.
 
-Use the bird's-eye AI validator at `http://localhost:3000/ai_validator.html` to call the same live AI endpoint from any maze cell and compare the returned full path with a local shortest-path calculation.
+<!-- Use the bird's-eye AI validator at `http://localhost:3000/ai_validator.html` to call the same live AI endpoint from any maze cell and compare the returned full path with a local shortest-path calculation. -->
 
 ## Notes
 
