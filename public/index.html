@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live LLM Street Maze Prototype</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="app experiment-app">
+    <section class="topbar" aria-label="prototype controls">
+      <div>
+        <p class="eyebrow">Live LLM maze prototype</p>
+        <h1>Street Maze</h1>
+      </div>
+    </section>
+
+    <section id="participantExperience" class="participant-experience">
+      <section class="game-shell participant-shell">
+        <div class="scene-header compact-header">
+          <span id="viewBadge" class="badge participant-badge">Participant view</span>
+          <div class="stats-row" aria-label="trial stats">
+            <span>Moves <strong id="moves">0</strong></span>
+            <span>Time <strong id="time">00:00</strong></span>
+          </div>
+        </div>
+
+        <div id="stage" class="stage participant-stage" aria-label="first-person street maze scene">
+          <div id="scene" class="three-scene"></div>
+          <div id="hintBanner" class="hint-banner">AI hint trail visible</div>
+          <div class="hud">
+            <div>
+              <span>Facing</span>
+              <strong id="facingHud">East</strong>
+            </div>
+            <div>
+              <span>Goal</span>
+              <strong id="goalHud">Ahead-right</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="experiment-controls" aria-label="experiment controls">
+          <button id="turnLeftButton" class="secondary" type="button">Turn left</button>
+          <button id="forwardButton" type="button">Forward</button>
+          <button id="turnRightButton" class="secondary" type="button">Turn right</button>
+          <button id="backButton" class="secondary" type="button">Back</button>
+          <button id="hintButton" class="ai-action" type="button">Ask AI for path</button>
+        </div>
+      </section>
+    </section>
+
+    <section id="moderatorExperience" class="moderator-experience hidden">
+      <section class="moderator-map-shell">
+        <div class="scene-header compact-header">
+          <span class="badge moderator-badge">Moderator live view</span>
+          <div class="stats-row" aria-label="moderator trial stats">
+            <span>Moves <strong id="moderatorMoves">0</strong></span>
+            <span>Time <strong id="moderatorTime">00:00</strong></span>
+          </div>
+        </div>
+        <div id="moderatorGrid" class="validator-grid live-grid" aria-label="live bird's-eye maze"></div>
+      </section>
+
+      <aside id="moderatorPanel" class="panel moderator-rail">
+        <section>
+          <h2>AI availability</h2>
+          <div class="status-line">
+            <span id="moderatorAiDot" class="dot on"></span>
+            <span id="moderatorAiStatus">AI assistance ON</span>
+          </div>
+          <button id="aiToggle" class="ai-action" type="button">Disable AI for participant</button>
+        </section>
+
+        <section class="panel-section">
+          <h2>Internal state</h2>
+          <p class="muted">Position: <strong id="positionText">(0, 1)</strong></p>
+          <p class="muted">Facing: <strong id="moderatorFacing">East</strong></p>
+          <p class="muted">Goal bearing: <strong id="goalBearingText">Ahead-right</strong></p>
+          <p class="muted">Goal distance: <strong id="goalDistanceText">n/a</strong></p>
+          <p class="muted">Stored AI path: <strong id="storedPathText">none</strong></p>
+          <p class="muted">Latest latency: <strong id="latencyText">n/a</strong></p>
+        </section>
+
+        <section class="panel-section">
+          <h2>AI validator legend</h2>
+          <div class="legend-row"><span class="legend-swatch wall"></span>Wall</div>
+          <div class="legend-row"><span class="legend-swatch open"></span>Open cell</div>
+          <div class="legend-row"><span class="legend-swatch player"></span>Participant</div>
+          <div class="legend-row"><span class="legend-swatch goal"></span>Destination</div>
+          <div class="legend-row"><span class="legend-swatch local"></span>Local shortest path</div>
+          <div class="legend-row"><span class="legend-swatch ai"></span>Stored AI path</div>
+          <div class="legend-row"><span class="legend-swatch hint"></span>Visible hint steps</div>
+        </section>
+
+        <section class="panel-section">
+          <h2>Event log</h2>
+          <pre id="logBox" class="log-box" aria-label="event log"></pre>
+        </section>
+
+        <section class="panel-section">
+          <h2>Server-side logs</h2>
+          <pre id="serverLogBox" class="log-box server-log-box" aria-label="server-side logs">No server-side log entries yet.</pre>
+          <div class="download-row">
+            <button id="downloadCsvButton" class="secondary" type="button">CSV</button>
+            <button id="downloadJsonButton" class="secondary" type="button">JSON</button>
+            <button id="resetButton" class="secondary" type="button">Reset</button>
+          </div>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="/game.js"></script>
+</body>
+</html>
