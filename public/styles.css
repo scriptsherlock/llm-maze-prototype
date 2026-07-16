@@ -163,12 +163,14 @@ h2 {
   width: min(96vw, 1480px);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(560px, 1fr) 380px;
+  grid-template-columns: minmax(0, 1fr) 380px;
   gap: 20px;
   align-items: start;
 }
 
 .moderator-map-shell {
+  min-width: 0;
+  overflow: hidden;
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(216, 222, 232, 0.85);
   border-radius: 8px;
@@ -195,6 +197,10 @@ h2 {
 
 .compact-header {
   margin-bottom: 10px;
+}
+
+.participant-shell .compact-header {
+  justify-content: flex-end;
 }
 
 .subtitle,
@@ -426,9 +432,8 @@ h2 {
 
 .live-grid {
   width: 100%;
-  max-width: 760px;
+  max-width: 900px;
   margin: 0 auto;
-  gap: 3px;
 }
 
 .validator-cell {
@@ -443,8 +448,8 @@ h2 {
   width: auto;
   height: auto;
   aspect-ratio: 1;
-  min-width: 18px;
-  min-height: 18px;
+  min-width: 0;
+  min-height: 0;
   position: relative;
 }
 
@@ -469,10 +474,6 @@ h2 {
 }
 
 .validator-cell.ai-path {
-  background: #93c5fd;
-}
-
-.validator-cell.hint-path {
   background: #f87171;
 }
 
@@ -507,9 +508,7 @@ h2 {
 .legend-swatch.player { background: #2563eb; }
 .legend-swatch.goal { background: #22c55e; }
 .legend-swatch.local { background: #fde68a; }
-.legend-swatch.ai { background: #93c5fd; }
-.legend-swatch.hint { background: #f87171; }
-
+.legend-swatch.ai { background: #f87171; }
 .hidden {
   display: none;
 }

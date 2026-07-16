@@ -46,7 +46,7 @@ Gemini keys cannot be spent on OpenAI's API directly. They are used through Goog
 npm run dev
 ```
 
-4. Open `http://localhost:3000`.
+4. Open `http://localhost:3000/participant` for the game or `http://localhost:3000/moderator` for the moderator view.
 
 <!-- Use the bird's-eye AI validator at `http://localhost:3000/ai_validator.html` to call the same live AI endpoint from any maze cell and compare the returned full path with a local shortest-path calculation. -->
 
@@ -57,6 +57,6 @@ npm run dev
 - The participant only sees the first few hint steps.
 - If the moderator disables AI, the backend blocks LLM calls.
 - The 3D view uses a random generated maze from graph connectivity, then translates it into static navy street cells and opaque glass-metal wall panels.
-- Add `?seed=12345` to either page URL to reproduce a specific maze. The participant page passes its current seed to the bird's-eye validator link.
+- Add `?seed=12345` to either page URL to reproduce a specific maze. Use the same seed in participant and moderator URLs so both views show the same maze.
 - The generator adds extra openings and breaks straight single-path stretches longer than 5 visible spaces.
 - The maze-generation and graph-to-wall translation approach is adapted from the MIT-licensed `simondevyoutube/AStar_60000` demo, while the live LLM remains responsible for participant hints.

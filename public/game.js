@@ -15,7 +15,7 @@ const wallThickness = 0.28;
 
 let currentView = getInitialView();
 let player = { ...start };
-let facing = 1;
+let facing = MAZE_CONFIG.startFacing ?? 1;
 let moves = 0;
 let aiOn = true;
 let hintRequestInFlight = false;
@@ -26,6 +26,7 @@ let hintMessageUntil = 0;
 let hintBannerText = "AI hint trail visible";
 let activeHintPath = [];
 let activeFullPath = [];
+let visibleAiPath = [];
 let planStatus = "none";
 let blockedFlashUntil = 0;
 let lastEventId = 0;
@@ -58,7 +59,6 @@ const elements = {
   participantViewButton: document.getElementById("participantViewButton"),
   moderatorViewButton: document.getElementById("moderatorViewButton"),
   moderatorPanel: document.getElementById("moderatorPanel"),
-  viewBadge: document.getElementById("viewBadge"),
   moves: document.getElementById("moves"),
   time: document.getElementById("time"),
   facingHud: document.getElementById("facingHud"),
@@ -117,7 +117,7 @@ function createMaterials() {
     wall: new THREE.MeshPhysicalMaterial({ color: 0xa8bdc9, roughness: 0.2, metalness: 0.56, clearcoat: 0.9, clearcoatRoughness: 0.08 }),
     wallCap: new THREE.MeshPhysicalMaterial({ color: 0xd4e6ef, roughness: 0.14, metalness: 0.5, clearcoat: 1, clearcoatRoughness: 0.06 }),
     destination: new THREE.MeshStandardMaterial({ color: 0xd97706, emissive: 0x92400e, emissiveIntensity: 0.45, roughness: 0.38 }),
-    hint: new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xdc2626, emissiveIntensity: 0.45, roughness: 0.35 }),
+    hintLine: new THREE.MeshBasicMaterial({ color: 0xef4444 }),
     goalGlow: new THREE.MeshBasicMaterial({ color: 0xfde68a, transparent: true, opacity: 0.5 }),
     avatar: new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.55 }),
     avatarSkin: new THREE.MeshStandardMaterial({ color: 0xf2c29b, roughness: 0.55 }),
@@ -132,7 +132,7 @@ function createReusableGeometry() {
     wallCap: new THREE.BoxGeometry(cellSize + wallThickness, 0.08, wallThickness),
     wallCapSide: new THREE.BoxGeometry(wallThickness, 0.08, cellSize + wallThickness),
     destination: new THREE.CylinderGeometry(1.05, 1.05, 0.12, 32),
-    hint: new THREE.SphereGeometry(0.28, 18, 10),
+    hintLineSegment: new THREE.BoxGeometry(1, 0.045, 1),
     glow: new THREE.SphereGeometry(0.88, 24, 12),
   };
 }
@@ -209,10 +209,17 @@ function buildMazeWallPanels() {
 }
 
 function shouldSkipWallPanel(x, y, panel) {
-  return entrance &&
-    x === entrance.x &&
-    y === entrance.y &&
-    panel.side === "west";
+  const isEntrance = entrance && x === entrance.x && y === entrance.y;
+  const isGoal = x === goal.x && y === goal.y;
+  return (isEntrance || isGoal) && panel.side === outwardBoundarySide(x, y);
+}
+
+function outwardBoundarySide(x, y) {
+  if (y === 0) return "north";
+  if (x === cols - 1) return "east";
+  if (y === rows - 1) return "south";
+  if (x === 0) return "west";
+  return null;
 }
 
 function buildGoal() {
@@ -306,11 +313,6 @@ function setView(view) {
   }
   if (elements.moderatorViewButton) {
     elements.moderatorViewButton.classList.toggle("active", view === "moderator");
-  }
-
-  if (view === "participant") {
-    elements.viewBadge.textContent = "Participant view";
-    elements.viewBadge.className = "badge participant-badge";
   }
 
   updateUi();
@@ -430,13 +432,8 @@ function turnRight() {
 }
 
 function advanceStoredPathAfterMove() {
-  const visibleHintTarget = activeHintPath.length
-    ? activeHintPath[activeHintPath.length - 1]
-    : null;
-
   if (!activeFullPath.length) {
     planStatus = "none";
-    if (sameCell(player, visibleHintTarget)) clearVisibleHint();
     return;
   }
 
@@ -447,16 +444,13 @@ function advanceStoredPathAfterMove() {
   } else {
     planStatus = "deviated";
   }
-
-  if (sameCell(player, visibleHintTarget)) {
-    clearVisibleHint();
-  }
 }
 
 function clearVisibleHint() {
   hintVisibleUntil = 0;
   hintMessageUntil = 0;
   activeHintPath = [];
+  visibleAiPath = [];
   refreshHintMarkers();
 }
 
@@ -504,11 +498,12 @@ async function showHint() {
     }
 
     activeFullPath = data.full_path;
+    visibleAiPath = data.full_path;
     activeHintPath = data.hint_steps;
     planStatus = "fresh";
     hintBannerText = activeHintPath[0] ? getHintMessageForCue(activeHintPath[0]) : "You are at the goal";
     hintMessageUntil = Date.now() + hintDurationMs;
-    hintVisibleUntil = activeHintPath.length ? Number.POSITIVE_INFINITY : 0;
+    hintVisibleUntil = visibleAiPath.length > 1 ? Number.POSITIVE_INFINITY : 0;
     refreshHintMarkers();
     logState("llm_response_received", {
       client_event_id: clientEventId,
@@ -522,7 +517,7 @@ async function showHint() {
   } catch (error) {
     activeHintPath = [];
     refreshHintMarkers();
-    hintVisibleUntil = 0;
+    hintVisibleUntil = visibleAiPath.length > 1 ? Number.POSITIVE_INFINITY : 0;
     hintMessageUntil = Date.now() + hintDurationMs;
     hintBannerText = "AI could not provide a valid path";
     logState("llm_response_invalid", {
@@ -570,11 +565,12 @@ function resetTrial() {
 
 function resetLocalTrial() {
   player = { ...start };
-  facing = 1;
+  facing = MAZE_CONFIG.startFacing ?? 1;
   moves = 0;
   startTime = Date.now();
   clearVisibleHint();
   activeFullPath = [];
+  visibleAiPath = [];
   planStatus = "none";
   latestLatencyMs = null;
 }
@@ -621,10 +617,10 @@ function renderModeratorGrid() {
 
   const localPath = shortestPath(player, goal);
   const localSet = pathSet(localPath);
-  const aiSet = pathSet(activeFullPath);
-  const hintSet = pathSet(activeHintPath);
+  const aiSet = pathSet(visibleAiPath);
 
-  elements.moderatorGrid.style.gridTemplateColumns = `repeat(${cols}, minmax(18px, 1fr))`;
+  elements.moderatorGrid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+  elements.moderatorGrid.style.gap = cols > 60 ? "1px" : cols > 30 ? "2px" : "3px";
   elements.moderatorGrid.innerHTML = "";
 
   for (let y = 0; y < rows; y += 1) {
@@ -635,7 +631,6 @@ function renderModeratorGrid() {
       if (maze[y][x] === 1) cell.classList.add("wall");
       if (localSet.has(key)) cell.classList.add("local-path");
       if (aiSet.has(key)) cell.classList.add("ai-path");
-      if (hintSet.has(key)) cell.classList.add("hint-path");
       if (x === goal.x && y === goal.y) cell.classList.add("goal");
       if (x === player.x && y === player.y) {
         cell.classList.add("player");
@@ -735,7 +730,9 @@ async function refreshAiAvailabilityIfNeeded() {
   try {
     const response = await fetch("/api/state");
     const data = await response.json();
+    const wasAiOn = aiOn;
     aiOn = Boolean(data.ai_enabled);
+    if (wasAiOn && !aiOn) clearVisibleHint();
   } catch (_error) {
     // Keep the current local value if the state check fails.
   }
@@ -755,9 +752,10 @@ function serializeTrialState() {
     elapsed_ms: Date.now() - startTime,
     active_hint_path: activeHintPath,
     active_full_path: activeFullPath,
+    visible_ai_path: visibleAiPath,
     plan_status: planStatus,
     latest_latency_ms: latestLatencyMs,
-    hint_visible: activeHintPath.length > 0 && hintVisibleUntil > 0,
+    hint_visible: visibleAiPath.length > 1 && hintVisibleUntil > 0,
     reset_token: currentResetToken,
     event_log: eventLog.slice(-60),
   };
@@ -825,6 +823,9 @@ function applyRemoteTrialState(state) {
   startTime = Number.isFinite(state.elapsed_ms) ? Date.now() - state.elapsed_ms : startTime;
   activeHintPath = Array.isArray(state.active_hint_path) ? state.active_hint_path.map(normalizeCell) : [];
   activeFullPath = Array.isArray(state.active_full_path) ? state.active_full_path.map(normalizeCell) : [];
+  visibleAiPath = Array.isArray(state.visible_ai_path)
+    ? state.visible_ai_path.map(normalizeCell)
+    : activeFullPath.map((cell) => ({ ...cell }));
   planStatus = typeof state.plan_status === "string" ? state.plan_status : planStatus;
   latestLatencyMs = state.latest_latency_ms == null ? null : Number(state.latest_latency_ms);
   hintVisibleUntil = state.hint_visible ? Number.POSITIVE_INFINITY : 0;
@@ -885,21 +886,26 @@ function downloadBlob(filename, contents, type) {
 
 function refreshHintMarkers() {
   hintGroup.clear();
-  activeHintPath.forEach((step, index) => {
-    const pos = worldFromCell(step.x, step.y);
-    const marker = new THREE.Mesh(reusable.hint, materials.hint);
-    marker.position.set(pos.x, 0.36 + index * 0.05, pos.z);
-    marker.scale.setScalar(1 - index * 0.16);
-    hintGroup.add(marker);
+  const lineWidth = 0.24;
+  for (let index = 0; index < visibleAiPath.length - 1; index += 1) {
+    const current = visibleAiPath[index];
+    const next = visibleAiPath[index + 1];
+    const dx = next.x - current.x;
+    const dy = next.y - current.y;
+    if (Math.abs(dx) + Math.abs(dy) !== 1) continue;
 
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.62 - index * 0.08, 0.035, 8, 32),
-      materials.hint
+    const from = worldFromCell(current.x, current.y);
+    const to = worldFromCell(next.x, next.y);
+    const horizontal = dy === 0;
+    const segment = new THREE.Mesh(reusable.hintLineSegment, materials.hintLine);
+    segment.position.set((from.x + to.x) / 2, 0.105, (from.z + to.z) / 2);
+    segment.scale.set(
+      horizontal ? cellSize + lineWidth : lineWidth,
+      1,
+      horizontal ? lineWidth : cellSize + lineWidth
     );
-    ring.rotation.x = Math.PI / 2;
-    ring.position.set(pos.x, 0.12, pos.z);
-    hintGroup.add(ring);
-  });
+    hintGroup.add(segment);
+  }
 }
 
 function updateCamera() {
@@ -937,7 +943,7 @@ function updateUi() {
   elements.hintButton.disabled = !aiOn || hintRequestInFlight;
   elements.hintButton.textContent = hintRequestInFlight
     ? "AI thinking..."
-    : aiOn ? "Ask AI for path" : "AI unavailable";
+    : aiOn ? "Ask AI" : "AI unavailable";
 
   elements.aiToggle.textContent = aiOn ? "Disable AI for participant" : "Enable AI for participant";
   elements.aiToggle.className = aiOn ? "ai-action" : "";

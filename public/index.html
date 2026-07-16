@@ -8,17 +8,9 @@
 </head>
 <body>
   <main class="app experiment-app">
-    <section class="topbar" aria-label="prototype controls">
-      <div>
-        <p class="eyebrow">Live LLM maze prototype</p>
-        <h1>Street Maze</h1>
-      </div>
-    </section>
-
     <section id="participantExperience" class="participant-experience">
       <section class="game-shell participant-shell">
         <div class="scene-header compact-header">
-          <span id="viewBadge" class="badge participant-badge">Participant view</span>
           <div class="stats-row" aria-label="trial stats">
             <span>Moves <strong id="moves">0</strong></span>
             <span>Time <strong id="time">00:00</strong></span>
@@ -45,7 +37,7 @@
           <button id="forwardButton" type="button">Forward</button>
           <button id="turnRightButton" class="secondary" type="button">Turn right</button>
           <button id="backButton" class="secondary" type="button">Back</button>
-          <button id="hintButton" class="ai-action" type="button">Ask AI for path</button>
+          <button id="hintButton" class="ai-action" type="button">Ask AI</button>
         </div>
       </section>
     </section>
@@ -89,8 +81,7 @@
           <div class="legend-row"><span class="legend-swatch player"></span>Participant</div>
           <div class="legend-row"><span class="legend-swatch goal"></span>Destination</div>
           <div class="legend-row"><span class="legend-swatch local"></span>Local shortest path</div>
-          <div class="legend-row"><span class="legend-swatch ai"></span>Stored AI path</div>
-          <div class="legend-row"><span class="legend-swatch hint"></span>Visible hint steps</div>
+          <div class="legend-row"><span class="legend-swatch ai"></span>Visible AI path</div>
         </section>
 
         <section class="panel-section">
