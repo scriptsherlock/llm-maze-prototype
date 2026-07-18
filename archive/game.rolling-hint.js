@@ -21,7 +21,6 @@ let aiOn = true;
 let hintRequestInFlight = false;
 let latestLatencyMs = null;
 let startTime = Date.now();
-let finishedAt = null; // timestamp the goal was reached; freezes the timer
 let hintVisibleUntil = 0;
 let hintMessageUntil = 0;
 let hintBannerText = "AI hint trail visible";
@@ -121,7 +120,6 @@ function createMaterials() {
     hintLine: new THREE.MeshBasicMaterial({ color: 0xef4444 }),
     hintArrow: new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide }),
     goalGlow: new THREE.MeshBasicMaterial({ color: 0xfde68a, transparent: true, opacity: 0.5 }),
-    doorFrame: new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5, metalness: 0.35 }),
     avatar: new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.55 }),
     avatarSkin: new THREE.MeshStandardMaterial({ color: 0xf2c29b, roughness: 0.55 }),
   };
@@ -239,67 +237,20 @@ function outwardBoundarySide(x, y) {
   return null;
 }
 
-function makeExitSignTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 200;
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#b91c1c"; // red board
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 16;
-  ctx.strokeRect(12, 12, canvas.width - 24, canvas.height - 24);
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 130px Arial, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("EXIT", canvas.width / 2, canvas.height / 2 + 8);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.anisotropy = 4;
-  return texture;
-}
-
-// Render the goal as a framed doorway with a red/white EXIT board, mounted on the
-// outward (opening) side and facing the approaching player.
 function buildGoal() {
   const pos = worldFromCell(goal.x, goal.y);
-  const side = outwardBoundarySide(goal.x, goal.y) || "south";
-  const rotationForSide = { south: 0, north: Math.PI, east: Math.PI / 2, west: -Math.PI / 2 };
+  const destination = new THREE.Mesh(reusable.destination, materials.destination);
+  destination.position.set(pos.x, 0.12, pos.z);
+  destination.receiveShadow = true;
+  scene.add(destination);
 
-  const door = new THREE.Group();
-  door.position.set(pos.x, 0, pos.z);
-  door.rotation.y = rotationForSide[side]; // built facing +z (outward), then rotated
+  const glow = new THREE.Mesh(reusable.glow, materials.goalGlow);
+  glow.position.set(pos.x, 0.8, pos.z);
+  scene.add(glow);
 
-  const postW = 0.4;
-  const postDepth = 0.6;
-  const doorH = wallHeight + 0.2;
-  const edge = cellSize / 2; // outward edge of the goal cell in local space
-
-  const postGeo = new THREE.BoxGeometry(postW, doorH, postDepth);
-  for (const sign of [1, -1]) {
-    const post = new THREE.Mesh(postGeo, materials.doorFrame);
-    post.position.set(sign * (cellSize / 2), doorH / 2, edge);
-    post.castShadow = true;
-    post.receiveShadow = true;
-    door.add(post);
-  }
-
-  const lintel = new THREE.Mesh(new THREE.BoxGeometry(cellSize + postW, 0.7, postDepth), materials.doorFrame);
-  lintel.position.set(0, doorH - 0.35, edge);
-  lintel.castShadow = true;
-  lintel.receiveShadow = true;
-  door.add(lintel);
-
-  // EXIT board, mounted just under the header, facing inward toward the player.
-  const board = new THREE.Mesh(
-    new THREE.PlaneGeometry(cellSize * 0.72, 0.86),
-    new THREE.MeshBasicMaterial({ map: makeExitSignTexture(), side: THREE.DoubleSide })
-  );
-  board.position.set(0, doorH - 0.9, edge - 0.34);
-  board.rotation.y = Math.PI; // normal points -z (inward)
-  door.add(board);
-
-  scene.add(door);
+  const light = new THREE.PointLight(0xfacc15, 2.4, 13);
+  light.position.set(pos.x, 1.2, pos.z);
+  scene.add(light);
 }
 
 function buildAvatar() {
@@ -464,7 +415,7 @@ function describeHintPlan() {
   const distTo = (c) => Math.hypot(goal.x - c.x, goal.y - c.y);
   const reason = distTo(end) < distTo(start)
     ? "it heads toward the exit"
-    : "it goes around the wall ahead";
+    : "it works around the wall ahead";
   return `${joinHintMoves(moves)} — looks promising, ${reason}.`;
 }
 
@@ -484,8 +435,8 @@ function joinHintMoves(moves) {
     if (last && last.move === move) last.count += 1;
     else groups.push({ move, count: 1 });
   }
-  const firstWord = { straight: "Go straight", right: "Turn right", left: "Turn left", back: "Turn around" };
-  const contWord = { straight: "go straight", right: "turn right", left: "turn left", back: "turn around" };
+  const firstWord = { straight: "Head straight on", right: "Bear right", left: "Bear left", back: "Double back" };
+  const contWord = { straight: "straight on", right: "right", left: "left", back: "back" };
   const label = (group, isFirst) => {
     const base = (isFirst ? firstWord : contWord)[group.move];
     return group.move === "straight" && group.count > 1 ? `${base} for ${group.count}` : base;
@@ -515,7 +466,6 @@ function attemptMove(dx, dy, action) {
   logState("move", { attempted_move: action, attempted_x: nx, attempted_y: ny, plan_status: planStatus });
 
   if (player.x === goal.x && player.y === goal.y) {
-    if (finishedAt == null) finishedAt = Date.now();
     logState("goal_reached");
     hintBannerText = "Goal reached";
     hintMessageUntil = Date.now() + 2500;
@@ -568,28 +518,19 @@ function clampHint(path) {
 }
 
 function advanceStoredPathAfterMove() {
-  // One-shot hint: the shown window only ever shrinks. Once the participant has
-  // walked all the shown steps, or steps off them, the hint is finished and is
-  // cleared. A fresh path is only produced by pressing Ask AI again.
-  if (visibleAiPath.length < 2) {
+  if (!activeFullPath.length) {
     planStatus = "none";
     return;
   }
 
-  if (sameCell(visibleAiPath[1], player)) {
-    visibleAiPath = visibleAiPath.slice(1);
-    if (visibleAiPath.length < 2) {
-      planStatus = "complete";
-      activeFullPath = [];
-      clearVisibleHint();
-    } else {
-      planStatus = "following";
-      refreshHintMarkers();
-    }
+  const nextStoredStep = activeFullPath[1];
+  if (sameCell(nextStoredStep, player)) {
+    activeFullPath = activeFullPath.slice(1);
+    planStatus = activeFullPath.length > 1 ? "following" : "complete";
+    // Roll the visible hint forward so it always shows the next few legal steps.
+    visibleAiPath = clampHint(activeFullPath);
   } else {
     planStatus = "deviated";
-    activeFullPath = [];
-    clearVisibleHint();
   }
 }
 
@@ -719,7 +660,6 @@ function resetLocalTrial() {
   facing = MAZE_CONFIG.startFacing ?? 1;
   moves = 0;
   startTime = Date.now();
-  finishedAt = null;
   clearVisibleHint();
   activeFullPath = [];
   visibleAiPath = [];
@@ -913,8 +853,7 @@ function serializeTrialState() {
     moves,
     ai_enabled: aiOn,
     start_time: startTime,
-    elapsed_ms: (finishedAt ?? Date.now()) - startTime,
-    finished: finishedAt != null,
+    elapsed_ms: Date.now() - startTime,
     active_hint_path: activeHintPath,
     active_full_path: activeFullPath,
     visible_ai_path: visibleAiPath,
@@ -986,7 +925,6 @@ function applyRemoteTrialState(state) {
   moves = Number.isInteger(state.moves) ? state.moves : moves;
   aiOn = Boolean(state.ai_enabled);
   startTime = Number.isFinite(state.elapsed_ms) ? Date.now() - state.elapsed_ms : startTime;
-  finishedAt = state.finished ? Date.now() : null;
   activeHintPath = Array.isArray(state.active_hint_path) ? state.active_hint_path.map(normalizeCell) : [];
   activeFullPath = Array.isArray(state.active_full_path) ? state.active_full_path.map(normalizeCell) : [];
   visibleAiPath = Array.isArray(state.visible_ai_path)
@@ -1101,7 +1039,7 @@ function updateCamera() {
 
 function updateUi() {
   updateCamera();
-  const elapsed = formatTime((finishedAt ?? Date.now()) - startTime);
+  const elapsed = formatTime(Date.now() - startTime);
   const bearing = getGoalBearing();
   const now = Date.now();
   const hintActive = aiOn && now <= hintVisibleUntil;
@@ -1109,7 +1047,7 @@ function updateUi() {
 
   hintGroup.visible = hintActive;
   elements.facingHud.textContent = DIRS[facing].name;
-  elements.goalHud.textContent = "Find the exit";
+  elements.goalHud.textContent = bearing.label;
   elements.goalBearingText.textContent = bearing.label;
   elements.goalDistanceText.textContent = `${getGoalDistance()} cells`;
   elements.moves.textContent = moves;

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/participant", "destination": "/index.html" },
+    { "source": "/moderator", "destination": "/index.html" },
+    { "source": "/original/participant", "destination": "/index.html" },
+    { "source": "/original/moderator", "destination": "/index.html" }
+  ]
+}

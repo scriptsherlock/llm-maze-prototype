@@ -56,7 +56,7 @@ npm run dev
 - The LLM must return the full path to the goal.
 - The participant only sees the first few hint steps.
 - If the moderator disables AI, the backend blocks LLM calls.
-- The 3D view uses a random generated maze from graph connectivity, then translates it into static navy street cells and opaque glass-metal wall panels.
-- Add `?seed=12345` to either page URL to reproduce a specific maze. Use the same seed in participant and moderator URLs so both views show the same maze.
+- The participant and moderator use the supplied PDF maze translated into the existing 17x17 wall/passage format.
+- Live AI keeps the original request format; the separate static preview remains available at `http://localhost:3000/pdf_maze_moderator.html`.
 - The generator adds extra openings and breaks straight single-path stretches longer than 5 visible spaces.
 - The maze-generation and graph-to-wall translation approach is adapted from the MIT-licensed `simondevyoutube/AStar_60000` demo, while the live LLM remains responsible for participant hints.
