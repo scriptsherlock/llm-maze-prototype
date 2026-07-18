@@ -53,6 +53,16 @@ function getInitialView() {
     : "participant";
 }
 
+// Experiment condition from the URL: `?ai=off` is the no-AI (control) group, which
+// removes the Ask AI button entirely. Default is AI on. Orthogonal to the maze path.
+function getAiCondition() {
+  const search = globalThis.location ? globalThis.location.search : "";
+  const value = (new URLSearchParams(search).get("ai") || "").toLowerCase();
+  return !["off", "0", "false", "no"].includes(value);
+}
+
+const aiCondition = getAiCondition();
+
 const elements = {
   scene: document.getElementById("scene"),
   participantExperience: document.getElementById("participantExperience"),
@@ -104,6 +114,10 @@ buildCityScene();
 buildAvatar();
 bindControls();
 setView(currentView);
+// No-AI (control) group: remove the Ask AI button entirely.
+if (!aiCondition && elements.hintButton) {
+  elements.hintButton.style.display = "none";
+}
 loadServerState();
 logState("start_trial");
 resizeRenderer();
@@ -602,6 +616,7 @@ function clearVisibleHint() {
 }
 
 async function showHint() {
+  if (!aiCondition) return; // no-AI (control) group: hints are disabled
   if (currentView !== "participant") return;
   if (hintRequestInFlight) return;
   participantHasInteracted = true;
