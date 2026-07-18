@@ -2,6 +2,7 @@
 
 Prototype-first version of the first-person maze. The browser renders the game and sends hint requests to a local Node/Express backend. The backend calls a live LLM and validates that the returned full path reaches the goal legally.
 
+Test line 
 ## Setup
 
 1. Install dependencies:
