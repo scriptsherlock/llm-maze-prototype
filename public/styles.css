@@ -331,6 +331,15 @@ h2 {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
+/* No-AI (control) group: hide the Ask AI button and reflow to four even columns. */
+.experiment-controls.no-ai {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.experiment-controls.no-ai #hintButton {
+  display: none;
+}
+
 .panel-section {
   margin-top: 16px;
   padding-top: 16px;
@@ -574,5 +583,9 @@ h2 {
 
   .experiment-controls #hintButton {
     grid-column: 1 / -1;
+  }
+
+  .experiment-controls.no-ai {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

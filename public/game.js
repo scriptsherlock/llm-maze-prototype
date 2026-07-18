@@ -114,9 +114,11 @@ buildCityScene();
 buildAvatar();
 bindControls();
 setView(currentView);
-// No-AI (control) group: remove the Ask AI button entirely.
-if (!aiCondition && elements.hintButton) {
-  elements.hintButton.style.display = "none";
+// No-AI (control) group: mark the controls row so CSS removes the Ask AI button
+// and evenly reflows the remaining four buttons (no empty slot).
+if (!aiCondition) {
+  const controls = document.querySelector(".experiment-controls");
+  if (controls) controls.classList.add("no-ai");
 }
 loadServerState();
 logState("start_trial");
