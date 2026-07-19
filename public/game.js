@@ -126,6 +126,13 @@ resizeRenderer();
 renderFrame();
 setInterval(updateUi, 500);
 setInterval(syncTrialState, 750);
+// Keep the hosted serverless function warm so the first Ask AI of a session
+// isn't hit by a cold start. Harmless when running locally.
+if (aiCondition) {
+  setInterval(() => {
+    fetch("/api/state").catch(() => {});
+  }, 240000);
+}
 
 function createMaterials() {
   return {
@@ -519,7 +526,7 @@ function attemptMove(dx, dy, action) {
   const ny = player.y + dy;
 
   if (!isOpen(nx, ny)) {
-    blockedFlashUntil = Date.now() + 260;
+    blockedFlashUntil = Date.now() + 900;
     logState("blocked_move", { attempted_move: action, attempted_x: nx, attempted_y: ny });
     updateUi();
     return;
@@ -584,11 +591,19 @@ function clampHint(path) {
 }
 
 function advanceStoredPathAfterMove() {
-  // One-shot hint: the shown window only ever shrinks. Once the participant has
-  // walked all the shown steps, or steps off them, the hint is finished and is
-  // cleared. A fresh path is only produced by pressing Ask AI again.
+  // The full AI route survives beyond the visible hint window: advance it while
+  // the participant stays on it so later hints can be served instantly from it,
+  // and drop it the moment they step off (a fresh AI call is needed then).
+  if (activeFullPath.length > 1 && sameCell(activeFullPath[1], player)) {
+    activeFullPath = activeFullPath.slice(1);
+  } else if (activeFullPath.length && !sameCell(activeFullPath[0], player)) {
+    activeFullPath = [];
+  }
+
+  // One-shot visible hint: the shown window only ever shrinks. Once the
+  // participant has walked all the shown steps, or steps off them, it clears.
   if (visibleAiPath.length < 2) {
-    planStatus = "none";
+    if (!activeFullPath.length) planStatus = "none";
     return;
   }
 
@@ -596,7 +611,6 @@ function advanceStoredPathAfterMove() {
     visibleAiPath = visibleAiPath.slice(1);
     if (visibleAiPath.length < 2) {
       planStatus = "complete";
-      activeFullPath = [];
       clearVisibleHint();
     } else {
       planStatus = "following";
@@ -610,11 +624,101 @@ function advanceStoredPathAfterMove() {
 }
 
 function clearVisibleHint() {
+  fadeOutCurrentHint();
   hintVisibleUntil = 0;
   hintMessageUntil = 0;
   activeHintPath = [];
   visibleAiPath = [];
   refreshHintMarkers();
+}
+
+// Fade the current hint trail out (~600ms) instead of letting it vanish abruptly.
+// The segments are moved to a temporary group with a cloned material so a new
+// hint can be drawn while the old one is still fading.
+let activeHintFade = null;
+
+function fadeOutCurrentHint() {
+  if (!hintGroup.children.length) return;
+  cancelHintFade();
+
+  const fadeGroup = new THREE.Group();
+  const fadeMaterial = materials.hintLine.clone();
+  fadeMaterial.transparent = true;
+  fadeMaterial.side = THREE.DoubleSide;
+  while (hintGroup.children.length) {
+    const segment = hintGroup.children[0];
+    segment.material = fadeMaterial;
+    fadeGroup.add(segment);
+  }
+  scene.add(fadeGroup);
+
+  const startedAt = performance.now();
+  const durationMs = 600;
+  const fade = { group: fadeGroup, material: fadeMaterial };
+  activeHintFade = fade;
+
+  (function step() {
+    if (activeHintFade !== fade) return;
+    const t = Math.min(1, (performance.now() - startedAt) / durationMs);
+    fadeMaterial.opacity = 1 - t;
+    renderer.render(scene, camera);
+    if (t < 1) {
+      requestAnimationFrame(step);
+      return;
+    }
+    cancelHintFade();
+  })();
+}
+
+function cancelHintFade() {
+  if (!activeHintFade) return;
+  scene.remove(activeHintFade.group);
+  activeHintFade.material.dispose();
+  activeHintFade = null;
+  renderer.render(scene, camera);
+}
+
+// Pulsing ring at the participant's feet while the AI request is in flight, so
+// the wait reads as "thinking" instead of a frozen scene.
+let thinkingIndicator = null;
+
+function startThinkingIndicator() {
+  if (thinkingIndicator) return;
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(0.55, 0.05, 8, 32),
+    new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.75 })
+  );
+  ring.rotation.x = Math.PI / 2;
+  scene.add(ring);
+  thinkingIndicator = ring;
+
+  (function pulse() {
+    if (!thinkingIndicator) return;
+    if (!hintRequestInFlight) {
+      stopThinkingIndicator();
+      return;
+    }
+    const t = (performance.now() % 1200) / 1200;
+    // Place the ring on the floor just ahead of the player — at their feet it
+    // would sit under the first-person camera, outside the view.
+    const pos = worldFromCell(player.x, player.y);
+    const dir = DIRS[facing];
+    thinkingIndicator.position.set(pos.x + dir.dx * 2.4, 0.14, pos.z + dir.dy * 2.4);
+    const scale = 1 + t * 0.9;
+    thinkingIndicator.scale.set(scale, scale, scale);
+    thinkingIndicator.material.opacity = 0.75 * (1 - t);
+    renderer.render(scene, camera);
+    requestAnimationFrame(pulse);
+  })();
+}
+
+function stopThinkingIndicator() {
+  if (!thinkingIndicator) return;
+  scene.remove(thinkingIndicator);
+  thinkingIndicator.geometry.dispose();
+  thinkingIndicator.material.dispose();
+  thinkingIndicator = null;
+  renderer.render(scene, camera);
 }
 
 async function showHint() {
@@ -631,7 +735,24 @@ async function showHint() {
     return;
   }
 
+  // Serve instantly from the stored AI route when the participant is still on it.
+  // It is the same AI-computed answer (a shortest path's remainder is still the
+  // shortest path), so no new LLM call — and no "AI thinking" wait — is needed.
+  if (activeFullPath.length > 1 && sameCell(activeFullPath[0], player)) {
+    visibleAiPath = clampHint(activeFullPath);
+    activeHintPath = visibleAiPath.slice(1);
+    planStatus = "fresh";
+    hintBannerText = activeHintPath[0] ? getHintMessageForCue(activeHintPath[0]) : "You are at the goal";
+    hintMessageUntil = Date.now() + hintDurationMs;
+    hintVisibleUntil = visibleAiPath.length > 1 ? Number.POSITIVE_INFINITY : 0;
+    refreshHintMarkers();
+    logState("hint_served_from_stored_path", { remaining_cells: activeFullPath.length });
+    updateUi();
+    return;
+  }
+
   hintRequestInFlight = true;
+  startThinkingIndicator();
   elements.hintButton.disabled = true;
   elements.hintButton.textContent = "AI thinking...";
   const clientEventId = `hint-${Date.now()}-${++lastEventId}`;
@@ -695,6 +816,7 @@ async function showHint() {
     });
   } finally {
     hintRequestInFlight = false;
+    stopThinkingIndicator();
     updateUi();
   }
 }
@@ -1068,6 +1190,7 @@ function downloadBlob(filename, contents, type) {
 }
 
 function refreshHintMarkers() {
+  if (visibleAiPath.length > 1) cancelHintFade(); // a new trail replaces any fading one
   hintGroup.clear();
   const lineWidth = 0.24;
   for (let index = 0; index < visibleAiPath.length - 1; index += 1) {
@@ -1148,9 +1271,19 @@ function updateUi() {
   elements.moderatorAiDot.className = aiOn ? "dot on" : "dot";
   elements.moderatorAiStatus.textContent = aiOn ? "AI assistance ON" : "AI assistance OFF";
   const hintPlan = hintActive ? describeHintPlan() : "";
+  const blockedFlashActive = Date.now() <= blockedFlashUntil;
   elements.hintBanner.textContent = hintPlan || hintBannerText;
-  elements.hintBanner.classList.toggle("visible", hintActive || hintMessageActive || Date.now() <= blockedFlashUntil);
-  if (Date.now() <= blockedFlashUntil) elements.hintBanner.textContent = "Blocked";
+  let bannerVisible = hintActive || hintMessageActive || blockedFlashActive;
+  if (!aiCondition && currentView === "participant") {
+    // Control group: keep a neutral, non-directional status line in the banner
+    // area so both conditions have comparable UI presence.
+    if (!hintMessageActive && !blockedFlashActive) {
+      elements.hintBanner.textContent = "Explore the streets and find the EXIT";
+    }
+    bannerVisible = true;
+  }
+  elements.hintBanner.classList.toggle("visible", bannerVisible);
+  if (blockedFlashActive) elements.hintBanner.textContent = "A wall is ahead — try another direction";
   updateLogBox();
   if (currentView === "moderator") {
     renderModeratorGrid();
