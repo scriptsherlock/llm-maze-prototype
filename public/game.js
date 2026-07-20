@@ -15,7 +15,7 @@ const wallThickness = 0.28;
 
 let currentView = getInitialView();
 // Rollback flag: set to false to restore the turn-by-turn (facing-relative) hint text.
-const STATIC_HINT_TEXT = true;
+const STATIC_HINT_TEXT = false;
 let player = { ...start };
 let facing = MAZE_CONFIG.startFacing ?? 1;
 let moves = 0;
