@@ -473,9 +473,15 @@ function describeHintPlan() {
   const cells = visibleAiPath;
   if (cells.length < 2) return "";
 
+  // Anchor at the player's current cell on the trail so the text describes the steps
+  // AHEAD of them (relative to current facing), not steps already walked.
+  const playerIndex = cells.findIndex((cell) => sameCell(cell, player));
+  if (playerIndex === -1) return "Head back to the highlighted path";
+  if (playerIndex >= cells.length - 1) return "";
+
   let heading = { dx: DIRS[facing].dx, dy: DIRS[facing].dy };
   const moves = [];
-  for (let i = 0; i < cells.length - 1 && moves.length < aiCueLength; i += 1) {
+  for (let i = playerIndex; i < cells.length - 1 && moves.length < aiCueLength; i += 1) {
     const dx = cells[i + 1].x - cells[i].x;
     const dy = cells[i + 1].y - cells[i].y;
     if (Math.abs(dx) + Math.abs(dy) !== 1) break;
@@ -484,8 +490,8 @@ function describeHintPlan() {
   }
   if (!moves.length) return "";
 
-  const start = cells[0];
-  const end = cells[moves.length];
+  const start = cells[playerIndex];
+  const end = cells[playerIndex + moves.length];
   const distTo = (c) => Math.hypot(goal.x - c.x, goal.y - c.y);
   const reason = distTo(end) < distTo(start)
     ? "it heads toward the exit"
