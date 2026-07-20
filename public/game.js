@@ -613,14 +613,16 @@ function advanceStoredPathAfterMove() {
   const onWindow = visibleAiPath.some((cell) => sameCell(cell, player));
 
   if (atLastCell) {
+    // Only a completed hint (reached its final cell) clears the trail.
     planStatus = "complete";
     clearVisibleHint();
   } else if (onWindow) {
-    planStatus = "following"; // keep the trail as-is (persistent)
+    planStatus = "following";
   } else {
+    // Stepped off the hint (e.g. an accidental Back): keep the trail fully drawn
+    // so the participant can rejoin it. It is NOT cleared on deviation. (The stored
+    // full route was already dropped above, so a re-press does a fresh AI call.)
     planStatus = "deviated";
-    activeFullPath = [];
-    clearVisibleHint();
   }
 }
 
