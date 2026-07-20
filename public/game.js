@@ -600,22 +600,23 @@ function advanceStoredPathAfterMove() {
     activeFullPath = [];
   }
 
-  // One-shot visible hint: the shown window only ever shrinks. Once the
-  // participant has walked all the shown steps, or steps off them, it clears.
+  // Visible hint: stays fully drawn (all shown steps) while the participant walks
+  // through it — it does NOT shrink per step — so it also remains visible when they
+  // turn around. It clears only when they reach its final cell (all steps taken) or
+  // step off the window entirely.
   if (visibleAiPath.length < 2) {
     if (!activeFullPath.length) planStatus = "none";
     return;
   }
 
-  if (sameCell(visibleAiPath[1], player)) {
-    visibleAiPath = visibleAiPath.slice(1);
-    if (visibleAiPath.length < 2) {
-      planStatus = "complete";
-      clearVisibleHint();
-    } else {
-      planStatus = "following";
-      refreshHintMarkers();
-    }
+  const atLastCell = sameCell(visibleAiPath[visibleAiPath.length - 1], player);
+  const onWindow = visibleAiPath.some((cell) => sameCell(cell, player));
+
+  if (atLastCell) {
+    planStatus = "complete";
+    clearVisibleHint();
+  } else if (onWindow) {
+    planStatus = "following"; // keep the trail as-is (persistent)
   } else {
     planStatus = "deviated";
     activeFullPath = [];
