@@ -745,7 +745,11 @@ async function showHint() {
     visibleAiPath = clampHint(activeFullPath);
     activeHintPath = visibleAiPath.slice(1);
     planStatus = "fresh";
-    hintBannerText = activeHintPath[0] ? getHintMessageForCue(activeHintPath[0]) : "You are at the goal";
+    hintBannerText = activeHintPath[0]
+      ? getHintMessageForCue(activeHintPath[0])
+      : sameCell(player, goal)
+        ? "You are at the goal"
+        : "AI hint unavailable — try again";
     hintMessageUntil = Date.now() + hintDurationMs;
     hintVisibleUntil = visibleAiPath.length > 1 ? Number.POSITIVE_INFINITY : 0;
     refreshHintMarkers();
@@ -791,7 +795,11 @@ async function showHint() {
     visibleAiPath = clampHint(data.full_path);
     activeHintPath = data.hint_steps;
     planStatus = "fresh";
-    hintBannerText = activeHintPath[0] ? getHintMessageForCue(activeHintPath[0]) : "You are at the goal";
+    hintBannerText = activeHintPath[0]
+      ? getHintMessageForCue(activeHintPath[0])
+      : sameCell(player, goal)
+        ? "You are at the goal"
+        : "AI hint unavailable — try again";
     hintMessageUntil = Date.now() + hintDurationMs;
     hintVisibleUntil = visibleAiPath.length > 1 ? Number.POSITIVE_INFINITY : 0;
     refreshHintMarkers();
