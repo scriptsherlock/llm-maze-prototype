@@ -14,6 +14,8 @@ const wallHeight = 3.2;
 const wallThickness = 0.28;
 
 let currentView = getInitialView();
+// Rollback flag: set to false to restore the turn-by-turn (facing-relative) hint text.
+const STATIC_HINT_TEXT = true;
 let player = { ...start };
 let facing = MAZE_CONFIG.startFacing ?? 1;
 let moves = 0;
@@ -1281,7 +1283,9 @@ function updateUi() {
   elements.aiToggle.className = aiOn ? "ai-action" : "";
   elements.moderatorAiDot.className = aiOn ? "dot on" : "dot";
   elements.moderatorAiStatus.textContent = aiOn ? "AI assistance ON" : "AI assistance OFF";
-  const hintPlan = hintActive ? describeHintPlan() : "";
+  const hintPlan = hintActive
+    ? (STATIC_HINT_TEXT ? "Follow the red path to the exit" : describeHintPlan())
+    : "";
   const blockedFlashActive = Date.now() <= blockedFlashUntil;
   elements.hintBanner.textContent = hintPlan || hintBannerText;
   let bannerVisible = hintActive || hintMessageActive || blockedFlashActive;
