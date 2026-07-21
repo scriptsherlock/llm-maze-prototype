@@ -31,6 +31,8 @@ let activeHintPath = [];
 let activeFullPath = [];
 let visibleAiPath = [];
 let planStatus = "none";
+let remotePrefetchHint = []; // moderator view: the participant's prefetched next hint
+let remotePrefetchStatus = "none";
 let blockedFlashUntil = 0;
 let lastEventId = 0;
 let lastServerLogFetch = 0;
@@ -90,6 +92,7 @@ const elements = {
   moderatorMoves: document.getElementById("moderatorMoves"),
   moderatorTime: document.getElementById("moderatorTime"),
   storedPathText: document.getElementById("storedPathText"),
+  prefetchText: document.getElementById("prefetchText"),
   latencyText: document.getElementById("latencyText"),
   logBox: document.getElementById("logBox"),
   serverLogBox: document.getElementById("serverLogBox"),
@@ -991,6 +994,7 @@ function renderModeratorGrid() {
   const localPath = shortestPath(player, goal);
   const localSet = pathSet(localPath);
   const aiSet = pathSet(visibleAiPath);
+  const prefetchSet = pathSet(remotePrefetchHint);
 
   // Render as a line maze: this is a (2N+1) thin-wall grid, so odd tracks are the
   // real maze cells (wide) and even tracks are wall tracks drawn as thin lines.
@@ -1015,6 +1019,7 @@ function renderModeratorGrid() {
         noWall(x - 1, y) && noWall(x + 1, y) && noWall(x, y - 1) && noWall(x, y + 1);
       if (maze[y][x] === 1 && !isIsolatedPillar) cell.classList.add("wall");
       if (localSet.has(key)) cell.classList.add("local-path");
+      if (prefetchSet.has(key)) cell.classList.add("prefetch-path");
       if (aiSet.has(key)) cell.classList.add("ai-path");
       if (x === goal.x && y === goal.y) cell.classList.add("goal");
       if (x === player.x && y === player.y) {
@@ -1142,6 +1147,10 @@ function serializeTrialState() {
     plan_status: planStatus,
     latest_latency_ms: latestLatencyMs,
     hint_visible: visibleAiPath.length > 1 && hintVisibleUntil > 0,
+    // Prefetch overlay for the moderator: status + the hint the participant would
+    // get if they pressed Ask AI right now (from the background-fetched route).
+    prefetch_status: prefetch.key ? (prefetch.data ? "ready" : "fetching") : "none",
+    prefetch_hint: prefetch.data ? clampHint(prefetch.data.full_path) : [],
     reset_token: currentResetToken,
     event_log: eventLog.slice(-60),
   };
@@ -1214,6 +1223,8 @@ function applyRemoteTrialState(state) {
     ? state.visible_ai_path.map(normalizeCell)
     : activeFullPath.map((cell) => ({ ...cell }));
   planStatus = typeof state.plan_status === "string" ? state.plan_status : planStatus;
+  remotePrefetchStatus = typeof state.prefetch_status === "string" ? state.prefetch_status : "none";
+  remotePrefetchHint = Array.isArray(state.prefetch_hint) ? state.prefetch_hint.map(normalizeCell) : [];
   latestLatencyMs = state.latest_latency_ms == null ? null : Number(state.latest_latency_ms);
   hintVisibleUntil = state.hint_visible ? Number.POSITIVE_INFINITY : 0;
   if (Array.isArray(state.event_log)) {
@@ -1341,6 +1352,13 @@ function updateUi() {
   elements.positionText.textContent = `(${player.x}, ${player.y})`;
   elements.moderatorFacing.textContent = DIRS[facing].name;
   elements.storedPathText.textContent = activeFullPath.length ? `${activeFullPath.length} cells (${planStatus})` : "none";
+  if (elements.prefetchText) {
+    elements.prefetchText.textContent = remotePrefetchStatus === "ready"
+      ? `ready (${remotePrefetchHint.length}-cell hint)`
+      : remotePrefetchStatus === "fetching"
+        ? "fetching…"
+        : "none";
+  }
   elements.latencyText.textContent = latestLatencyMs == null ? "n/a" : `${latestLatencyMs} ms`;
 
   elements.hintButton.disabled = !aiOn || hintRequestInFlight;

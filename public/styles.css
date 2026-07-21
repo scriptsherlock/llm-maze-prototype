@@ -486,6 +486,12 @@ h2 {
   background: #f87171;
 }
 
+/* Prefetched (not-yet-shown) AI hint: violet, dashed to read as "pending". */
+.validator-cell.prefetch-path {
+  background: #c4b5fd;
+  box-shadow: inset 0 0 0 2px #7c3aed;
+}
+
 .validator-cell.goal {
   background: #22c55e;
 }
@@ -539,6 +545,7 @@ h2 {
 .legend-swatch.goal { background: #22c55e; }
 .legend-swatch.local { background: #fde68a; }
 .legend-swatch.ai { background: #f87171; }
+.legend-swatch.prefetch { background: #c4b5fd; box-shadow: inset 0 0 0 2px #7c3aed; }
 .hidden {
   display: none;
 }
