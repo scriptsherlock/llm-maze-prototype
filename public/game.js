@@ -66,6 +66,10 @@ function getAiCondition() {
 }
 
 const aiCondition = getAiCondition();
+// v3 herding mode: one AI call at the start, then a rolling 3-step cue (arrow +
+// text) that always points at the NEXT steps and advances block by block to the
+// goal — no Ask AI button. Set false to restore the manual on-demand hint.
+const AUTO_HERD = true;
 // Rollback: set false to disable background prefetch of the next AI hint.
 const PREFETCH_HINTS = false;
 
@@ -121,13 +125,13 @@ buildCityScene();
 buildAvatar();
 bindControls();
 setView(currentView);
-// No-AI (control) group: mark the controls row so CSS removes the Ask AI button
-// and evenly reflows the remaining four buttons (no empty slot).
-if (!aiCondition) {
+// Remove the Ask AI button (and reflow to four buttons) for the no-AI control group
+// AND for herding mode, where the hint is automatic rather than requested.
+if (!aiCondition || AUTO_HERD) {
   const controls = document.querySelector(".experiment-controls");
   if (controls) controls.classList.add("no-ai");
 }
-loadServerState();
+loadServerState().then(startAutoHerd);
 logState("start_trial");
 resizeRenderer();
 renderFrame();
@@ -604,7 +608,37 @@ function clampHint(path) {
   return legal;
 }
 
+// v3 herding: keep the full precomputed route; the visible window always shows the
+// next few legal steps from the player's CURRENT cell and rolls forward — persistent
+// but never stale — guiding them block by block to the goal.
+function advanceHerd() {
+  if (!activeFullPath.length) {
+    planStatus = "none";
+    return;
+  }
+  const idx = activeFullPath.findIndex((cell) => sameCell(cell, player));
+  if (idx === -1) {
+    // Off the route (a wrong turn at a junction): herd them back, no trail.
+    planStatus = "deviated";
+    visibleAiPath = [];
+    activeHintPath = [];
+    hintBannerText = "Head back to the route";
+    hintVisibleUntil = Number.POSITIVE_INFINITY;
+    refreshHintMarkers();
+    return;
+  }
+  visibleAiPath = clampHint(activeFullPath.slice(idx)); // next few steps from the player
+  activeHintPath = visibleAiPath.slice(1);
+  hintVisibleUntil = visibleAiPath.length > 1 ? Number.POSITIVE_INFINITY : 0;
+  planStatus = idx >= activeFullPath.length - 1 ? "complete" : "following";
+  refreshHintMarkers();
+}
+
 function advanceStoredPathAfterMove() {
+  if (AUTO_HERD) {
+    advanceHerd();
+    return;
+  }
   // The full AI route survives beyond the visible hint window: advance it while
   // the participant stays on it so later hints can be served instantly from it,
   // and drop it the moment they step off (a fresh AI call is needed then).
@@ -798,6 +832,13 @@ function runPrefetch() {
 function clearPrefetch() {
   clearTimeout(prefetchTimer);
   prefetch = { key: null, promise: null, data: null };
+}
+
+// v3 herding: fire the single AI call at trial start; advanceHerd() then rolls the
+// window to the goal on its own. Only the participant fetches.
+function startAutoHerd() {
+  if (!AUTO_HERD || !aiCondition || currentView !== "participant") return;
+  showHint();
 }
 
 async function showHint() {
