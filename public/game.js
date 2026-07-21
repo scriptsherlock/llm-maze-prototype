@@ -67,7 +67,7 @@ function getAiCondition() {
 
 const aiCondition = getAiCondition();
 // Rollback: set false to disable background prefetch of the next AI hint.
-const PREFETCH_HINTS = true;
+const PREFETCH_HINTS = false;
 
 const elements = {
   scene: document.getElementById("scene"),
