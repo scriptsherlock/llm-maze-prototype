@@ -64,6 +64,8 @@ function getAiCondition() {
 }
 
 const aiCondition = getAiCondition();
+// Rollback: set false to disable background prefetch of the next AI hint.
+const PREFETCH_HINTS = true;
 
 const elements = {
   scene: document.getElementById("scene"),
@@ -543,6 +545,7 @@ function attemptMove(dx, dy, action) {
   player = { x: nx, y: ny };
   moves += 1;
   advanceStoredPathAfterMove();
+  schedulePrefetch();
   logState("move", { attempted_move: action, attempted_x: nx, attempted_y: ny, plan_status: planStatus });
 
   if (player.x === goal.x && player.y === goal.y) {
@@ -732,6 +735,68 @@ function stopThinkingIndicator() {
   renderer.render(scene, camera);
 }
 
+// ---- Prefetch (A): fetch the next hint in the background while the participant
+// walks, so a later Ask AI can be served instantly. All gated by PREFETCH_HINTS. ----
+let prefetch = { key: null, promise: null, data: null };
+let prefetchTimer = null;
+
+function cellKey(cell) {
+  return `${cell.x},${cell.y}`;
+}
+
+async function fetchHintData(playerCell, facingName, clientEventId) {
+  const response = await fetch("/api/hint", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      maze,
+      player: playerCell,
+      facing: facingName,
+      goal,
+      max_hint_steps: aiCueLength,
+      move_count: moves,
+      client_event_id: clientEventId,
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok || data.status !== "path_found") {
+    throw new Error(data.message || "AI did not return a valid path.");
+  }
+  return data;
+}
+
+function schedulePrefetch() {
+  if (!PREFETCH_HINTS || !aiCondition || !aiOn || currentView !== "participant") return;
+  // Only worth prefetching when a fresh call would otherwise be needed, i.e. the
+  // stored route no longer starts at the player (they consumed or left it).
+  if (activeFullPath.length > 1 && sameCell(activeFullPath[0], player)) return;
+  clearTimeout(prefetchTimer);
+  prefetchTimer = setTimeout(runPrefetch, 700); // debounce: only when they pause
+}
+
+function runPrefetch() {
+  if (!PREFETCH_HINTS || hintRequestInFlight) return;
+  const key = cellKey(player);
+  if (prefetch.key === key) return; // already have / fetching this cell
+  const snapshot = { ...player };
+  const eventId = `prefetch-${Date.now()}-${++lastEventId}`;
+  const promise = fetchHintData(snapshot, DIRS[facing].name, eventId)
+    .then((data) => {
+      if (prefetch.key === key) prefetch.data = data; // ignore if player has moved on
+      return data;
+    })
+    .catch(() => {
+      if (prefetch.key === key) clearPrefetch();
+      return null;
+    });
+  prefetch = { key, promise, data: null };
+}
+
+function clearPrefetch() {
+  clearTimeout(prefetchTimer);
+  prefetch = { key: null, promise: null, data: null };
+}
+
 async function showHint() {
   if (!aiCondition) return; // no-AI (control) group: hints are disabled
   if (currentView !== "participant") return;
@@ -776,26 +841,20 @@ async function showHint() {
   updateUi();
 
   try {
-    const response = await fetch("/api/hint", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        maze,
-        player,
-        facing: DIRS[facing].name,
-        goal,
-        max_hint_steps: aiCueLength,
-        move_count: moves,
-        client_event_id: clientEventId,
-      }),
-    });
-
-    const data = await response.json();
-    latestLatencyMs = data.latency_ms ?? Date.now() - requestedAt;
-
-    if (!response.ok || data.status !== "path_found") {
-      throw new Error(data.message || "AI did not return a valid path.");
+    // Use a ready (or in-flight) prefetch for this exact cell if we have one.
+    let data = null;
+    const key = cellKey(player);
+    if (PREFETCH_HINTS && prefetch.key === key && (prefetch.data || prefetch.promise)) {
+      const cached = prefetch.data || await prefetch.promise;
+      clearPrefetch();
+      if (cached && cached.status === "path_found") data = cached;
     }
+    const servedFromPrefetch = data != null;
+    if (!data) {
+      clearPrefetch(); // cancel any pending/stale prefetch; fetching directly now
+      data = await fetchHintData(player, DIRS[facing].name, clientEventId);
+    }
+    latestLatencyMs = data.latency_ms ?? Date.now() - requestedAt;
 
     activeFullPath = data.full_path;
     // Reveal only the next few legal steps as the hint (not the whole route,
@@ -813,6 +872,8 @@ async function showHint() {
     refreshHintMarkers();
     logState("llm_response_received", {
       client_event_id: clientEventId,
+      served_from_prefetch: servedFromPrefetch,
+      felt_latency_ms: Date.now() - requestedAt,
       full_path_length: activeFullPath.length,
       hint_steps_count: activeHintPath.length,
       llm_latency_ms: latestLatencyMs,
@@ -856,6 +917,7 @@ async function toggleAI() {
 
   if (!aiOn) {
     clearVisibleHint();
+    clearPrefetch();
   }
 
   logState(aiOn ? "moderator_enabled_ai" : "moderator_disabled_ai");
@@ -879,6 +941,7 @@ function resetLocalTrial() {
   startTime = Date.now();
   finishedAt = null;
   clearVisibleHint();
+  clearPrefetch();
   activeFullPath = [];
   visibleAiPath = [];
   planStatus = "none";
