@@ -13,9 +13,12 @@ const hintDurationMs = 3200;
 const cellSize = 4;
 const wallHeight = 3.2;
 const wallThickness = 0.28;
-const CAMERA_HEIGHT = 2.2;      // raised eye height for a better view of the layout ahead
-const CAMERA_LOOK_AHEAD = 4.5;  // cells ahead the camera aims at
-const CAMERA_LOOK_HEIGHT = 1.7; // gentle downward tilt (keeps walls + sky in view)
+// Trial uses eye-level first-person. Set RAISED_CAMERA = true for the higher,
+// slightly-tilted overview (easier to see the layout ahead).
+const RAISED_CAMERA = false;
+const CAMERA_HEIGHT = RAISED_CAMERA ? 2.2 : 1.72;
+const CAMERA_LOOK_AHEAD = RAISED_CAMERA ? 4.5 : 3.4;
+const CAMERA_LOOK_HEIGHT = RAISED_CAMERA ? 1.7 : 1.55;
 
 let currentView = getInitialView();
 // Rollback flag: set to false to restore the turn-by-turn (facing-relative) hint text.
@@ -163,8 +166,8 @@ if (aiCondition) {
 
 function createMaterials() {
   return {
-    street: new THREE.MeshPhysicalMaterial({ color: 0x061a3a, roughness: 0.12, metalness: 0.32, clearcoat: 1, clearcoatRoughness: 0.04 }),
-    streetAlt: new THREE.MeshPhysicalMaterial({ color: 0x0a2450, roughness: 0.1, metalness: 0.28, clearcoat: 1, clearcoatRoughness: 0.03 }),
+    street: new THREE.MeshStandardMaterial({ color: 0x9aa1ad, roughness: 0.96 }),
+    streetAlt: new THREE.MeshStandardMaterial({ color: 0x8d94a1, roughness: 0.96 }),
     wall: new THREE.MeshPhysicalMaterial({ color: 0xa8bdc9, roughness: 0.2, metalness: 0.56, clearcoat: 0.9, clearcoatRoughness: 0.08 }),
     wallCap: new THREE.MeshPhysicalMaterial({ color: 0xd4e6ef, roughness: 0.14, metalness: 0.5, clearcoat: 1, clearcoatRoughness: 0.06 }),
     destination: new THREE.MeshStandardMaterial({ color: 0xd97706, emissive: 0x92400e, emissiveIntensity: 0.45, roughness: 0.38 }),
@@ -217,7 +220,7 @@ function buildCityScene() {
 
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(cols * cellSize + 18, rows * cellSize + 18),
-    new THREE.MeshStandardMaterial({ color: 0x08111f, roughness: 0.72 })
+    new THREE.MeshStandardMaterial({ color: 0x6f8a55, roughness: 0.9 })
   );
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.08;
