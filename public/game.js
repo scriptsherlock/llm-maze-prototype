@@ -12,6 +12,9 @@ const hintDurationMs = 3200;
 const cellSize = 4;
 const wallHeight = 3.2;
 const wallThickness = 0.28;
+const CAMERA_HEIGHT = 2.2;      // raised eye height for a better view of the layout ahead
+const CAMERA_LOOK_AHEAD = 4.5;  // cells ahead the camera aims at
+const CAMERA_LOOK_HEIGHT = 1.7; // gentle downward tilt (keeps walls + sky in view)
 
 let currentView = getInitialView();
 // Rollback flag: set to false to restore the turn-by-turn (facing-relative) hint text.
@@ -1366,8 +1369,8 @@ function refreshHintMarkers() {
 function updateCamera() {
   const pos = worldFromCell(player.x, player.y);
   const dir = DIRS[facing];
-  camera.position.set(pos.x, 1.72, pos.z);
-  camera.lookAt(pos.x + dir.dx * 3.4, 1.55, pos.z + dir.dy * 3.4);
+  camera.position.set(pos.x, CAMERA_HEIGHT, pos.z);
+  camera.lookAt(pos.x + dir.dx * CAMERA_LOOK_AHEAD, CAMERA_LOOK_HEIGHT, pos.z + dir.dy * CAMERA_LOOK_AHEAD);
 
   avatarGroup.position.set(pos.x, 0, pos.z);
   avatarGroup.rotation.y = -DIRS[facing].angle + Math.PI / 2;
