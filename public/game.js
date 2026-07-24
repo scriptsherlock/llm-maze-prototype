@@ -116,10 +116,11 @@ scene.fog = new THREE.Fog(0xadc7dd, 20, 54);
 // (deterministically chosen) building. While BUILDING_MODELS is empty this is a
 // no-op and the procedural box walls stay, so the app always works.
 const BUILDING_ASSET_PATH = "/assets/city/";
-const BUILDING_MODELS = [
-  // { file: "building-type-a.glb", scale: 1, yaw: 0 },
-  // { file: "building-type-b.glb", scale: 1, yaw: 0 },
-];
+// Kenney City Kit — building-type-a … building-type-u (21 models).
+const BUILDING_MODELS = "abcdefghijklmnopqrstu".split("").map((letter) => ({
+  file: `building-type-${letter}.glb`,
+  scale: 1,
+}));
 const wallMeshes = []; // procedural box walls, hidden once buildings load
 
 const camera = new THREE.PerspectiveCamera(66, 1, 0.1, 120);
@@ -253,11 +254,12 @@ function placeBuildings(models) {
       if (!hasOpenNeighbor(x, y)) continue;  // only walls a participant can actually see
 
       const model = models[deterministicPick(x, y, models.length)];
-      const building = model.scene.clone(true);
+      const building = model.scene.clone(true); // clones share geometry/materials
       fitModelToCell(building, model.config);
       const pos = worldFromCell(x, y);
       building.position.x = pos.x;
       building.position.z = pos.z;
+      building.rotation.y = streetFacingYaw(x, y);
       building.traverse((node) => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; } });
       scene.add(building);
     }
@@ -266,6 +268,16 @@ function placeBuildings(models) {
 
 function hasOpenNeighbor(x, y) {
   return isOpen(x - 1, y) || isOpen(x + 1, y) || isOpen(x, y - 1) || isOpen(x, y + 1);
+}
+
+// Face the building toward an adjacent street (best-effort; a model's "front" may
+// vary, but this orients the row sensibly along the corridor).
+function streetFacingYaw(x, y) {
+  if (isOpen(x, y + 1)) return 0;             // street to the south
+  if (isOpen(x, y - 1)) return Math.PI;       // north
+  if (isOpen(x + 1, y)) return -Math.PI / 2;  // east
+  if (isOpen(x - 1, y)) return Math.PI / 2;   // west
+  return 0;
 }
 
 // Same choice for the same cell on every run/participant (consistent stimulus).
@@ -279,9 +291,9 @@ function fitModelToCell(object, config) {
   const size = new THREE.Vector3();
   bounds.getSize(size);
   const footprint = Math.max(size.x, size.z) || 1;
-  object.scale.setScalar((cellSize / footprint) * (config.scale || 1));
-  object.rotation.y = config.yaw || 0;
-  // Sit the base on the floor.
+  // Fit the footprint just under the cell so neighbours don't visibly clip.
+  object.scale.setScalar((cellSize * 0.94 / footprint) * (config.scale || 1));
+  // Sit the base on the floor (bbox y-min to 0).
   const scaledBounds = new THREE.Box3().setFromObject(object);
   object.position.y = -scaledBounds.min.y;
 }
