@@ -1,4 +1,5 @@
 import * as THREE from "/vendor/three/three.module.js";
+import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
 import { DIRS, MAZE_CONFIG } from "./maze.js";
 
 const maze = MAZE_CONFIG.maze;
@@ -110,6 +111,17 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xadc7dd);
 scene.fog = new THREE.Fog(0xadc7dd, 20, 54);
 
+// Buildings-as-walls (v4 / option B): drop Kenney City Kit .glb files in
+// public/assets/city/ and list them here. Each wall cell facing a corridor gets a
+// (deterministically chosen) building. While BUILDING_MODELS is empty this is a
+// no-op and the procedural box walls stay, so the app always works.
+const BUILDING_ASSET_PATH = "/assets/city/";
+const BUILDING_MODELS = [
+  // { file: "building-type-a.glb", scale: 1, yaw: 0 },
+  // { file: "building-type-b.glb", scale: 1, yaw: 0 },
+];
+const wallMeshes = []; // procedural box walls, hidden once buildings load
+
 const camera = new THREE.PerspectiveCamera(66, 1, 0.1, 120);
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -214,6 +226,64 @@ function buildCityScene() {
   buildStreetCells();
   buildMazeWallPanels();
   buildGoal();
+  buildBuildings();
+}
+
+function buildBuildings() {
+  if (!BUILDING_MODELS.length) return; // no assets configured -> keep box walls
+  const loader = new GLTFLoader();
+  Promise.all(BUILDING_MODELS.map((config) => new Promise((resolve) => {
+    loader.load(
+      BUILDING_ASSET_PATH + config.file,
+      (gltf) => resolve({ scene: gltf.scene, config }),
+      undefined,
+      () => resolve(null)
+    );
+  }))).then((loaded) => placeBuildings(loaded.filter(Boolean)))
+    .catch((error) => console.warn("Building assets failed to load; keeping box walls.", error));
+}
+
+function placeBuildings(models) {
+  if (!models.length) return;
+  wallMeshes.forEach((mesh) => { mesh.visible = false; }); // buildings replace the boxes
+
+  for (let y = 0; y < rows; y += 1) {
+    for (let x = 0; x < cols; x += 1) {
+      if (maze[y][x] !== 1) continue;        // wall cells only
+      if (!hasOpenNeighbor(x, y)) continue;  // only walls a participant can actually see
+
+      const model = models[deterministicPick(x, y, models.length)];
+      const building = model.scene.clone(true);
+      fitModelToCell(building, model.config);
+      const pos = worldFromCell(x, y);
+      building.position.x = pos.x;
+      building.position.z = pos.z;
+      building.traverse((node) => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; } });
+      scene.add(building);
+    }
+  }
+}
+
+function hasOpenNeighbor(x, y) {
+  return isOpen(x - 1, y) || isOpen(x + 1, y) || isOpen(x, y - 1) || isOpen(x, y + 1);
+}
+
+// Same choice for the same cell on every run/participant (consistent stimulus).
+function deterministicPick(x, y, count) {
+  const hash = (x * 73856093) ^ (y * 19349663);
+  return Math.abs(hash) % count;
+}
+
+function fitModelToCell(object, config) {
+  const bounds = new THREE.Box3().setFromObject(object);
+  const size = new THREE.Vector3();
+  bounds.getSize(size);
+  const footprint = Math.max(size.x, size.z) || 1;
+  object.scale.setScalar((cellSize / footprint) * (config.scale || 1));
+  object.rotation.y = config.yaw || 0;
+  // Sit the base on the floor.
+  const scaledBounds = new THREE.Box3().setFromObject(object);
+  object.position.y = -scaledBounds.min.y;
 }
 
 function buildStreetCells() {
@@ -257,6 +327,7 @@ function buildMazeWallPanels() {
         cap.receiveShadow = true;
 
         scene.add(wall, cap);
+        wallMeshes.push(wall, cap);
       }
     }
   }
