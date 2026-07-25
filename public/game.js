@@ -15,7 +15,7 @@ const wallHeight = 3.2;
 const wallThickness = 0.28;
 // Trial uses eye-level first-person. Set RAISED_CAMERA = true for the higher,
 // slightly-tilted overview (easier to see the layout ahead).
-const RAISED_CAMERA = false;
+const RAISED_CAMERA = true;
 const CAMERA_HEIGHT = RAISED_CAMERA ? 2.2 : 1.72;
 const CAMERA_LOOK_AHEAD = RAISED_CAMERA ? 4.5 : 3.4;
 const CAMERA_LOOK_HEIGHT = RAISED_CAMERA ? 1.7 : 1.55;
