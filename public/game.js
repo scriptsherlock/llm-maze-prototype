@@ -87,6 +87,8 @@ const ROUTE_EVAL_MODE = true;
 let routeEvalText = "";
 let routeEvalInFlight = false;
 let lastPlayerCell = null;
+const junctionEvals = new Map(); // "x,y" -> [{x,y,verdict,steps,reason}] (precomputed)
+let precomputing = false;
 // Rollback: set false to disable background prefetch of the next AI hint.
 const PREFETCH_HINTS = false;
 
@@ -159,7 +161,7 @@ if (!aiCondition || AUTO_HERD || ROUTE_EVAL_MODE) {
   const controls = document.querySelector(".experiment-controls");
   if (controls) controls.classList.add("no-ai");
 }
-loadServerState().then(startAutoHerd);
+loadServerState().then(() => { startAutoHerd(); startRouteEval(); });
 logState("start_trial");
 resizeRenderer();
 renderFrame();
@@ -738,13 +740,61 @@ function formatRouteEval(branches) {
     const dx = b.x - player.x;
     const dy = b.y - player.y;
     if (Math.abs(dx) + Math.abs(dy) !== 1) continue; // only adjacent branches
+    const reason = b.reason ? ` — ${b.reason}` : "";
     let phrase;
-    if (b.verdict === "dead_end") phrase = "likely a dead end";
-    else if (b.verdict === "detour") phrase = `longer (~${b.steps} steps)`;
+    if (b.verdict === "dead_end") phrase = `likely a dead end${reason}`;
+    else if (b.verdict === "detour") phrase = `longer, ~${b.steps} steps${reason}`;
     else phrase = `~${b.steps} steps`;
     parts.push(`${egoLabel(dx, dy)}: ${phrase}`);
   }
   return parts.join("   ·   ");
+}
+
+// ---- Precompute at trial start: one call evaluates every junction, so the cue is
+// ready instantly at each one (no per-junction wait). ----
+function allJunctions() {
+  const list = [];
+  for (let y = 0; y < rows; y += 1) {
+    for (let x = 0; x < cols; x += 1) {
+      if (!isOpen(x, y)) continue;
+      const branches = junctionBranches({ x, y }, null);
+      if (branches.length >= 3) list.push({ x, y, branches });
+    }
+  }
+  return list;
+}
+
+async function precomputeJunctions() {
+  const junctions = allJunctions();
+  if (!junctions.length) return;
+  precomputing = true;
+  updateUi();
+  try {
+    const response = await fetch("/api/route-eval-batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ maze, goal, junctions }),
+    });
+    const data = await response.json();
+    if (response.ok && data.status === "evaluated") {
+      for (const j of data.junctions || []) junctionEvals.set(`${j.x},${j.y}`, j.branches || []);
+      latestLatencyMs = data.latency_ms ?? latestLatencyMs;
+      logState("route_eval_precomputed", { junctions: junctionEvals.size, llm_latency_ms: data.latency_ms });
+    } else {
+      logState("route_eval_precompute_failed", { message: data.message });
+    }
+  } catch (error) {
+    logState("route_eval_precompute_failed", { message: error.message });
+  } finally {
+    precomputing = false;
+    maybeEvaluateJunction(); // reveal the starting junction now that cues are ready
+    updateUi();
+  }
+}
+
+function startRouteEval() {
+  if (!ROUTE_EVAL_MODE || !aiCondition || currentView !== "participant") return;
+  precomputeJunctions();
 }
 
 // Only a real junction (3+ open neighbours) is a decision point worth evaluating.
@@ -753,7 +803,15 @@ function maybeEvaluateJunction() {
     routeEvalText = ""; // corridor / dead-end: no comparison to make
     return;
   }
-  evaluateJunction();
+  const precomputed = junctionEvals.get(`${player.x},${player.y}`);
+  if (precomputed) {
+    // Instant: drop the branch we came from, label the rest relative to facing.
+    const options = lastPlayerCell ? precomputed.filter((b) => !sameCell(b, lastPlayerCell)) : precomputed;
+    routeEvalText = formatRouteEval(options);
+    return;
+  }
+  if (precomputing) { routeEvalText = ""; return; } // cues still loading
+  evaluateJunction(); // fallback: this junction wasn't precomputed → live call
 }
 
 async function evaluateJunction() {
@@ -1649,9 +1707,11 @@ function updateUi() {
   }
   if (ROUTE_EVAL_MODE && aiCondition && currentView === "participant" && !blockedFlashActive) {
     // Route-evaluation mechanic: show the AI's junction comparison (or its status).
-    const evalText = routeEvalInFlight
-      ? "AI weighing up the paths…"
-      : routeEvalText || "Explore the maze and find the EXIT";
+    const evalText = precomputing
+      ? "AI is studying the maze…"
+      : routeEvalInFlight
+        ? "AI weighing up the paths…"
+        : routeEvalText || "Explore the maze and find the EXIT";
     elements.hintBanner.textContent = evalText;
     bannerVisible = true;
   }
