@@ -114,17 +114,15 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xadc7dd);
 scene.fog = new THREE.Fog(0xadc7dd, 20, 54);
 
-// Buildings-as-walls (v4 / option B): drop Kenney City Kit .glb files in
-// public/assets/city/ and list them here. Each wall cell facing a corridor gets a
-// (deterministically chosen) building. While BUILDING_MODELS is empty this is a
-// no-op and the procedural box walls stay, so the app always works.
-const BUILDING_ASSET_PATH = "/assets/city/";
-// Kenney City Kit — building-type-a … building-type-u (21 models).
-const BUILDING_MODELS = "abcdefghijklmnopqrstu".split("").map((letter) => ({
-  file: `building-type-${letter}.glb`,
-  scale: 1,
-}));
-const wallMeshes = []; // procedural box walls, hidden once buildings load
+// Hedge-maze walls (v4): the Quaternius hedge model fills each wall cell to form
+// continuous green hedge walls, replacing the procedural box walls. `fill` stretches
+// the model to the cell footprint so hedges tile seamlessly. Empty list = no-op
+// fallback (box walls stay), so the app always works.
+const HEDGE_URL = "/assets/" + encodeURIComponent("Hedge by Quaternius - df8uCl1YpK.glb");
+const WALL_MODELS = [
+  { url: HEDGE_URL, fill: true, height: 3.8 },
+];
+const wallMeshes = []; // procedural box walls, hidden once wall models load
 
 const camera = new THREE.PerspectiveCamera(66, 1, 0.1, 120);
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -166,8 +164,8 @@ if (aiCondition) {
 
 function createMaterials() {
   return {
-    street: new THREE.MeshStandardMaterial({ color: 0x9aa1ad, roughness: 0.96 }),
-    streetAlt: new THREE.MeshStandardMaterial({ color: 0x8d94a1, roughness: 0.96 }),
+    street: new THREE.MeshStandardMaterial({ color: 0x7fa25a, roughness: 0.97 }),
+    streetAlt: new THREE.MeshStandardMaterial({ color: 0x769754, roughness: 0.97 }),
     wall: new THREE.MeshPhysicalMaterial({ color: 0xa8bdc9, roughness: 0.2, metalness: 0.56, clearcoat: 0.9, clearcoatRoughness: 0.08 }),
     wallCap: new THREE.MeshPhysicalMaterial({ color: 0xd4e6ef, roughness: 0.14, metalness: 0.5, clearcoat: 1, clearcoatRoughness: 0.06 }),
     destination: new THREE.MeshStandardMaterial({ color: 0xd97706, emissive: 0x92400e, emissiveIntensity: 0.45, roughness: 0.38 }),
@@ -234,17 +232,17 @@ function buildCityScene() {
 }
 
 function buildBuildings() {
-  if (!BUILDING_MODELS.length) return; // no assets configured -> keep box walls
+  if (!WALL_MODELS.length) return; // no models configured -> keep box walls
   const loader = new GLTFLoader();
-  Promise.all(BUILDING_MODELS.map((config) => new Promise((resolve) => {
+  Promise.all(WALL_MODELS.map((config) => new Promise((resolve) => {
     loader.load(
-      BUILDING_ASSET_PATH + config.file,
+      config.url,
       (gltf) => resolve({ scene: gltf.scene, config }),
       undefined,
       () => resolve(null)
     );
   }))).then((loaded) => placeBuildings(loaded.filter(Boolean)))
-    .catch((error) => console.warn("Building assets failed to load; keeping box walls.", error));
+    .catch((error) => console.warn("Wall models failed to load; keeping box walls.", error));
 }
 
 function placeBuildings(models) {
@@ -293,9 +291,19 @@ function fitModelToCell(object, config) {
   const bounds = new THREE.Box3().setFromObject(object);
   const size = new THREE.Vector3();
   bounds.getSize(size);
-  const footprint = Math.max(size.x, size.z) || 1;
-  // Fit the footprint just under the cell so neighbours don't visibly clip.
-  object.scale.setScalar((cellSize * 0.94 / footprint) * (config.scale || 1));
+  if (config.fill) {
+    // Stretch to fill the whole cell footprint + a target height, so tiles form a
+    // continuous, seamless wall (hedge maze).
+    object.scale.set(
+      (cellSize * 1.02) / (size.x || 1),
+      (config.height || wallHeight) / (size.y || 1),
+      (cellSize * 1.02) / (size.z || 1)
+    );
+  } else {
+    // Fit the footprint just under the cell so neighbours don't visibly clip.
+    const footprint = Math.max(size.x, size.z) || 1;
+    object.scale.setScalar((cellSize * 0.94 / footprint) * (config.scale || 1));
+  }
   // Sit the base on the floor (bbox y-min to 0).
   const scaledBounds = new THREE.Box3().setFromObject(object);
   object.position.y = -scaledBounds.min.y;
@@ -1510,7 +1518,7 @@ function updateUi() {
     // Control group: keep a neutral, non-directional status line in the banner
     // area so both conditions have comparable UI presence.
     if (!hintMessageActive && !blockedFlashActive) {
-      elements.hintBanner.textContent = "Explore the streets and find the EXIT";
+      elements.hintBanner.textContent = "Explore the maze and find the EXIT";
     }
     bannerVisible = true;
   }
