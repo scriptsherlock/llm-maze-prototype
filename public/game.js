@@ -17,7 +17,7 @@ const wallThickness = 0.28;
 // (like the reference photo), showing the participant avatar and the layout ahead.
 // false: eye-level first-person.
 const RAISED_CAMERA = true;
-const CAMERA_HEIGHT = RAISED_CAMERA ? 6.5 : 1.72;      // above the hedges (~3.3 tall)
+const CAMERA_HEIGHT = RAISED_CAMERA ? 5.3 : 1.72;      // above the hedges (~3.3 tall)
 const CAMERA_BACK = RAISED_CAMERA ? 4 : 0;             // pull back behind the player
 const CAMERA_LOOK_AHEAD = RAISED_CAMERA ? 4 : 3.4;     // aim ahead of the player
 const CAMERA_LOOK_HEIGHT = RAISED_CAMERA ? 0.4 : 1.55; // aim low → steep downward tilt
