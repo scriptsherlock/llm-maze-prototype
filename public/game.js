@@ -119,9 +119,10 @@ scene.fog = new THREE.Fog(0xadc7dd, 20, 54);
 // the model to the cell footprint so hedges tile seamlessly. Empty list = no-op
 // fallback (box walls stay), so the app always works.
 const HEDGE_URL = "/assets/" + encodeURIComponent("Hedge by Quaternius - df8uCl1YpK.glb");
-const WALL_MODELS = [
-  { url: HEDGE_URL, fill: true, height: 3.8 },
-];
+// Walls are the procedural boxes skinned with the hedge leaf texture (lighter than
+// 100+ hedge model instances). Add { url: HEDGE_URL, fill: true, height: 3.8 } here
+// to switch back to real hedge geometry.
+const WALL_MODELS = [];
 const wallMeshes = []; // procedural box walls, hidden once wall models load
 
 const camera = new THREE.PerspectiveCamera(66, 1, 0.1, 120);
@@ -162,12 +163,44 @@ if (aiCondition) {
   }, 240000);
 }
 
+// Seamless mottled-green hedge/foliage texture drawn on a canvas — reads as clipped
+// hedge on the flat wall panels, with none of the dark gaps of a leaf-sprite atlas.
+function makeHedgeTexture(repeatX, repeatY) {
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#3f5e30";
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < 2600; i += 1) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const shade = 60 + Math.random() * 80;
+    ctx.fillStyle = `rgb(${Math.round(shade * 0.55)}, ${Math.round(shade)}, ${Math.round(shade * 0.42)})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 1 + Math.random() * 2.4, 0, Math.PI * 2);
+    ctx.fill();
+    // Wrap speckles across edges so the texture tiles seamlessly.
+    if (x < 3 || x > size - 3 || y < 3 || y > size - 3) {
+      ctx.beginPath();
+      ctx.arc((x + size / 2) % size, (y + size / 2) % size, 1 + Math.random() * 2.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(repeatX, repeatY);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 function createMaterials() {
   return {
     street: new THREE.MeshStandardMaterial({ color: 0x7fa25a, roughness: 0.97 }),
     streetAlt: new THREE.MeshStandardMaterial({ color: 0x769754, roughness: 0.97 }),
-    wall: new THREE.MeshPhysicalMaterial({ color: 0xa8bdc9, roughness: 0.2, metalness: 0.56, clearcoat: 0.9, clearcoatRoughness: 0.08 }),
-    wallCap: new THREE.MeshPhysicalMaterial({ color: 0xd4e6ef, roughness: 0.14, metalness: 0.5, clearcoat: 1, clearcoatRoughness: 0.06 }),
+    // Hedge walls: box panels skinned with a mottled-green foliage texture.
+    wall: new THREE.MeshStandardMaterial({ map: makeHedgeTexture(4, 3), roughness: 0.95 }),
+    wallCap: new THREE.MeshStandardMaterial({ map: makeHedgeTexture(4, 1), roughness: 0.95 }),
     destination: new THREE.MeshStandardMaterial({ color: 0xd97706, emissive: 0x92400e, emissiveIntensity: 0.45, roughness: 0.38 }),
     hintLine: new THREE.MeshBasicMaterial({ color: 0xef4444 }),
     hintArrow: new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide }),
