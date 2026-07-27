@@ -122,6 +122,32 @@ app.post("/api/hint", async (req, res) => {
   }
 });
 
+// v5: the AI evaluates the branches at a junction (route-evaluation mechanic).
+app.post("/api/route-eval", async (req, res) => {
+  const startedAt = Date.now();
+  if (!aiEnabled) {
+    res.status(403).json({ status: "ai_disabled", message: "AI assistance is disabled.", latency_ms: Date.now() - startedAt });
+    return;
+  }
+  const credentialError = hintEngine.getCredentialError();
+  if (credentialError) {
+    res.status(503).json({ status: "missing_api_key", message: credentialError, latency_ms: Date.now() - startedAt });
+    return;
+  }
+  const stateError = hintEngine.validateRouteRequest(req.body);
+  if (stateError) {
+    res.status(400).json({ status: "bad_request", message: stateError, latency_ms: Date.now() - startedAt });
+    return;
+  }
+  try {
+    const result = await hintEngine.evaluateRoutes(req.body, logServerError);
+    res.json({ ...result, latency_ms: Date.now() - startedAt });
+  } catch (error) {
+    logServerError("route_eval_failed", { provider, model, message: error.message, player: req.body && req.body.player, goal: req.body && req.body.goal });
+    res.status(error.statusCode || 502).json({ status: "llm_failed", message: error.message || "Route evaluation failed.", latency_ms: Date.now() - startedAt });
+  }
+});
+
 function logServerError(action, details) {
   try {
     fs.mkdirSync(errorLogDir, { recursive: true });

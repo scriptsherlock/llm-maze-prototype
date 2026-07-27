@@ -78,7 +78,15 @@ const aiCondition = getAiCondition();
 // v3 herding mode: one AI call at the start, then a rolling 3-step cue (arrow +
 // text) that always points at the NEXT steps and advances block by block to the
 // goal — no Ask AI button. Set false to restore the manual on-demand hint.
-const AUTO_HERD = true;
+const AUTO_HERD = false;
+// v5 route-evaluation mechanic: at every junction the AI compares the branches
+// ("Left: ~15 steps · Right: likely a dead end") instead of drawing a path/arrow.
+// LLM-only (it can be wrong), automatic at junctions, text only. Set false to
+// restore the path-hint arrow mechanic.
+const ROUTE_EVAL_MODE = true;
+let routeEvalText = "";
+let routeEvalInFlight = false;
+let lastPlayerCell = null;
 // Rollback: set false to disable background prefetch of the next AI hint.
 const PREFETCH_HINTS = false;
 
@@ -147,7 +155,7 @@ bindControls();
 setView(currentView);
 // Remove the Ask AI button (and reflow to four buttons) for the no-AI control group
 // AND for herding mode, where the hint is automatic rather than requested.
-if (!aiCondition || AUTO_HERD) {
+if (!aiCondition || AUTO_HERD || ROUTE_EVAL_MODE) {
   const controls = document.querySelector(".experiment-controls");
   if (controls) controls.classList.add("no-ai");
 }
@@ -681,11 +689,17 @@ function attemptMove(dx, dy, action) {
     return;
   }
 
+  const cameFrom = { ...player };
   player = { x: nx, y: ny };
   moves += 1;
   advanceStoredPathAfterMove();
   schedulePrefetch();
   logState("move", { attempted_move: action, attempted_x: nx, attempted_y: ny, plan_status: planStatus });
+
+  if (ROUTE_EVAL_MODE) {
+    lastPlayerCell = cameFrom;
+    maybeEvaluateJunction();
+  }
 
   if (player.x === goal.x && player.y === goal.y) {
     if (finishedAt == null) finishedAt = Date.now();
@@ -695,6 +709,80 @@ function attemptMove(dx, dy, action) {
   }
 
   updateUi();
+}
+
+// ---- Route-evaluation mechanic (v5) ----------------------------------------
+function openNeighborCount(cell) {
+  return DIRS.reduce((n, d) => n + (isOpen(cell.x + d.dx, cell.y + d.dy) ? 1 : 0), 0);
+}
+
+// Branches at a junction: the open neighbours except the cell we came from.
+function junctionBranches(cell, cameFrom) {
+  const branches = [];
+  for (const d of DIRS) {
+    const next = { x: cell.x + d.dx, y: cell.y + d.dy };
+    if (!isOpen(next.x, next.y)) continue;
+    if (cameFrom && sameCell(next, cameFrom)) continue;
+    branches.push(next);
+  }
+  return branches;
+}
+
+function egoLabel(dx, dy) {
+  return { straight: "Ahead", right: "Right", left: "Left", back: "Back" }[relativeTurn(DIRS[facing], dx, dy)];
+}
+
+function formatRouteEval(branches) {
+  const parts = [];
+  for (const b of branches) {
+    const dx = b.x - player.x;
+    const dy = b.y - player.y;
+    if (Math.abs(dx) + Math.abs(dy) !== 1) continue; // only adjacent branches
+    let phrase;
+    if (b.verdict === "dead_end") phrase = "likely a dead end";
+    else if (b.verdict === "detour") phrase = `longer (~${b.steps} steps)`;
+    else phrase = `~${b.steps} steps`;
+    parts.push(`${egoLabel(dx, dy)}: ${phrase}`);
+  }
+  return parts.join("   ·   ");
+}
+
+// Only a real junction (3+ open neighbours) is a decision point worth evaluating.
+function maybeEvaluateJunction() {
+  if (!aiOn || openNeighborCount(player) < 3) {
+    routeEvalText = ""; // corridor / dead-end: no comparison to make
+    return;
+  }
+  evaluateJunction();
+}
+
+async function evaluateJunction() {
+  const branches = junctionBranches(player, lastPlayerCell);
+  if (branches.length < 2) { routeEvalText = ""; return; }
+
+  routeEvalInFlight = true;
+  const requestedAt = Date.now();
+  logState("route_eval_requested", { x: player.x, y: player.y, branches: branches.length });
+  updateUi();
+
+  try {
+    const response = await fetch("/api/route-eval", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ maze, player, goal, branches }),
+    });
+    const data = await response.json();
+    if (!response.ok || data.status !== "evaluated") throw new Error(data.message || "Route evaluation failed.");
+    routeEvalText = formatRouteEval(data.branches || []);
+    latestLatencyMs = data.latency_ms ?? Date.now() - requestedAt;
+    logState("route_eval_received", { llm_latency_ms: latestLatencyMs, count: (data.branches || []).length, text: routeEvalText });
+  } catch (error) {
+    routeEvalText = "AI couldn't assess the paths — your call.";
+    logState("route_eval_failed", { message: error.message });
+  } finally {
+    routeEvalInFlight = false;
+    updateUi();
+  }
 }
 
 function moveForward() {
@@ -1557,6 +1645,14 @@ function updateUi() {
     if (!hintMessageActive && !blockedFlashActive) {
       elements.hintBanner.textContent = "Explore the maze and find the EXIT";
     }
+    bannerVisible = true;
+  }
+  if (ROUTE_EVAL_MODE && aiCondition && currentView === "participant" && !blockedFlashActive) {
+    // Route-evaluation mechanic: show the AI's junction comparison (or its status).
+    const evalText = routeEvalInFlight
+      ? "AI weighing up the paths…"
+      : routeEvalText || "Explore the maze and find the EXIT";
+    elements.hintBanner.textContent = evalText;
     bannerVisible = true;
   }
   elements.hintBanner.classList.toggle("visible", bannerVisible);
