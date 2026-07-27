@@ -13,12 +13,14 @@ const hintDurationMs = 3200;
 const cellSize = 4;
 const wallHeight = 3.2;
 const wallThickness = 0.28;
-// Trial uses eye-level first-person. Set RAISED_CAMERA = true for the higher,
-// slightly-tilted overview (easier to see the layout ahead).
+// RAISED_CAMERA = true: an elevated over-the-shoulder drone view above the hedges
+// (like the reference photo), showing the participant avatar and the layout ahead.
+// false: eye-level first-person.
 const RAISED_CAMERA = true;
-const CAMERA_HEIGHT = RAISED_CAMERA ? 2.2 : 1.72;
-const CAMERA_LOOK_AHEAD = RAISED_CAMERA ? 4.5 : 3.4;
-const CAMERA_LOOK_HEIGHT = RAISED_CAMERA ? 1.7 : 1.55;
+const CAMERA_HEIGHT = RAISED_CAMERA ? 6.5 : 1.72;      // above the hedges (~3.3 tall)
+const CAMERA_BACK = RAISED_CAMERA ? 4 : 0;             // pull back behind the player
+const CAMERA_LOOK_AHEAD = RAISED_CAMERA ? 4 : 3.4;     // aim ahead of the player
+const CAMERA_LOOK_HEIGHT = RAISED_CAMERA ? 0.4 : 1.55; // aim low → steep downward tilt
 
 let currentView = getInitialView();
 // Rollback flag: set to false to restore the turn-by-turn (facing-relative) hint text.
@@ -1496,11 +1498,13 @@ function refreshHintMarkers() {
 function updateCamera() {
   const pos = worldFromCell(player.x, player.y);
   const dir = DIRS[facing];
-  camera.position.set(pos.x, CAMERA_HEIGHT, pos.z);
+  camera.position.set(pos.x - dir.dx * CAMERA_BACK, CAMERA_HEIGHT, pos.z - dir.dy * CAMERA_BACK);
   camera.lookAt(pos.x + dir.dx * CAMERA_LOOK_AHEAD, CAMERA_LOOK_HEIGHT, pos.z + dir.dy * CAMERA_LOOK_AHEAD);
 
   avatarGroup.position.set(pos.x, 0, pos.z);
   avatarGroup.rotation.y = -DIRS[facing].angle + Math.PI / 2;
+  // Show the participant avatar in the raised (third-person) view.
+  avatarGroup.visible = RAISED_CAMERA;
 }
 
 function updateUi() {
