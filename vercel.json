@@ -1,6 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "public",
+  "installCommand": "npm install --omit=dev",
+  "build": { "env": { "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1" } },
   "rewrites": [
     { "source": "/", "destination": "/index.html" },
     { "source": "/participant", "destination": "/index.html" },
