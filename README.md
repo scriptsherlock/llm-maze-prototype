@@ -36,7 +36,7 @@ For Gemini:
 ```env
 LLM_PROVIDER=gemini
 GEMINI_API_KEY=your-gemini-key
-GEMINI_MODEL=gemini-2.5-flash-lite
+GEMINI_MODEL=gemini-3.1-flash-lite
 ```
 
 Gemini keys cannot be spent on OpenAI's API directly. They are used through Google's Gemini API with structured JSON output.

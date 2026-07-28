@@ -23,7 +23,7 @@ function with your Gemini key kept **server-side** (never sent to the browser).
    Use the same values as your local `.env`:
    - `LLM_PROVIDER` = `gemini`
    - `GEMINI_API_KEY` = *your key*
-   - `GEMINI_MODEL` = *your model* (optional; e.g. `gemini-2.5-flash-lite`)
+   - `GEMINI_MODEL` = *your model* (optional; e.g. `gemini-3.1-flash-lite`)
 
 4. **Deploy.** You get a URL like `https://your-maze.vercel.app`.
 
