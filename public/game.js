@@ -95,7 +95,7 @@ let precomputing = false;
 //   "ai"  – the LLM solves the maze and returns the cues at trial start
 //           (its own verdicts/steps/reasons, fallible).
 // Default is set here; override per-session with ?cues=ai or ?cues=bfs.
-const CUE_SOURCE_DEFAULT = "bfs";
+const CUE_SOURCE_DEFAULT = "ai";
 const CUE_SOURCE = (() => {
   const search = globalThis.location ? globalThis.location.search : "";
   const value = (new URLSearchParams(search).get("cues") || "").toLowerCase();
