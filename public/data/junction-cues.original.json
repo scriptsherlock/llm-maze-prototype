@@ -1,0 +1,905 @@
+{
+  "maze": "original",
+  "generated_at": "2026-07-28T17:14:38.679Z",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite",
+  "goal": {
+    "x": 13,
+    "y": 13
+  },
+  "junctions": [
+    {
+      "x": 1,
+      "y": 1,
+      "branches": [
+        {
+          "x": 2,
+          "y": 1,
+          "verdict": "detour",
+          "steps": 28,
+          "reason": "reaches goal but is 4 steps longer than the other path"
+        },
+        {
+          "x": 1,
+          "y": 2,
+          "verdict": "toward_goal",
+          "steps": 24,
+          "reason": "shortest way to the goal"
+        },
+        {
+          "x": 0,
+          "y": 1,
+          "verdict": "dead_end",
+          "steps": 1,
+          "reason": "closes off after 1 step, no way through"
+        }
+      ]
+    },
+    {
+      "x": 9,
+      "y": 1,
+      "branches": [
+        {
+          "x": 10,
+          "y": 1,
+          "verdict": "toward_goal",
+          "steps": 16,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 9,
+          "y": 2,
+          "verdict": "detour",
+          "steps": 16,
+          "reason": "reaches goal but is equal to the shortest path"
+        },
+        {
+          "x": 8,
+          "y": 1,
+          "verdict": "detour",
+          "steps": 24,
+          "reason": "much longer route, 8 steps more than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 11,
+      "y": 1,
+      "branches": [
+        {
+          "x": 12,
+          "y": 1,
+          "verdict": "toward_goal",
+          "steps": 14,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 11,
+          "y": 2,
+          "verdict": "detour",
+          "steps": 14,
+          "reason": "reaches goal but is equal to the shortest path"
+        },
+        {
+          "x": 10,
+          "y": 1,
+          "verdict": "detour",
+          "steps": 26,
+          "reason": "much longer route, 12 steps more than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 1,
+      "y": 3,
+      "branches": [
+        {
+          "x": 1,
+          "y": 2,
+          "verdict": "dead_end",
+          "steps": 1,
+          "reason": "closes off after 1 step, leads back to junction"
+        },
+        {
+          "x": 2,
+          "y": 3,
+          "verdict": "dead_end",
+          "steps": 7,
+          "reason": "loops back to the junction after 7 steps"
+        },
+        {
+          "x": 1,
+          "y": 4,
+          "verdict": "toward_goal",
+          "steps": 22,
+          "reason": "only path that leads toward the goal"
+        }
+      ]
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "branches": [
+        {
+          "x": 5,
+          "y": 2,
+          "verdict": "detour",
+          "steps": 22,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 6,
+          "y": 3,
+          "verdict": "detour",
+          "steps": 22,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 5,
+          "y": 4,
+          "verdict": "toward_goal",
+          "steps": 18,
+          "reason": "shortest path to the goal"
+        }
+      ]
+    },
+    {
+      "x": 9,
+      "y": 3,
+      "branches": [
+        {
+          "x": 9,
+          "y": 2,
+          "verdict": "detour",
+          "steps": 18,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 10,
+          "y": 3,
+          "verdict": "toward_goal",
+          "steps": 14,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 9,
+          "y": 4,
+          "verdict": "detour",
+          "steps": 14,
+          "reason": "reaches goal but is equal to the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 11,
+      "y": 3,
+      "branches": [
+        {
+          "x": 11,
+          "y": 2,
+          "verdict": "detour",
+          "steps": 16,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 11,
+          "y": 4,
+          "verdict": "toward_goal",
+          "steps": 12,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 10,
+          "y": 3,
+          "verdict": "detour",
+          "steps": 20,
+          "reason": "much longer route, 8 steps more than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 3,
+      "y": 5,
+      "branches": [
+        {
+          "x": 4,
+          "y": 5,
+          "verdict": "toward_goal",
+          "steps": 18,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 3,
+          "y": 6,
+          "verdict": "toward_goal",
+          "steps": 18,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 2,
+          "y": 5,
+          "verdict": "dead_end",
+          "steps": 1,
+          "reason": "closes off after 1 step, leads back to junction"
+        }
+      ]
+    },
+    {
+      "x": 5,
+      "y": 5,
+      "branches": [
+        {
+          "x": 5,
+          "y": 4,
+          "verdict": "detour",
+          "steps": 24,
+          "reason": "much longer route, 8 steps more than the shortest path"
+        },
+        {
+          "x": 6,
+          "y": 5,
+          "verdict": "detour",
+          "steps": 20,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 5,
+          "y": 6,
+          "verdict": "toward_goal",
+          "steps": 16,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 4,
+          "y": 5,
+          "verdict": "detour",
+          "steps": 20,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 9,
+      "y": 5,
+      "branches": [
+        {
+          "x": 9,
+          "y": 4,
+          "verdict": "detour",
+          "steps": 16,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 10,
+          "y": 5,
+          "verdict": "toward_goal",
+          "steps": 12,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 9,
+          "y": 6,
+          "verdict": "toward_goal",
+          "steps": 12,
+          "reason": "shortest path to the goal"
+        }
+      ]
+    },
+    {
+      "x": 11,
+      "y": 5,
+      "branches": [
+        {
+          "x": 11,
+          "y": 4,
+          "verdict": "detour",
+          "steps": 22,
+          "reason": "much longer route, 12 steps more than the shortest path"
+        },
+        {
+          "x": 11,
+          "y": 6,
+          "verdict": "toward_goal",
+          "steps": 10,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 10,
+          "y": 5,
+          "verdict": "detour",
+          "steps": 18,
+          "reason": "much longer route, 8 steps more than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 3,
+      "y": 7,
+      "branches": [
+        {
+          "x": 3,
+          "y": 6,
+          "verdict": "detour",
+          "steps": 20,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 4,
+          "y": 7,
+          "verdict": "toward_goal",
+          "steps": 16,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 3,
+          "y": 8,
+          "verdict": "toward_goal",
+          "steps": 16,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 2,
+          "y": 7,
+          "verdict": "detour",
+          "steps": 20,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 5,
+      "y": 7,
+      "branches": [
+        {
+          "x": 5,
+          "y": 6,
+          "verdict": "detour",
+          "steps": 22,
+          "reason": "much longer route, 8 steps more than the shortest path"
+        },
+        {
+          "x": 6,
+          "y": 7,
+          "verdict": "toward_goal",
+          "steps": 14,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 5,
+          "y": 8,
+          "verdict": "toward_goal",
+          "steps": 14,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 4,
+          "y": 7,
+          "verdict": "detour",
+          "steps": 18,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 7,
+      "y": 7,
+      "branches": [
+        {
+          "x": 8,
+          "y": 7,
+          "verdict": "toward_goal",
+          "steps": 12,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 7,
+          "y": 8,
+          "verdict": "toward_goal",
+          "steps": 12,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 6,
+          "y": 7,
+          "verdict": "detour",
+          "steps": 16,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 9,
+      "y": 7,
+      "branches": [
+        {
+          "x": 9,
+          "y": 6,
+          "verdict": "detour",
+          "steps": 14,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 10,
+          "y": 7,
+          "verdict": "toward_goal",
+          "steps": 10,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 9,
+          "y": 8,
+          "verdict": "toward_goal",
+          "steps": 10,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 8,
+          "y": 7,
+          "verdict": "detour",
+          "steps": 14,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 11,
+      "y": 7,
+      "branches": [
+        {
+          "x": 11,
+          "y": 6,
+          "verdict": "detour",
+          "steps": 20,
+          "reason": "much longer route, 12 steps more than the shortest path"
+        },
+        {
+          "x": 12,
+          "y": 7,
+          "verdict": "toward_goal",
+          "steps": 8,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 11,
+          "y": 8,
+          "verdict": "toward_goal",
+          "steps": 8,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 10,
+          "y": 7,
+          "verdict": "detour",
+          "steps": 12,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 13,
+      "y": 7,
+      "branches": [
+        {
+          "x": 13,
+          "y": 6,
+          "verdict": "detour",
+          "steps": 34,
+          "reason": "much longer route, 28 steps more than the shortest path"
+        },
+        {
+          "x": 13,
+          "y": 8,
+          "verdict": "toward_goal",
+          "steps": 6,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 12,
+          "y": 7,
+          "verdict": "detour",
+          "steps": 10,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 1,
+      "y": 9,
+      "branches": [
+        {
+          "x": 1,
+          "y": 8,
+          "verdict": "detour",
+          "steps": 20,
+          "reason": "much longer route, 4 steps more than the shortest path"
+        },
+        {
+          "x": 2,
+          "y": 9,
+          "verdict": "toward_goal",
+          "steps": 16,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 1,
+          "y": 10,
+          "verdict": "toward_goal",
+          "steps": 16,
+          "reason": "shortest path to the goal"
+        }
+      ]
+    },
+    {
+      "x": 3,
+      "y": 9,
+      "branches": [
+        {
+          "x": 3,
+          "y": 8,
+          "verdict": "detour",
+          "steps": 18,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 4,
+          "y": 9,
+          "verdict": "toward_goal",
+          "steps": 14,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 2,
+          "y": 9,
+          "verdict": "detour",
+          "steps": 18,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 5,
+      "y": 9,
+      "branches": [
+        {
+          "x": 5,
+          "y": 8,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "closes off after 8 steps, loops back to junction"
+        },
+        {
+          "x": 6,
+          "y": 9,
+          "verdict": "toward_goal",
+          "steps": 12,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 5,
+          "y": 10,
+          "verdict": "toward_goal",
+          "steps": 12,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 4,
+          "y": 9,
+          "verdict": "detour",
+          "steps": 20,
+          "reason": "much longer route, 8 steps more than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 7,
+      "y": 9,
+      "branches": [
+        {
+          "x": 7,
+          "y": 8,
+          "verdict": "detour",
+          "steps": 14,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 7,
+          "y": 10,
+          "verdict": "toward_goal",
+          "steps": 10,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 6,
+          "y": 9,
+          "verdict": "detour",
+          "steps": 14,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 11,
+      "y": 9,
+      "branches": [
+        {
+          "x": 11,
+          "y": 8,
+          "verdict": "detour",
+          "steps": 10,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 12,
+          "y": 9,
+          "verdict": "toward_goal",
+          "steps": 6,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 11,
+          "y": 10,
+          "verdict": "toward_goal",
+          "steps": 6,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 10,
+          "y": 9,
+          "verdict": "detour",
+          "steps": 14,
+          "reason": "much longer route, 8 steps more than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 13,
+      "y": 9,
+      "branches": [
+        {
+          "x": 13,
+          "y": 8,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "closes off after 8 steps, loops back to junction"
+        },
+        {
+          "x": 13,
+          "y": 10,
+          "verdict": "toward_goal",
+          "steps": 4,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 12,
+          "y": 9,
+          "verdict": "detour",
+          "steps": 8,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 1,
+      "y": 11,
+      "branches": [
+        {
+          "x": 1,
+          "y": 10,
+          "verdict": "detour",
+          "steps": 18,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 2,
+          "y": 11,
+          "verdict": "toward_goal",
+          "steps": 14,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 1,
+          "y": 12,
+          "verdict": "toward_goal",
+          "steps": 14,
+          "reason": "shortest path to the goal"
+        }
+      ]
+    },
+    {
+      "x": 5,
+      "y": 11,
+      "branches": [
+        {
+          "x": 5,
+          "y": 10,
+          "verdict": "detour",
+          "steps": 14,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 6,
+          "y": 11,
+          "verdict": "toward_goal",
+          "steps": 10,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 4,
+          "y": 11,
+          "verdict": "detour",
+          "steps": 18,
+          "reason": "much longer route, 8 steps more than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 7,
+      "y": 11,
+      "branches": [
+        {
+          "x": 7,
+          "y": 10,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "closes off after 8 steps, loops back to junction"
+        },
+        {
+          "x": 7,
+          "y": 12,
+          "verdict": "toward_goal",
+          "steps": 8,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 6,
+          "y": 11,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "closes off after 8 steps, loops back to junction"
+        }
+      ]
+    },
+    {
+      "x": 11,
+      "y": 11,
+      "branches": [
+        {
+          "x": 11,
+          "y": 10,
+          "verdict": "detour",
+          "steps": 8,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 12,
+          "y": 11,
+          "verdict": "toward_goal",
+          "steps": 4,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 11,
+          "y": 12,
+          "verdict": "toward_goal",
+          "steps": 4,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 10,
+          "y": 11,
+          "verdict": "detour",
+          "steps": 8,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 13,
+      "y": 11,
+      "branches": [
+        {
+          "x": 13,
+          "y": 10,
+          "verdict": "detour",
+          "steps": 4,
+          "reason": "reaches goal but is 2 steps longer than the shortest path"
+        },
+        {
+          "x": 13,
+          "y": 12,
+          "verdict": "toward_goal",
+          "steps": 2,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 12,
+          "y": 11,
+          "verdict": "detour",
+          "steps": 4,
+          "reason": "reaches goal but is 2 steps longer than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 7,
+      "y": 13,
+      "branches": [
+        {
+          "x": 7,
+          "y": 12,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "closes off after 8 steps, loops back to junction"
+        },
+        {
+          "x": 8,
+          "y": 13,
+          "verdict": "toward_goal",
+          "steps": 6,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 6,
+          "y": 13,
+          "verdict": "detour",
+          "steps": 14,
+          "reason": "much longer route, 8 steps more than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 9,
+      "y": 13,
+      "branches": [
+        {
+          "x": 9,
+          "y": 12,
+          "verdict": "detour",
+          "steps": 8,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 10,
+          "y": 13,
+          "verdict": "toward_goal",
+          "steps": 4,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 8,
+          "y": 13,
+          "verdict": "detour",
+          "steps": 8,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        }
+      ]
+    },
+    {
+      "x": 11,
+      "y": 13,
+      "branches": [
+        {
+          "x": 11,
+          "y": 12,
+          "verdict": "detour",
+          "steps": 6,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        },
+        {
+          "x": 12,
+          "y": 13,
+          "verdict": "toward_goal",
+          "steps": 2,
+          "reason": "shortest path to the goal"
+        },
+        {
+          "x": 10,
+          "y": 13,
+          "verdict": "detour",
+          "steps": 6,
+          "reason": "reaches goal but is 4 steps longer than the shortest path"
+        }
+      ]
+    }
+  ]
+}

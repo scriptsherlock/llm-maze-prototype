@@ -1,0 +1,282 @@
+{
+  "maze": "default",
+  "generated_at": "2026-07-28T17:13:48.413Z",
+  "provider": "gemini",
+  "model": "gemini-3.1-flash-lite",
+  "goal": {
+    "x": 9,
+    "y": 16
+  },
+  "junctions": [
+    {
+      "x": 7,
+      "y": 1,
+      "branches": [
+        {
+          "x": 7,
+          "y": 0,
+          "verdict": "dead_end",
+          "steps": 1,
+          "reason": "closes off after 1 step, no way through"
+        },
+        {
+          "x": 8,
+          "y": 1,
+          "verdict": "toward_goal",
+          "steps": 41,
+          "reason": "shortest way here, heads straight toward the goal"
+        },
+        {
+          "x": 6,
+          "y": 1,
+          "verdict": "dead_end",
+          "steps": 24,
+          "reason": "closes off after 24 steps, no way through"
+        }
+      ]
+    },
+    {
+      "x": 9,
+      "y": 1,
+      "branches": [
+        {
+          "x": 10,
+          "y": 1,
+          "verdict": "toward_goal",
+          "steps": 39,
+          "reason": "shortest way here, heads straight toward the goal"
+        },
+        {
+          "x": 9,
+          "y": 2,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "closes off after 2 steps, no way through"
+        },
+        {
+          "x": 8,
+          "y": 1,
+          "verdict": "dead_end",
+          "steps": 10,
+          "reason": "closes off after 10 steps, no way through"
+        }
+      ]
+    },
+    {
+      "x": 11,
+      "y": 1,
+      "branches": [
+        {
+          "x": 12,
+          "y": 1,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "closes off after 8 steps, no way through"
+        },
+        {
+          "x": 11,
+          "y": 2,
+          "verdict": "toward_goal",
+          "steps": 37,
+          "reason": "shortest way here, heads straight toward the goal"
+        },
+        {
+          "x": 10,
+          "y": 1,
+          "verdict": "dead_end",
+          "steps": 28,
+          "reason": "closes off after 28 steps, no way through"
+        }
+      ]
+    },
+    {
+      "x": 5,
+      "y": 3,
+      "branches": [
+        {
+          "x": 5,
+          "y": 2,
+          "verdict": "detour",
+          "steps": 45,
+          "reason": "reaches the goal but loops ~8 steps longer"
+        },
+        {
+          "x": 6,
+          "y": 3,
+          "verdict": "dead_end",
+          "steps": 20,
+          "reason": "closes off after 20 steps, no way through"
+        },
+        {
+          "x": 5,
+          "y": 4,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "closes off after 4 steps, no way through"
+        }
+      ]
+    },
+    {
+      "x": 11,
+      "y": 5,
+      "branches": [
+        {
+          "x": 11,
+          "y": 4,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "closes off after 8 steps, no way through"
+        },
+        {
+          "x": 12,
+          "y": 5,
+          "verdict": "dead_end",
+          "steps": 16,
+          "reason": "closes off after 16 steps, no way through"
+        },
+        {
+          "x": 10,
+          "y": 5,
+          "verdict": "toward_goal",
+          "steps": 33,
+          "reason": "shortest way here, heads straight toward the goal"
+        }
+      ]
+    },
+    {
+      "x": 7,
+      "y": 7,
+      "branches": [
+        {
+          "x": 7,
+          "y": 6,
+          "verdict": "detour",
+          "steps": 51,
+          "reason": "reaches the goal but loops ~14 steps longer"
+        },
+        {
+          "x": 7,
+          "y": 8,
+          "verdict": "dead_end",
+          "steps": 14,
+          "reason": "closes off after 14 steps, no way through"
+        },
+        {
+          "x": 6,
+          "y": 7,
+          "verdict": "dead_end",
+          "steps": 16,
+          "reason": "closes off after 16 steps, no way through"
+        }
+      ]
+    },
+    {
+      "x": 13,
+      "y": 7,
+      "branches": [
+        {
+          "x": 13,
+          "y": 6,
+          "verdict": "toward_goal",
+          "steps": 37,
+          "reason": "shortest way here, heads straight toward the goal"
+        },
+        {
+          "x": 13,
+          "y": 8,
+          "verdict": "dead_end",
+          "steps": 12,
+          "reason": "closes off after 12 steps, no way through"
+        },
+        {
+          "x": 12,
+          "y": 7,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "closes off after 2 steps, no way through"
+        }
+      ]
+    },
+    {
+      "x": 9,
+      "y": 11,
+      "branches": [
+        {
+          "x": 10,
+          "y": 11,
+          "verdict": "dead_end",
+          "steps": 12,
+          "reason": "closes off after 12 steps, no way through"
+        },
+        {
+          "x": 9,
+          "y": 12,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "closes off after 2 steps, no way through"
+        },
+        {
+          "x": 8,
+          "y": 11,
+          "verdict": "toward_goal",
+          "steps": 21,
+          "reason": "shortest way here, heads straight toward the goal"
+        }
+      ]
+    },
+    {
+      "x": 11,
+      "y": 11,
+      "branches": [
+        {
+          "x": 11,
+          "y": 10,
+          "verdict": "dead_end",
+          "steps": 42,
+          "reason": "closes off after 42 steps, no way through"
+        },
+        {
+          "x": 11,
+          "y": 12,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "closes off after 4 steps, no way through"
+        },
+        {
+          "x": 10,
+          "y": 11,
+          "verdict": "toward_goal",
+          "steps": 23,
+          "reason": "shortest way here, heads straight toward the goal"
+        }
+      ]
+    },
+    {
+      "x": 11,
+      "y": 13,
+      "branches": [
+        {
+          "x": 11,
+          "y": 12,
+          "verdict": "toward_goal",
+          "steps": 25,
+          "reason": "shortest way here, heads straight toward the goal"
+        },
+        {
+          "x": 12,
+          "y": 13,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "closes off after 8 steps, no way through"
+        },
+        {
+          "x": 11,
+          "y": 14,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "closes off after 2 steps, no way through"
+        }
+      ]
+    }
+  ]
+}

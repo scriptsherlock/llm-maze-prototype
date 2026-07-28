@@ -8,6 +8,7 @@
     "start": "node server.js",
     "dev": "node server.js",
     "check": "node --check server.js",
+    "build-cues": "node scripts/build-cues.mjs",
     "verify:render": "node scripts/verify-render.js"
   },
   "dependencies": {

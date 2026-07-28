@@ -1,6 +1,6 @@
 import * as THREE from "/vendor/three/three.module.js";
 import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
-import { DIRS, MAZE_CONFIG } from "./maze.js";
+import { DIRS, MAZE_CONFIG, MAZE_KEY } from "./maze.js";
 
 const maze = MAZE_CONFIG.maze;
 const rows = maze.length;
@@ -90,16 +90,18 @@ let lastPlayerCell = null;
 const junctionEvals = new Map(); // "x,y" -> [{x,y,verdict,steps,reason}] (precomputed)
 let precomputing = false;
 // CUE_SOURCE selects who produces the junction cues:
-//   "bfs" – computed locally from the known maze with exact BFS ground truth
-//           (no AI call at all, always correct, instant).
-//   "ai"  – the LLM solves the maze and returns the cues at trial start
-//           (its own verdicts/steps/reasons, fallible).
-// Default is set here; override per-session with ?cues=ai or ?cues=bfs.
-const CUE_SOURCE_DEFAULT = "ai";
+//   "file" – load cues precomputed offline by scripts/build-cues.mjs from
+//            public/data/junction-cues.<maze>.json (no runtime AI call — the AI
+//            was run once at build time; instant, deploy-safe). DEPLOYMENT DEFAULT.
+//   "ai"   – the LLM solves the maze and returns the cues live at trial start
+//            (its own verdicts/steps/reasons, fallible; used to (re)generate).
+//   "bfs"  – computed locally from the known maze with exact BFS ground truth.
+// Default is set here; override per-session with ?cues=file / ?cues=ai / ?cues=bfs.
+const CUE_SOURCE_DEFAULT = "file";
 const CUE_SOURCE = (() => {
   const search = globalThis.location ? globalThis.location.search : "";
   const value = (new URLSearchParams(search).get("cues") || "").toLowerCase();
-  return value === "ai" || value === "bfs" ? value : CUE_SOURCE_DEFAULT;
+  return ["file", "ai", "bfs"].includes(value) ? value : CUE_SOURCE_DEFAULT;
 })();
 // AI_PRECOMPUTE_ONLY (ai mode): use ONLY the cues precomputed once at trial start.
 // Never make a live per-junction call — so there is no wait at a junction, and no
@@ -877,6 +879,21 @@ async function precomputeJunctions() {
     // No AI call: exact cues computed locally and instantly.
     computeJunctionCues();
     logState("route_eval_precomputed", { junctions: junctionEvals.size, source: "bfs" });
+    maybeEvaluateJunction(); // reveal the starting junction immediately
+    updateUi();
+    return;
+  }
+  if (CUE_SOURCE === "file") {
+    // No runtime AI call: load cues the offline generator already produced.
+    try {
+      const response = await fetch(`/data/junction-cues.${MAZE_KEY}.json`);
+      if (!response.ok) throw new Error(`cue file HTTP ${response.status}`);
+      const data = await response.json();
+      for (const j of data.junctions || []) junctionEvals.set(`${j.x},${j.y}`, j.branches || []);
+      logState("route_eval_precomputed", { junctions: junctionEvals.size, source: "file", generated_at: data.generated_at });
+    } catch (error) {
+      logState("route_eval_precompute_failed", { source: "file", message: error.message });
+    }
     maybeEvaluateJunction(); // reveal the starting junction immediately
     updateUi();
     return;

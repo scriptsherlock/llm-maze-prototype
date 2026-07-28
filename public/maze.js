@@ -12,6 +12,9 @@ export const MAZE_CONFIG = useOriginalMaze
   ? ORIGINAL_15X15_MAZE_CONFIG
   : FIXED_8X8_MAZE_CONFIG;
 
+// Key for the precomputed cue file (public/data/junction-cues.<MAZE_KEY>.json).
+export const MAZE_KEY = useOriginalMaze ? "original" : "default";
+
 export const DIRS = [
   { dx: 0, dy: -1, name: "North", short: "N", angle: -Math.PI / 2 },
   { dx: 1, dy: 0, name: "East", short: "E", angle: 0 },
