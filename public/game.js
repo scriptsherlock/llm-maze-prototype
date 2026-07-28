@@ -89,10 +89,18 @@ let routeEvalInFlight = false;
 let lastPlayerCell = null;
 const junctionEvals = new Map(); // "x,y" -> [{x,y,verdict,steps,reason}] (precomputed)
 let precomputing = false;
-// DETERMINISTIC_CUES = true: compute every junction cue locally from the known maze
-// with exact BFS ground truth (no AI call at all). Cues are always correct and
-// instant. Set false to route cues through the LLM (fallible) again.
-const DETERMINISTIC_CUES = true;
+// CUE_SOURCE selects who produces the junction cues:
+//   "bfs" – computed locally from the known maze with exact BFS ground truth
+//           (no AI call at all, always correct, instant).
+//   "ai"  – the LLM solves the maze and returns the cues at trial start
+//           (its own verdicts/steps/reasons, fallible).
+// Default is set here; override per-session with ?cues=ai or ?cues=bfs.
+const CUE_SOURCE_DEFAULT = "bfs";
+const CUE_SOURCE = (() => {
+  const search = globalThis.location ? globalThis.location.search : "";
+  const value = (new URLSearchParams(search).get("cues") || "").toLowerCase();
+  return value === "ai" || value === "bfs" ? value : CUE_SOURCE_DEFAULT;
+})();
 // Rollback: set false to disable background prefetch of the next AI hint.
 const PREFETCH_HINTS = false;
 
@@ -860,10 +868,10 @@ function computeJunctionCues() {
 async function precomputeJunctions() {
   const junctions = allJunctions();
   if (!junctions.length) return;
-  if (DETERMINISTIC_CUES) {
+  if (CUE_SOURCE === "bfs") {
     // No AI call: exact cues computed locally and instantly.
     computeJunctionCues();
-    logState("route_eval_precomputed", { junctions: junctionEvals.size, source: "deterministic" });
+    logState("route_eval_precomputed", { junctions: junctionEvals.size, source: "bfs" });
     maybeEvaluateJunction(); // reveal the starting junction immediately
     updateUi();
     return;
@@ -911,8 +919,8 @@ function maybeEvaluateJunction() {
     routeEvalText = formatRouteEval(options);
     return;
   }
-  if (precomputing || DETERMINISTIC_CUES) { routeEvalText = ""; return; } // never call AI
-  evaluateJunction(); // fallback: this junction wasn't precomputed → live call
+  if (precomputing || CUE_SOURCE === "bfs") { routeEvalText = ""; return; } // bfs mode never calls AI
+  evaluateJunction(); // ai mode fallback: this junction wasn't precomputed → live call
 }
 
 async function evaluateJunction() {
