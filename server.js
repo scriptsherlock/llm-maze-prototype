@@ -11,6 +11,7 @@ const port = Number(process.env.PORT || 3000);
 const { provider, model } = hintEngine;
 const errorLogDir = path.join(__dirname, "error_logs");
 const serverErrorLogPath = path.join(errorLogDir, "server_errors.jsonl");
+const aiCuesPath = path.join(errorLogDir, "ai_cues.json");
 
 let aiEnabled = true;
 let sharedTrialState = null;
@@ -44,6 +45,20 @@ app.get("/api/state", (_req, res) => {
 
 app.get("/api/server-logs", (_req, res) => {
   res.json({ logs: readServerLogs(40) });
+});
+
+// The most recent AI-produced junction cues (ai mode). Viewable in the browser
+// at /api/ai-cues; also written to error_logs/ai_cues.json on disk.
+app.get("/api/ai-cues", (_req, res) => {
+  try {
+    if (!fs.existsSync(aiCuesPath)) {
+      res.json({ status: "empty", message: "No AI cues yet — run a trial with ?cues=ai." });
+      return;
+    }
+    res.type("application/json").send(fs.readFileSync(aiCuesPath, "utf8"));
+  } catch (error) {
+    res.status(500).json({ status: "read_failed", message: error.message });
+  }
 });
 
 app.get("/api/trial-state", (_req, res) => {
@@ -167,12 +182,31 @@ app.post("/api/route-eval-batch", async (req, res) => {
   }
   try {
     const result = await hintEngine.evaluateJunctionsBatch(req.body, logServerError);
+    saveAiCues(req.body, result);
     res.json({ ...result, latency_ms: Date.now() - startedAt });
   } catch (error) {
     logServerError("route_eval_batch_failed", { provider, model, message: error.message });
     res.status(error.statusCode || 502).json({ status: "llm_failed", message: error.message || "Batch route evaluation failed.", latency_ms: Date.now() - startedAt });
   }
 });
+
+// Persist the AI's raw junction cues so they can be inspected (and later refined).
+function saveAiCues(request, result) {
+  try {
+    fs.mkdirSync(errorLogDir, { recursive: true });
+    const payload = {
+      generated_at: new Date().toISOString(),
+      provider,
+      model,
+      goal: request && request.goal,
+      status: result && result.status,
+      junctions: (result && result.junctions) || [],
+    };
+    fs.writeFileSync(aiCuesPath, JSON.stringify(payload, null, 2));
+  } catch (_error) {
+    // Never let cue-logging break the participant flow.
+  }
+}
 
 function logServerError(action, details) {
   try {

@@ -885,6 +885,10 @@ async function precomputeJunctions() {
       body: JSON.stringify({ maze, goal, junctions }),
     });
     const data = await response.json();
+    // Surface the raw AI output for inspection: `window.__aiCues` in the console,
+    // and a one-line dump. The server also writes it to error_logs/ai_cues.json.
+    window.__aiCues = data;
+    console.log("[AI cues JSON]", JSON.stringify(data, null, 2));
     if (response.ok && data.status === "evaluated") {
       for (const j of data.junctions || []) junctionEvals.set(`${j.x},${j.y}`, j.branches || []);
       latestLatencyMs = data.latency_ms ?? latestLatencyMs;

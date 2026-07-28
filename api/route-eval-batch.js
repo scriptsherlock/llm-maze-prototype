@@ -31,6 +31,7 @@ module.exports = async (req, res) => {
   try {
     const logError = (action, details) => console.warn("[route-eval-batch]", action, JSON.stringify(details));
     const result = await evaluateJunctionsBatch(body, logError);
+    console.log("[route-eval-batch] AI cues:", JSON.stringify({ goal: body.goal, junctions: result.junctions }));
     res.status(200).json({ ...result, latency_ms: Date.now() - startedAt });
   } catch (error) {
     res.status(error.statusCode || 502).json({ status: "llm_failed", message: error.message || "Batch route evaluation failed.", latency_ms: Date.now() - startedAt, provider, model });
