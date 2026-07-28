@@ -3,6 +3,9 @@
   "outputDirectory": "public",
   "installCommand": "npm install --omit=dev",
   "build": { "env": { "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1" } },
+  "functions": {
+    "api/route-eval-batch.js": { "maxDuration": 60 }
+  },
   "rewrites": [
     { "source": "/", "destination": "/index.html" },
     { "source": "/participant", "destination": "/index.html" },
