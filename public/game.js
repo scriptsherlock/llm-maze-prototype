@@ -89,6 +89,10 @@ let routeEvalInFlight = false;
 let lastPlayerCell = null;
 const junctionEvals = new Map(); // "x,y" -> [{x,y,verdict,steps,reason}] (precomputed)
 let precomputing = false;
+// DETERMINISTIC_CUES = true: compute every junction cue locally from the known maze
+// with exact BFS ground truth (no AI call at all). Cues are always correct and
+// instant. Set false to route cues through the LLM (fallible) again.
+const DETERMINISTIC_CUES = true;
 // Rollback: set false to disable background prefetch of the next AI hint.
 const PREFETCH_HINTS = false;
 
@@ -742,7 +746,7 @@ function formatRouteEval(branches) {
     if (Math.abs(dx) + Math.abs(dy) !== 1) continue; // only adjacent branches
     const reason = b.reason ? ` — ${b.reason}` : "";
     let phrase;
-    if (b.verdict === "dead_end") phrase = `likely a dead end${reason}`;
+    if (b.verdict === "dead_end") phrase = `${b.reason ? "a" : "likely a"} dead end${reason}`;
     else if (b.verdict === "detour") phrase = `longer, ~${b.steps} steps${reason}`;
     else phrase = `~${b.steps} steps`;
     parts.push(`${egoLabel(dx, dy)}: ${phrase}`);
@@ -764,9 +768,106 @@ function allJunctions() {
   return list;
 }
 
+// ---- Deterministic BFS ground truth (no AI) --------------------------------
+// Shortest number of steps from `from` to the goal, treating cell `blockedKey`
+// ("x,y") as a wall. Infinity means the goal is unreachable without passing back
+// through the blocked cell — i.e. `from` is inside a dead-end pocket.
+function distToGoalBlocking(from, blockedKey) {
+  if (from.x === goal.x && from.y === goal.y) return 0;
+  const seen = new Set([`${from.x},${from.y}`, blockedKey]);
+  let frontier = [from];
+  let dist = 0;
+  while (frontier.length) {
+    dist += 1;
+    const next = [];
+    for (const c of frontier) {
+      for (const d of DIRS) {
+        const nx = c.x + d.dx;
+        const ny = c.y + d.dy;
+        const key = `${nx},${ny}`;
+        if (!isOpen(nx, ny) || seen.has(key)) continue;
+        if (nx === goal.x && ny === goal.y) return dist;
+        seen.add(key);
+        next.push({ x: nx, y: ny });
+      }
+    }
+    frontier = next;
+  }
+  return Infinity;
+}
+
+// Depth of a dead-end pocket: steps from the junction to its farthest cell, with
+// the junction removed. `from` is the branch cell (1 step in), so we add that step.
+function pocketDepthBlocking(from, blockedKey) {
+  const seen = new Set([`${from.x},${from.y}`, blockedKey]);
+  let frontier = [from];
+  let layers = 0;
+  while (true) {
+    const next = [];
+    for (const c of frontier) {
+      for (const d of DIRS) {
+        const nx = c.x + d.dx;
+        const ny = c.y + d.dy;
+        const key = `${nx},${ny}`;
+        if (!isOpen(nx, ny) || seen.has(key)) continue;
+        seen.add(key);
+        next.push({ x: nx, y: ny });
+      }
+    }
+    if (!next.length) break;
+    layers += 1;
+    frontier = next;
+  }
+  return layers + 1; // +1 for the junction -> branch step
+}
+
+const plural = (n) => (n === 1 ? "" : "s");
+
+// Fill junctionEvals with exact cues for every junction — verdict, step counts,
+// and a justification for why each losing branch fails — all from BFS.
+function computeJunctionCues() {
+  for (const j of allJunctions()) {
+    const blockedKey = `${j.x},${j.y}`;
+    const branchCells = junctionBranches({ x: j.x, y: j.y }, null);
+    const evals = branchCells.map((b) => {
+      const dist = distToGoalBlocking(b, blockedKey);
+      if (dist === Infinity) {
+        const depth = pocketDepthBlocking(b, blockedKey);
+        return { x: b.x, y: b.y, verdict: "dead_end", steps: depth, reason: `closes off after ${depth} step${plural(depth)}` };
+      }
+      return { x: b.x, y: b.y, cost: dist + 1 }; // onward; classify once we know the best
+    });
+    const onward = evals.filter((e) => e.cost != null);
+    if (onward.length) {
+      const best = Math.min(...onward.map((e) => e.cost));
+      for (const e of onward) {
+        e.steps = e.cost;
+        if (e.cost === best) {
+          e.verdict = "toward_goal";
+          e.reason = "";
+        } else {
+          const longerBy = e.cost - best;
+          e.verdict = "detour";
+          e.reason = `~${longerBy} step${plural(longerBy)} longer than the direct route`;
+        }
+        delete e.cost;
+      }
+    }
+    junctionEvals.set(blockedKey, evals);
+  }
+}
+
 async function precomputeJunctions() {
   const junctions = allJunctions();
   if (!junctions.length) return;
+  if (DETERMINISTIC_CUES) {
+    // No AI call: exact cues computed locally and instantly.
+    computeJunctionCues();
+    logState("route_eval_precomputed", { junctions: junctionEvals.size, source: "deterministic" });
+    maybeEvaluateJunction(); // reveal the starting junction immediately
+    updateUi();
+    return;
+  }
   precomputing = true;
   updateUi();
   try {
@@ -810,7 +911,7 @@ function maybeEvaluateJunction() {
     routeEvalText = formatRouteEval(options);
     return;
   }
-  if (precomputing) { routeEvalText = ""; return; } // cues still loading
+  if (precomputing || DETERMINISTIC_CUES) { routeEvalText = ""; return; } // never call AI
   evaluateJunction(); // fallback: this junction wasn't precomputed → live call
 }
 
