@@ -101,6 +101,11 @@ const CUE_SOURCE = (() => {
   const value = (new URLSearchParams(search).get("cues") || "").toLowerCase();
   return value === "ai" || value === "bfs" ? value : CUE_SOURCE_DEFAULT;
 })();
+// AI_PRECOMPUTE_ONLY (ai mode): use ONLY the cues precomputed once at trial start.
+// Never make a live per-junction call — so there is no wait at a junction, and no
+// "AI couldn't assess" when the participant has moved. A junction missing from the
+// precompute simply shows no cue. Set false to allow the live per-junction fallback.
+const AI_PRECOMPUTE_ONLY = true;
 // Rollback: set false to disable background prefetch of the next AI hint.
 const PREFETCH_HINTS = false;
 
@@ -923,8 +928,22 @@ function maybeEvaluateJunction() {
     routeEvalText = formatRouteEval(options);
     return;
   }
-  if (precomputing || CUE_SOURCE === "bfs") { routeEvalText = ""; return; } // bfs mode never calls AI
-  evaluateJunction(); // ai mode fallback: this junction wasn't precomputed → live call
+  if (precomputing) { routeEvalText = ""; return; } // cues still loading at start
+  // No live call: bfs is local, and ai precompute-only relies solely on trial-start cues.
+  if (CUE_SOURCE === "bfs" || AI_PRECOMPUTE_ONLY) { routeEvalText = ""; return; }
+  evaluateJunction(); // ai live-fallback mode: this junction wasn't precomputed → live call
+}
+
+// Re-align the already-computed junction cue to the current facing when the player
+// turns in place: Ahead/Left/Right shift with the view. Uses only stored cues —
+// never a new AI call. Safe in every mode (bfs + ai).
+function realignJunctionCue() {
+  if (!ROUTE_EVAL_MODE || !aiOn) return;
+  if (openNeighborCount(player) < 3) return; // only meaningful at a junction
+  const precomputed = junctionEvals.get(`${player.x},${player.y}`);
+  if (!precomputed) return; // nothing stored → leave the banner untouched
+  const options = lastPlayerCell ? precomputed.filter((b) => !sameCell(b, lastPlayerCell)) : precomputed;
+  routeEvalText = formatRouteEval(options);
 }
 
 async function evaluateJunction() {
@@ -970,6 +989,7 @@ function turnLeft() {
   if (currentView !== "participant") return;
   participantHasInteracted = true;
   facing = (facing + 3) % 4;
+  realignJunctionCue(); // shift Ahead/Left/Right to the new facing (no AI call)
   logState("turn_left");
   updateUi();
 }
@@ -978,6 +998,7 @@ function turnRight() {
   if (currentView !== "participant") return;
   participantHasInteracted = true;
   facing = (facing + 1) % 4;
+  realignJunctionCue(); // shift Ahead/Left/Right to the new facing (no AI call)
   logState("turn_right");
   updateUi();
 }
