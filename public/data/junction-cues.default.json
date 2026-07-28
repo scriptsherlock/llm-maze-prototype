@@ -1,8 +1,8 @@
 {
   "maze": "default",
-  "generated_at": "2026-07-28T17:13:48.413Z",
+  "generated_at": "2026-07-28T17:20:37.002Z",
   "provider": "gemini",
-  "model": "gemini-3.1-flash-lite",
+  "model": "gemini-3.5-flash-lite",
   "goal": {
     "x": 9,
     "y": 16
@@ -17,7 +17,7 @@
           "y": 0,
           "verdict": "dead_end",
           "steps": 1,
-          "reason": "closes off after 1 step, no way through"
+          "reason": "dead-ends after 1 step, no way through"
         },
         {
           "x": 8,
@@ -57,8 +57,8 @@
           "x": 8,
           "y": 1,
           "verdict": "dead_end",
-          "steps": 10,
-          "reason": "closes off after 10 steps, no way through"
+          "steps": 1,
+          "reason": "dead-ends after 1 step, leads back through the junction"
         }
       ]
     },
@@ -84,8 +84,8 @@
           "x": 10,
           "y": 1,
           "verdict": "dead_end",
-          "steps": 28,
-          "reason": "closes off after 28 steps, no way through"
+          "steps": 1,
+          "reason": "dead-ends after 1 step, leads back through the junction"
         }
       ]
     },
@@ -96,9 +96,9 @@
         {
           "x": 5,
           "y": 2,
-          "verdict": "detour",
+          "verdict": "toward_goal",
           "steps": 45,
-          "reason": "reaches the goal but loops ~8 steps longer"
+          "reason": "only branch that reaches the goal"
         },
         {
           "x": 6,
@@ -124,15 +124,15 @@
           "x": 11,
           "y": 4,
           "verdict": "dead_end",
-          "steps": 8,
-          "reason": "closes off after 8 steps, no way through"
+          "steps": 16,
+          "reason": "closes off after 16 steps, no way through"
         },
         {
           "x": 12,
           "y": 5,
           "verdict": "dead_end",
-          "steps": 16,
-          "reason": "closes off after 16 steps, no way through"
+          "steps": 6,
+          "reason": "closes off after 6 steps, no way through"
         },
         {
           "x": 10,
@@ -150,9 +150,9 @@
         {
           "x": 7,
           "y": 6,
-          "verdict": "detour",
+          "verdict": "toward_goal",
           "steps": 51,
-          "reason": "reaches the goal but loops ~14 steps longer"
+          "reason": "only branch that reaches the goal"
         },
         {
           "x": 7,
@@ -231,22 +231,22 @@
         {
           "x": 11,
           "y": 10,
-          "verdict": "dead_end",
-          "steps": 42,
-          "reason": "closes off after 42 steps, no way through"
+          "verdict": "detour",
+          "steps": 59,
+          "reason": "reaches the goal via a long loop of 59 steps"
         },
         {
           "x": 11,
           "y": 12,
           "verdict": "dead_end",
-          "steps": 4,
-          "reason": "closes off after 4 steps, no way through"
+          "steps": 10,
+          "reason": "closes off after 10 steps, no way through"
         },
         {
           "x": 10,
           "y": 11,
           "verdict": "toward_goal",
-          "steps": 23,
+          "steps": 22,
           "reason": "shortest way here, heads straight toward the goal"
         }
       ]
@@ -259,7 +259,7 @@
           "x": 11,
           "y": 12,
           "verdict": "toward_goal",
-          "steps": 25,
+          "steps": 23,
           "reason": "shortest way here, heads straight toward the goal"
         },
         {

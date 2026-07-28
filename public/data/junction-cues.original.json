@@ -1,8 +1,8 @@
 {
   "maze": "original",
-  "generated_at": "2026-07-28T17:14:38.679Z",
+  "generated_at": "2026-07-28T17:21:49.909Z",
   "provider": "gemini",
-  "model": "gemini-3.1-flash-lite",
+  "model": "gemini-3.5-flash-lite",
   "goal": {
     "x": 13,
     "y": 13
@@ -16,22 +16,22 @@
           "x": 2,
           "y": 1,
           "verdict": "detour",
-          "steps": 28,
-          "reason": "reaches goal but is 4 steps longer than the other path"
+          "steps": 29,
+          "reason": "longer path looping through top right corner before continuing"
         },
         {
           "x": 1,
           "y": 2,
           "verdict": "toward_goal",
           "steps": 24,
-          "reason": "shortest way to the goal"
+          "reason": "direct path heading down toward the lower maze"
         },
         {
           "x": 0,
           "y": 1,
           "verdict": "dead_end",
           "steps": 1,
-          "reason": "closes off after 1 step, no way through"
+          "reason": "closes off after 1 step against the wall"
         }
       ]
     },
@@ -44,48 +44,48 @@
           "y": 1,
           "verdict": "toward_goal",
           "steps": 16,
-          "reason": "shortest path to the goal"
+          "reason": "shortest way heading right toward the goal"
         },
         {
           "x": 9,
           "y": 2,
-          "verdict": "detour",
+          "verdict": "toward_goal",
           "steps": 16,
-          "reason": "reaches goal but is equal to the shortest path"
+          "reason": "alternative direct path toward upper corridors"
         },
         {
           "x": 8,
-          "y": 1,
-          "verdict": "detour",
-          "steps": 24,
-          "reason": "much longer route, 8 steps more than the shortest path"
-        }
-      ]
-    },
-    {
-      "x": 11,
-      "y": 1,
-      "branches": [
-        {
-          "x": 12,
-          "y": 1,
-          "verdict": "toward_goal",
-          "steps": 14,
-          "reason": "shortest path to the goal"
-        },
-        {
-          "x": 11,
-          "y": 2,
-          "verdict": "detour",
-          "steps": 14,
-          "reason": "reaches goal but is equal to the shortest path"
-        },
-        {
-          "x": 10,
           "y": 1,
           "verdict": "detour",
           "steps": 26,
-          "reason": "much longer route, 12 steps more than the shortest path"
+          "reason": "longer detour across the top of the maze"
+        }
+      ]
+    },
+    {
+      "x": 11,
+      "y": 1,
+      "branches": [
+        {
+          "x": 12,
+          "y": 1,
+          "verdict": "toward_goal",
+          "steps": 14,
+          "reason": "direct path toward the right exit"
+        },
+        {
+          "x": 11,
+          "y": 2,
+          "verdict": "toward_goal",
+          "steps": 14,
+          "reason": "shortest path heading downward"
+        },
+        {
+          "x": 10,
+          "y": 1,
+          "verdict": "detour",
+          "steps": 18,
+          "reason": "longer route taking a detour to the left"
         }
       ]
     },
@@ -97,22 +97,22 @@
           "x": 1,
           "y": 2,
           "verdict": "dead_end",
-          "steps": 1,
-          "reason": "closes off after 1 step, leads back to junction"
+          "steps": 2,
+          "reason": "leads into a dead end pocket"
         },
         {
           "x": 2,
           "y": 3,
           "verdict": "dead_end",
-          "steps": 7,
-          "reason": "loops back to the junction after 7 steps"
+          "steps": 4,
+          "reason": "dead ends after looping back"
         },
         {
           "x": 1,
           "y": 4,
           "verdict": "toward_goal",
-          "steps": 22,
-          "reason": "only path that leads toward the goal"
+          "steps": 23,
+          "reason": "only branch continuing toward the goal"
         }
       ]
     },
@@ -124,22 +124,22 @@
           "x": 5,
           "y": 2,
           "verdict": "detour",
-          "steps": 22,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "steps": 25,
+          "reason": "longer detour via the top wall"
         },
         {
           "x": 6,
           "y": 3,
           "verdict": "detour",
           "steps": 22,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "reason": "longer route looping right"
         },
         {
           "x": 5,
           "y": 4,
           "verdict": "toward_goal",
           "steps": 18,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path straight down toward the goal"
         }
       ]
     },
@@ -151,22 +151,22 @@
           "x": 9,
           "y": 2,
           "verdict": "detour",
-          "steps": 18,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "steps": 15,
+          "reason": "detour heading upward"
         },
         {
           "x": 10,
           "y": 3,
           "verdict": "toward_goal",
           "steps": 14,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path toward the right"
         },
         {
           "x": 9,
           "y": 4,
-          "verdict": "detour",
+          "verdict": "toward_goal",
           "steps": 14,
-          "reason": "reaches goal but is equal to the shortest path"
+          "reason": "direct path heading downwards"
         }
       ]
     },
@@ -177,23 +177,23 @@
         {
           "x": 11,
           "y": 2,
-          "verdict": "detour",
-          "steps": 16,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "verdict": "toward_goal",
+          "steps": 13,
+          "reason": "direct path heading upward"
         },
         {
           "x": 11,
           "y": 4,
           "verdict": "toward_goal",
           "steps": 12,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path heading downward"
         },
         {
           "x": 10,
           "y": 3,
           "verdict": "detour",
-          "steps": 20,
-          "reason": "much longer route, 8 steps more than the shortest path"
+          "steps": 15,
+          "reason": "longer detour to the left"
         }
       ]
     },
@@ -205,22 +205,22 @@
           "x": 4,
           "y": 5,
           "verdict": "toward_goal",
-          "steps": 18,
-          "reason": "shortest path to the goal"
+          "steps": 16,
+          "reason": "only path continuing toward the goal"
         },
         {
           "x": 3,
           "y": 6,
-          "verdict": "toward_goal",
-          "steps": 18,
-          "reason": "shortest path to the goal"
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "dead-ends after 2 steps"
         },
         {
           "x": 2,
           "y": 5,
           "verdict": "dead_end",
-          "steps": 1,
-          "reason": "closes off after 1 step, leads back to junction"
+          "steps": 5,
+          "reason": "closes off after 5 steps into a pocket"
         }
       ]
     },
@@ -232,29 +232,29 @@
           "x": 5,
           "y": 4,
           "verdict": "detour",
-          "steps": 24,
-          "reason": "much longer route, 8 steps more than the shortest path"
+          "steps": 22,
+          "reason": "longer detour heading upward"
         },
         {
           "x": 6,
           "y": 5,
           "verdict": "detour",
           "steps": 20,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "reason": "longer route looping to the right"
         },
         {
           "x": 5,
           "y": 6,
           "verdict": "toward_goal",
           "steps": 16,
-          "reason": "shortest path to the goal"
+          "reason": "direct path heading straight down"
         },
         {
           "x": 4,
           "y": 5,
-          "verdict": "detour",
-          "steps": 20,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "verdict": "dead_end",
+          "steps": 3,
+          "reason": "dead-ends after 3 steps"
         }
       ]
     },
@@ -267,21 +267,21 @@
           "y": 4,
           "verdict": "detour",
           "steps": 16,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "reason": "longer detour heading upward"
         },
         {
           "x": 10,
           "y": 5,
           "verdict": "toward_goal",
           "steps": 12,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path heading right"
         },
         {
           "x": 9,
           "y": 6,
           "verdict": "toward_goal",
           "steps": 12,
-          "reason": "shortest path to the goal"
+          "reason": "direct path heading down"
         }
       ]
     },
@@ -292,23 +292,23 @@
         {
           "x": 11,
           "y": 4,
-          "verdict": "detour",
-          "steps": 22,
-          "reason": "much longer route, 12 steps more than the shortest path"
+          "verdict": "toward_goal",
+          "steps": 10,
+          "reason": "shortest path heading upward"
         },
         {
           "x": 11,
           "y": 6,
           "verdict": "toward_goal",
           "steps": 10,
-          "reason": "shortest path to the goal"
+          "reason": "direct path heading down"
         },
         {
           "x": 10,
           "y": 5,
           "verdict": "detour",
-          "steps": 18,
-          "reason": "much longer route, 8 steps more than the shortest path"
+          "steps": 12,
+          "reason": "longer detour to the left"
         }
       ]
     },
@@ -319,30 +319,30 @@
         {
           "x": 3,
           "y": 6,
-          "verdict": "detour",
-          "steps": 20,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "verdict": "dead_end",
+          "steps": 1,
+          "reason": "closes off after 1 step"
         },
         {
           "x": 4,
           "y": 7,
-          "verdict": "toward_goal",
-          "steps": 16,
-          "reason": "shortest path to the goal"
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "dead-ends after 2 steps"
         },
         {
           "x": 3,
           "y": 8,
-          "verdict": "toward_goal",
-          "steps": 16,
-          "reason": "shortest path to the goal"
+          "verdict": "dead_end",
+          "steps": 1,
+          "reason": "closes off after 1 step"
         },
         {
           "x": 2,
           "y": 7,
-          "verdict": "detour",
-          "steps": 20,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "verdict": "dead_end",
+          "steps": 1,
+          "reason": "closes off after 1 step"
         }
       ]
     },
@@ -354,29 +354,29 @@
           "x": 5,
           "y": 6,
           "verdict": "detour",
-          "steps": 22,
-          "reason": "much longer route, 8 steps more than the shortest path"
+          "steps": 18,
+          "reason": "longer detour heading upward"
         },
         {
           "x": 6,
           "y": 7,
           "verdict": "toward_goal",
           "steps": 14,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path heading right"
         },
         {
           "x": 5,
           "y": 8,
           "verdict": "toward_goal",
           "steps": 14,
-          "reason": "shortest path to the goal"
+          "reason": "direct path heading down"
         },
         {
           "x": 4,
           "y": 7,
-          "verdict": "detour",
-          "steps": 18,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "dead-ends in a short pocket"
         }
       ]
     },
@@ -389,21 +389,21 @@
           "y": 7,
           "verdict": "toward_goal",
           "steps": 12,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path heading right"
         },
         {
           "x": 7,
           "y": 8,
           "verdict": "toward_goal",
           "steps": 12,
-          "reason": "shortest path to the goal"
+          "reason": "direct path heading down"
         },
         {
           "x": 6,
           "y": 7,
           "verdict": "detour",
-          "steps": 16,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "steps": 14,
+          "reason": "longer detour to the left"
         }
       ]
     },
@@ -414,30 +414,30 @@
         {
           "x": 9,
           "y": 6,
-          "verdict": "detour",
-          "steps": 14,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "verdict": "toward_goal",
+          "steps": 10,
+          "reason": "shortest path heading up"
         },
         {
           "x": 10,
           "y": 7,
           "verdict": "toward_goal",
           "steps": 10,
-          "reason": "shortest path to the goal"
+          "reason": "direct path heading right"
         },
         {
           "x": 9,
           "y": 8,
           "verdict": "toward_goal",
           "steps": 10,
-          "reason": "shortest path to the goal"
+          "reason": "direct path heading down"
         },
         {
           "x": 8,
           "y": 7,
           "verdict": "detour",
-          "steps": 14,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "steps": 12,
+          "reason": "longer detour to the left"
         }
       ]
     },
@@ -448,30 +448,30 @@
         {
           "x": 11,
           "y": 6,
-          "verdict": "detour",
-          "steps": 20,
-          "reason": "much longer route, 12 steps more than the shortest path"
+          "verdict": "toward_goal",
+          "steps": 8,
+          "reason": "shortest path heading up"
         },
         {
           "x": 12,
           "y": 7,
           "verdict": "toward_goal",
           "steps": 8,
-          "reason": "shortest path to the goal"
+          "reason": "direct path heading right"
         },
         {
           "x": 11,
           "y": 8,
           "verdict": "toward_goal",
           "steps": 8,
-          "reason": "shortest path to the goal"
+          "reason": "direct path heading down"
         },
         {
           "x": 10,
           "y": 7,
           "verdict": "detour",
-          "steps": 12,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "steps": 10,
+          "reason": "longer detour to the left"
         }
       ]
     },
@@ -482,23 +482,23 @@
         {
           "x": 13,
           "y": 6,
-          "verdict": "detour",
-          "steps": 34,
-          "reason": "much longer route, 28 steps more than the shortest path"
+          "verdict": "dead_end",
+          "steps": 6,
+          "reason": "dead-ends after walking up the dead channel"
         },
         {
           "x": 13,
           "y": 8,
           "verdict": "toward_goal",
           "steps": 6,
-          "reason": "shortest path to the goal"
+          "reason": "direct path straight down to the goal"
         },
         {
           "x": 12,
           "y": 7,
           "verdict": "detour",
-          "steps": 10,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "steps": 8,
+          "reason": "longer detour to the left"
         }
       ]
     },
@@ -509,23 +509,23 @@
         {
           "x": 1,
           "y": 8,
-          "verdict": "detour",
-          "steps": 20,
-          "reason": "much longer route, 4 steps more than the shortest path"
+          "verdict": "dead_end",
+          "steps": 1,
+          "reason": "closes off after 1 step"
         },
         {
           "x": 2,
           "y": 9,
-          "verdict": "toward_goal",
-          "steps": 16,
-          "reason": "shortest path to the goal"
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "dead-ends after 2 steps"
         },
         {
           "x": 1,
           "y": 10,
           "verdict": "toward_goal",
           "steps": 16,
-          "reason": "shortest path to the goal"
+          "reason": "only path leading toward the goal"
         }
       ]
     },
@@ -536,23 +536,23 @@
         {
           "x": 3,
           "y": 8,
-          "verdict": "detour",
-          "steps": 18,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "verdict": "dead_end",
+          "steps": 1,
+          "reason": "closes off after 1 step"
         },
         {
           "x": 4,
           "y": 9,
           "verdict": "toward_goal",
           "steps": 14,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path toward the goal"
         },
         {
           "x": 2,
           "y": 9,
-          "verdict": "detour",
-          "steps": 18,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "verdict": "dead_end",
+          "steps": 1,
+          "reason": "closes off after 1 step"
         }
       ]
     },
@@ -563,30 +563,30 @@
         {
           "x": 5,
           "y": 8,
-          "verdict": "dead_end",
-          "steps": 8,
-          "reason": "closes off after 8 steps, loops back to junction"
+          "verdict": "detour",
+          "steps": 16,
+          "reason": "longer detour heading up"
         },
         {
           "x": 6,
           "y": 9,
           "verdict": "toward_goal",
           "steps": 12,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path heading right"
         },
         {
           "x": 5,
           "y": 10,
           "verdict": "toward_goal",
           "steps": 12,
-          "reason": "shortest path to the goal"
+          "reason": "direct path heading down"
         },
         {
           "x": 4,
           "y": 9,
-          "verdict": "detour",
-          "steps": 20,
-          "reason": "much longer route, 8 steps more than the shortest path"
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "dead-ends after 2 steps"
         }
       ]
     },
@@ -597,23 +597,23 @@
         {
           "x": 7,
           "y": 8,
-          "verdict": "detour",
-          "steps": 14,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "verdict": "toward_goal",
+          "steps": 10,
+          "reason": "direct path heading up"
         },
         {
           "x": 7,
           "y": 10,
           "verdict": "toward_goal",
-          "steps": 10,
-          "reason": "shortest path to the goal"
+          "steps": 8,
+          "reason": "shortest path heading down"
         },
         {
           "x": 6,
           "y": 9,
           "verdict": "detour",
-          "steps": 14,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "steps": 12,
+          "reason": "longer detour to the left"
         }
       ]
     },
@@ -624,30 +624,30 @@
         {
           "x": 11,
           "y": 8,
-          "verdict": "detour",
-          "steps": 10,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "verdict": "toward_goal",
+          "steps": 6,
+          "reason": "shortest path heading up"
         },
         {
           "x": 12,
           "y": 9,
           "verdict": "toward_goal",
           "steps": 6,
-          "reason": "shortest path to the goal"
+          "reason": "direct path heading right"
         },
         {
           "x": 11,
           "y": 10,
           "verdict": "toward_goal",
           "steps": 6,
-          "reason": "shortest path to the goal"
+          "reason": "direct path heading down"
         },
         {
           "x": 10,
           "y": 9,
           "verdict": "detour",
-          "steps": 14,
-          "reason": "much longer route, 8 steps more than the shortest path"
+          "steps": 8,
+          "reason": "longer detour to the left"
         }
       ]
     },
@@ -658,23 +658,23 @@
         {
           "x": 13,
           "y": 8,
-          "verdict": "dead_end",
+          "verdict": "detour",
           "steps": 8,
-          "reason": "closes off after 8 steps, loops back to junction"
+          "reason": "longer detour heading up"
         },
         {
           "x": 13,
           "y": 10,
           "verdict": "toward_goal",
           "steps": 4,
-          "reason": "shortest path to the goal"
+          "reason": "direct path straight down"
         },
         {
           "x": 12,
           "y": 9,
           "verdict": "detour",
-          "steps": 8,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "steps": 6,
+          "reason": "longer detour to the left"
         }
       ]
     },
@@ -685,23 +685,23 @@
         {
           "x": 1,
           "y": 10,
-          "verdict": "detour",
-          "steps": 18,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "verdict": "dead_end",
+          "steps": 1,
+          "reason": "closes off after 1 step"
         },
         {
           "x": 2,
           "y": 11,
           "verdict": "toward_goal",
           "steps": 14,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path toward the right"
         },
         {
           "x": 1,
           "y": 12,
           "verdict": "toward_goal",
           "steps": 14,
-          "reason": "shortest path to the goal"
+          "reason": "direct path heading down"
         }
       ]
     },
@@ -713,22 +713,22 @@
           "x": 5,
           "y": 10,
           "verdict": "detour",
-          "steps": 14,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "steps": 12,
+          "reason": "longer detour heading up"
         },
         {
           "x": 6,
           "y": 11,
           "verdict": "toward_goal",
           "steps": 10,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path heading right"
         },
         {
           "x": 4,
           "y": 11,
           "verdict": "detour",
-          "steps": 18,
-          "reason": "much longer route, 8 steps more than the shortest path"
+          "steps": 16,
+          "reason": "longer detour to the left"
         }
       ]
     },
@@ -739,23 +739,23 @@
         {
           "x": 7,
           "y": 10,
-          "verdict": "dead_end",
-          "steps": 8,
-          "reason": "closes off after 8 steps, loops back to junction"
+          "verdict": "detour",
+          "steps": 10,
+          "reason": "longer detour heading up"
         },
         {
           "x": 7,
           "y": 12,
           "verdict": "toward_goal",
           "steps": 8,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path heading down"
         },
         {
           "x": 6,
           "y": 11,
-          "verdict": "dead_end",
-          "steps": 8,
-          "reason": "closes off after 8 steps, loops back to junction"
+          "verdict": "detour",
+          "steps": 10,
+          "reason": "longer detour to the left"
         }
       ]
     },
@@ -767,29 +767,29 @@
           "x": 11,
           "y": 10,
           "verdict": "detour",
-          "steps": 8,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "steps": 6,
+          "reason": "longer detour heading up"
         },
         {
           "x": 12,
           "y": 11,
           "verdict": "toward_goal",
           "steps": 4,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path heading right"
         },
         {
           "x": 11,
           "y": 12,
           "verdict": "toward_goal",
           "steps": 4,
-          "reason": "shortest path to the goal"
+          "reason": "direct path heading down"
         },
         {
           "x": 10,
           "y": 11,
           "verdict": "detour",
-          "steps": 8,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "steps": 6,
+          "reason": "longer detour to the left"
         }
       ]
     },
@@ -802,21 +802,21 @@
           "y": 10,
           "verdict": "detour",
           "steps": 4,
-          "reason": "reaches goal but is 2 steps longer than the shortest path"
+          "reason": "longer detour heading up"
         },
         {
           "x": 13,
           "y": 12,
           "verdict": "toward_goal",
           "steps": 2,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path straight down to the goal"
         },
         {
           "x": 12,
           "y": 11,
           "verdict": "detour",
           "steps": 4,
-          "reason": "reaches goal but is 2 steps longer than the shortest path"
+          "reason": "longer detour to the left"
         }
       ]
     },
@@ -827,23 +827,23 @@
         {
           "x": 7,
           "y": 12,
-          "verdict": "dead_end",
-          "steps": 8,
-          "reason": "closes off after 8 steps, loops back to junction"
+          "verdict": "detour",
+          "steps": 10,
+          "reason": "longer detour heading up"
         },
         {
           "x": 8,
           "y": 13,
           "verdict": "toward_goal",
           "steps": 6,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path heading right toward goal"
         },
         {
           "x": 6,
           "y": 13,
           "verdict": "detour",
-          "steps": 14,
-          "reason": "much longer route, 8 steps more than the shortest path"
+          "steps": 12,
+          "reason": "longer detour to the left"
         }
       ]
     },
@@ -856,21 +856,21 @@
           "y": 12,
           "verdict": "detour",
           "steps": 8,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "reason": "longer detour heading up"
         },
         {
           "x": 10,
           "y": 13,
           "verdict": "toward_goal",
           "steps": 4,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path heading right toward goal"
         },
         {
           "x": 8,
           "y": 13,
           "verdict": "detour",
           "steps": 8,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "reason": "longer detour to the left"
         }
       ]
     },
@@ -883,21 +883,21 @@
           "y": 12,
           "verdict": "detour",
           "steps": 6,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "reason": "longer detour heading up"
         },
         {
           "x": 12,
           "y": 13,
           "verdict": "toward_goal",
           "steps": 2,
-          "reason": "shortest path to the goal"
+          "reason": "shortest path straight to the goal"
         },
         {
           "x": 10,
           "y": 13,
           "verdict": "detour",
-          "steps": 6,
-          "reason": "reaches goal but is 4 steps longer than the shortest path"
+          "steps": 4,
+          "reason": "longer detour to the left"
         }
       ]
     }
