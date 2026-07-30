@@ -971,17 +971,23 @@ function openNeighbors(cell) {
   return DIRS.map((d) => ({ x: cell.x + d.dx, y: cell.y + d.dy })).filter((c) => isOpen(c.x, c.y));
 }
 
-// Trace up to `maxSteps` cells along a branch's corridor from the junction, stopping
-// at the next junction or a dead-end so the line never crosses a decision point.
+// Trace up to `maxSteps` cells along a branch from the junction, keeping the line
+// STRAIGHT: stop at the next junction, a dead-end, or the first turn — so each
+// branch's arrow points cleanly in its go-direction and stays in open corridor
+// (never bends into a wall where it would be hidden).
 function traceBranchCells(junction, firstCell, maxSteps) {
   const path = [junction, firstCell];
+  const ddx = firstCell.x - junction.x;
+  const ddy = firstCell.y - junction.y;
   let prev = junction;
   let cur = firstCell;
   while (path.length <= maxSteps) { // path length = 1 + cells drawn
     const nexts = openNeighbors(cur).filter((n) => !sameCell(n, prev));
     if (nexts.length !== 1) break; // dead-end (0) or junction (>=2) -> stop
+    const n = nexts[0];
+    if (n.x - cur.x !== ddx || n.y - cur.y !== ddy) break; // turn -> keep the line straight
     prev = cur;
-    cur = nexts[0];
+    cur = n;
     path.push(cur);
   }
   return path;
