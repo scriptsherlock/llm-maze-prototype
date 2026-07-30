@@ -47,27 +47,32 @@ async function buildOne(key, config) {
   const out = [];
   let full = 0, partial = 0;
   const t0 = Date.now();
+  fs.mkdirSync(outDir, { recursive: true });
+  const outFile = path.join(outDir, `junction-cues.${key}.json`);
+  // Checkpoint after every junction so a long run can be interrupted (or the
+  // machine shut down) without losing the junctions already paid for.
+  const save = (done) => fs.writeFileSync(outFile, JSON.stringify({
+    maze: key, generated_at: new Date().toISOString(),
+    provider: engine.provider, model: engine.model, method: "traced-validated",
+    complete: done, goal, junctions: out,
+  }, null, 2));
+
   for (const j of junctions) {
     try {
       const res = await engine.evaluateJunctionTraced({ maze, goal, junction: { x: j.x, y: j.y }, branches: j.branches }, () => {});
       out.push({ x: j.x, y: j.y, branches: res.branches });
       full += 1;
-      process.stdout.write(`  (${j.x},${j.y}) ✅ ${res.attempts} attempt(s)\n`);
+      process.stdout.write(`  (${j.x},${j.y}) ✅ ${res.attempts} attempt(s) [${res.proof || "per-branch"}]\n`);
     } catch (error) {
       const parts = error.partial || [];
       out.push({ x: j.x, y: j.y, branches: parts });
       partial += 1;
       process.stdout.write(`  (${j.x},${j.y}) ⚠️ partial (${parts.length}/${j.branches.length} branches validated)\n`);
     }
+    save(false); // checkpoint: survives an interrupted run
   }
 
-  const payload = {
-    maze: key, generated_at: new Date().toISOString(),
-    provider: engine.provider, model: engine.model, method: "traced-validated",
-    goal, junctions: out,
-  };
-  fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(path.join(outDir, `junction-cues.${key}.json`), JSON.stringify(payload, null, 2));
+  save(true);
   console.log(`  wrote ${out.length} junctions (${full} full, ${partial} partial) in ${((Date.now() - t0) / 1000).toFixed(1)}s → junction-cues.${key}.json`);
   return partial === 0;
 }
