@@ -165,7 +165,17 @@ elements.scene.appendChild(renderer.domElement);
 
 const hintGroup = new THREE.Group();
 const avatarGroup = new THREE.Group();
-scene.add(hintGroup, avatarGroup);
+const routeCueGroup = new THREE.Group(); // shaded route lines at a junction
+scene.add(hintGroup, avatarGroup, routeCueGroup);
+
+// VISUAL_CUES: at each junction, draw a shaded line on the floor for every VALID
+// branch — darker = shorter route, lighter = longer — tracing up to CUE_LINE_STEPS
+// cells (like the old hint trail). Dead ends draw no line but stay in the text.
+// Set false for text-only. The text hints are unchanged either way.
+const VISUAL_CUES = true;
+const CUE_LINE_STEPS = 3;
+const CUE_COLOR_SHORT = new THREE.Color(0x7f1d1d); // dark red = shorter valid route
+const CUE_COLOR_LONG = new THREE.Color(0xfca5a5);  // light red = longer valid route
 
 const materials = createMaterials();
 const reusable = createReusableGeometry();
@@ -934,6 +944,11 @@ function startRouteEval() {
 
 // Only a real junction (3+ open neighbours) is a decision point worth evaluating.
 function maybeEvaluateJunction() {
+  computeJunctionCueText();
+  drawRouteCues(); // keep the floor lines in sync with the text cue
+}
+
+function computeJunctionCueText() {
   if (!aiOn || openNeighborCount(player) < 3) {
     routeEvalText = ""; // corridor / dead-end: no comparison to make
     return;
@@ -949,6 +964,83 @@ function maybeEvaluateJunction() {
   // No live call: bfs is local, and ai precompute-only relies solely on trial-start cues.
   if (CUE_SOURCE === "bfs" || AI_PRECOMPUTE_ONLY) { routeEvalText = ""; return; }
   evaluateJunction(); // ai live-fallback mode: this junction wasn't precomputed → live call
+}
+
+// ---- Visual route cues: shaded floor lines at a junction (darker = shorter route) ----
+function openNeighbors(cell) {
+  return DIRS.map((d) => ({ x: cell.x + d.dx, y: cell.y + d.dy })).filter((c) => isOpen(c.x, c.y));
+}
+
+// Trace up to `maxSteps` cells along a branch's corridor from the junction, stopping
+// at the next junction or a dead-end so the line never crosses a decision point.
+function traceBranchCells(junction, firstCell, maxSteps) {
+  const path = [junction, firstCell];
+  let prev = junction;
+  let cur = firstCell;
+  while (path.length <= maxSteps) { // path length = 1 + cells drawn
+    const nexts = openNeighbors(cur).filter((n) => !sameCell(n, prev));
+    if (nexts.length !== 1) break; // dead-end (0) or junction (>=2) -> stop
+    prev = cur;
+    cur = nexts[0];
+    path.push(cur);
+  }
+  return path;
+}
+
+function clearRouteCues() {
+  for (const child of routeCueGroup.children) {
+    if (child.material && child.material.dispose) child.material.dispose();
+  }
+  routeCueGroup.clear();
+}
+
+// Draw a shaded line per VALID branch at the current junction: darker = fewer steps
+// to the goal, lighter = more. Dead ends draw nothing (still listed in the text).
+function drawRouteCues() {
+  clearRouteCues();
+  window.__routeCues = []; // debug snapshot of the drawn lines (like window.__aiCues)
+  if (!VISUAL_CUES || !aiOn || currentView !== "participant") return;
+  if (openNeighborCount(player) < 3) return; // only at a junction
+  const evals = junctionEvals.get(`${player.x},${player.y}`);
+  if (!evals) return;
+
+  const valid = evals.filter((b) => {
+    if (b.verdict === "dead_end") return false; // no line for dead ends
+    if (Math.abs(b.x - player.x) + Math.abs(b.y - player.y) !== 1) return false; // adjacent branch only
+    if (lastPlayerCell && sameCell(b, lastPlayerCell)) return false; // don't draw back the way we came
+    return true;
+  });
+  if (!valid.length) return;
+
+  const stepsList = valid.map((b) => Number(b.steps) || 0);
+  const min = Math.min(...stepsList);
+  const max = Math.max(...stepsList);
+  for (const b of valid) {
+    const t = max === min ? 0 : ((Number(b.steps) || 0) - min) / (max - min); // 0 = shortest, 1 = longest
+    const color = new THREE.Color().lerpColors(CUE_COLOR_SHORT, CUE_COLOR_LONG, t);
+    const material = new THREE.MeshBasicMaterial({ color });
+    const cells = traceBranchCells(player, { x: b.x, y: b.y }, CUE_LINE_STEPS);
+    drawCueSegments(cells, material);
+    window.__routeCues.push({ x: b.x, y: b.y, steps: Number(b.steps) || 0, verdict: b.verdict, hex: color.getHexString(), cells: cells.length });
+  }
+}
+
+function drawCueSegments(cells, material) {
+  const lineWidth = 0.24;
+  for (let i = 0; i < cells.length - 1; i += 1) {
+    const cur = cells[i];
+    const next = cells[i + 1];
+    const dx = next.x - cur.x;
+    const dy = next.y - cur.y;
+    if (Math.abs(dx) + Math.abs(dy) !== 1) continue;
+    const from = worldFromCell(cur.x, cur.y);
+    const to = worldFromCell(next.x, next.y);
+    const horizontal = dy === 0;
+    const seg = new THREE.Mesh(reusable.hintLineSegment, material);
+    seg.position.set((from.x + to.x) / 2, 0.105, (from.z + to.z) / 2);
+    seg.scale.set(horizontal ? cellSize + lineWidth : lineWidth, 1, horizontal ? lineWidth : cellSize + lineWidth);
+    routeCueGroup.add(seg);
+  }
 }
 
 // Re-align the already-computed junction cue to the current facing when the player
@@ -980,7 +1072,9 @@ async function evaluateJunction() {
     });
     const data = await response.json();
     if (!response.ok || data.status !== "evaluated") throw new Error(data.message || "Route evaluation failed.");
+    junctionEvals.set(`${player.x},${player.y}`, data.branches || []); // cache so cues can draw
     routeEvalText = formatRouteEval(data.branches || []);
+    drawRouteCues();
     latestLatencyMs = data.latency_ms ?? Date.now() - requestedAt;
     logState("route_eval_received", { llm_latency_ms: latestLatencyMs, count: (data.branches || []).length, text: routeEvalText });
   } catch (error) {
