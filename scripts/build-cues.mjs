@@ -13,6 +13,7 @@ require("dotenv").config();
 const engine = require("../lib/hint-engine.js");
 const { FIXED_8X8_MAZE_CONFIG } = await import("../public/fixed_8x8_maze.js");
 const { ORIGINAL_15X15_MAZE_CONFIG } = await import("../public/original_15x15_maze.js");
+const { DISAPPEAR_10X10_MAZE_CONFIG } = await import("../public/disappear_10x10_maze.js");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.join(__dirname, "..", "public", "data");
@@ -78,10 +79,15 @@ if (credErr) {
   process.exit(1);
 }
 
-const targets = [
+const allTargets = [
   ["default", FIXED_8X8_MAZE_CONFIG],
   ["original", ORIGINAL_15X15_MAZE_CONFIG],
+  ["disappear", DISAPPEAR_10X10_MAZE_CONFIG],
 ];
+// Optional CLI filter: `node build-cues.mjs disappear` builds only that maze
+// (so we don't re-spend quota regenerating the ones already committed).
+const wanted = process.argv.slice(2);
+const targets = wanted.length ? allTargets.filter(([k]) => wanted.includes(k)) : allTargets;
 let ok = true;
 for (const [key, config] of targets) {
   const done = await buildOne(key, config);

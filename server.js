@@ -39,6 +39,16 @@ app.get(["/original/participant", "/original/moderator"], (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// 10x10 "AI disappears" maze at its own hyperlink. Same page/logic; maze.js
+// selects the disappear grid because the path contains "disappear".
+app.get("/disappear", (_req, res) => {
+  res.redirect("/disappear/participant");
+});
+
+app.get(["/disappear/participant", "/disappear/moderator"], (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 app.get("/api/state", (_req, res) => {
   res.json({ ai_enabled: aiEnabled, provider, model });
 });

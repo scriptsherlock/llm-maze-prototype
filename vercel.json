@@ -11,6 +11,8 @@
     { "source": "/participant", "destination": "/index.html" },
     { "source": "/moderator", "destination": "/index.html" },
     { "source": "/original/participant", "destination": "/index.html" },
-    { "source": "/original/moderator", "destination": "/index.html" }
+    { "source": "/original/moderator", "destination": "/index.html" },
+    { "source": "/disappear/participant", "destination": "/index.html" },
+    { "source": "/disappear/moderator", "destination": "/index.html" }
   ]
 }

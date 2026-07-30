@@ -8,6 +8,11 @@ const cols = maze[0].length;
 const start = MAZE_CONFIG.start;
 const entrance = MAZE_CONFIG.entrance;
 const goal = MAZE_CONFIG.goal;
+// "AI disappears" condition: once the player reaches this central choke cell, the
+// AI stops giving hints for the rest of the trial (one-way latch). null on mazes
+// without a choke. See aiActive / latchAiOff below.
+const chokeCell = MAZE_CONFIG.chokeCell || null;
+let aiActive = true;
 const aiCueLength = MAZE_CONFIG.hintSteps;
 const hintDurationMs = 3200;
 const cellSize = 4;
@@ -727,6 +732,8 @@ function attemptMove(dx, dy, action) {
   schedulePrefetch();
   logState("move", { attempted_move: action, attempted_x: nx, attempted_y: ny, plan_status: planStatus });
 
+  if (chokeCell && aiActive && sameCell(player, chokeCell)) latchAiOff();
+
   if (ROUTE_EVAL_MODE) {
     lastPlayerCell = cameFrom;
     maybeEvaluateJunction();
@@ -948,7 +955,16 @@ function maybeEvaluateJunction() {
   drawRouteCues(); // keep the floor lines in sync with the text cue
 }
 
+// One-way latch: the AI is gone for the rest of the trial once the choke is reached.
+function latchAiOff() {
+  aiActive = false;
+  routeEvalText = "";
+  clearRouteCues();
+  logState("ai_disappeared", { x: player.x, y: player.y });
+}
+
 function computeJunctionCueText() {
+  if (!aiActive) { routeEvalText = ""; return; } // AI has disappeared for this trial
   if (!aiOn || openNeighborCount(player) < 3) {
     routeEvalText = ""; // corridor / dead-end: no comparison to make
     return;
@@ -1005,6 +1021,8 @@ function clearRouteCues() {
 function drawRouteCues() {
   clearRouteCues();
   window.__routeCues = []; // debug snapshot of the drawn lines (like window.__aiCues)
+  window.__aiActive = aiActive;
+  if (!aiActive) return; // AI has disappeared for this trial
   if (!VISUAL_CUES || !aiOn || currentView !== "participant") return;
   if (openNeighborCount(player) < 3) return; // only at a junction
   const evals = junctionEvals.get(`${player.x},${player.y}`);
@@ -1071,7 +1089,7 @@ function drawCueArrow(cells, material) {
 // turns in place: Ahead/Left/Right shift with the view. Uses only stored cues —
 // never a new AI call. Safe in every mode (bfs + ai).
 function realignJunctionCue() {
-  if (!ROUTE_EVAL_MODE || !aiOn) return;
+  if (!ROUTE_EVAL_MODE || !aiOn || !aiActive) return;
   if (openNeighborCount(player) < 3) return; // only meaningful at a junction
   const precomputed = junctionEvals.get(`${player.x},${player.y}`);
   if (!precomputed) return; // nothing stored → leave the banner untouched
@@ -1531,6 +1549,8 @@ function resetLocalTrial() {
   moves = 0;
   startTime = Date.now();
   finishedAt = null;
+  aiActive = true; // the AI is back for the new trial
+  clearRouteCues();
   clearVisibleHint();
   clearPrefetch();
   activeFullPath = [];
