@@ -179,8 +179,12 @@ scene.add(hintGroup, avatarGroup, routeCueGroup);
 // Set false for text-only. The text hints are unchanged either way.
 const VISUAL_CUES = true;
 const CUE_LINE_STEPS = 3;
-const CUE_COLOR_SHORT = new THREE.Color(0x7f1d1d); // dark red = shorter valid route
-const CUE_COLOR_LONG = new THREE.Color(0xfca5a5);  // light red = longer valid route
+const CUE_COLOR_SHORT = new THREE.Color(0x7f1d1d); // dark red = closer to the exit
+const CUE_COLOR_LONG = new THREE.Color(0xfca5a5);  // light red = further from the exit
+// Shading scale: cue colour tracks the branch's distance to the exit across the whole
+// maze (dark = nearly there, light = far), so a single route still carries meaning.
+// Set from the loaded cues; falls back until they arrive.
+let cueStepsRange = { min: 0, max: 40 };
 
 const materials = createMaterials();
 const reusable = createReusableGeometry();
@@ -1009,6 +1013,21 @@ function traceBranchCells(junction, firstCell, maxSteps) {
   return path;
 }
 
+// Shade scale spans the goal-distances actually present in the cues, so the full
+// dark->light range is used (nearest cue = darkest, furthest = lightest).
+function refreshCueStepsScale() {
+  let min = Infinity, max = 0;
+  for (const branches of junctionEvals.values()) {
+    for (const b of branches) {
+      if (b.verdict === "dead_end") continue;
+      const s = Number(b.steps) || 0;
+      if (s < min) min = s;
+      if (s > max) max = s;
+    }
+  }
+  if (max > 0 && Number.isFinite(min)) cueStepsRange = { min, max };
+}
+
 function clearRouteCues() {
   for (const child of routeCueGroup.children) {
     if (child.material && child.material.dispose) child.material.dispose();
@@ -1020,6 +1039,7 @@ function clearRouteCues() {
 // to the goal, lighter = more. Dead ends draw nothing (still listed in the text).
 function drawRouteCues() {
   clearRouteCues();
+  refreshCueStepsScale();
   window.__routeCues = []; // debug snapshot of the drawn lines (like window.__aiCues)
   window.__aiActive = aiActive;
   if (!aiActive) return; // AI has disappeared for this trial
@@ -1036,11 +1056,11 @@ function drawRouteCues() {
   });
   if (!valid.length) return;
 
-  const stepsList = valid.map((b) => Number(b.steps) || 0);
-  const min = Math.min(...stepsList);
-  const max = Math.max(...stepsList);
   for (const b of valid) {
-    const t = max === min ? 0 : ((Number(b.steps) || 0) - min) / (max - min); // 0 = shortest, 1 = longest
+    // Distance-based shade: dark near the exit, light when far. Consistent maze-wide,
+    // so the colour still informs even when a junction has a single valid route.
+    const span = Math.max(1, cueStepsRange.max - cueStepsRange.min);
+    const t = Math.min(1, Math.max(0, ((Number(b.steps) || 0) - cueStepsRange.min) / span));
     const color = new THREE.Color().lerpColors(CUE_COLOR_SHORT, CUE_COLOR_LONG, t);
     const material = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
     const cells = traceBranchCells(player, { x: b.x, y: b.y }, CUE_LINE_STEPS);

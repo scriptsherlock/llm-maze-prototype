@@ -1,37 +1,41 @@
 {
   "maze": "disappear",
-  "generated_at": "2026-07-30T14:42:54.461Z",
+  "generated_at": "2026-07-30T20:05:11.686Z",
   "provider": "gemini",
   "model": "gemini-3.5-flash-lite",
+  "method": "traced-validated",
   "goal": {
-    "x": 19,
-    "y": 19
+    "x": 23,
+    "y": 23
   },
   "junctions": [
     {
-      "x": 1,
+      "x": 3,
       "y": 1,
       "branches": [
         {
-          "x": 1,
-          "y": 0,
+          "x": 4,
+          "y": 1,
+          "verdict": "toward_goal",
+          "steps": 45,
+          "reason": "Leads directly to the goal via column 13.",
+          "proven": false
+        },
+        {
+          "x": 3,
+          "y": 2,
           "verdict": "dead_end",
-          "steps": 1,
-          "reason": "closes off after 1 step, dead-end"
+          "steps": 4,
+          "reason": "Leads to a dead end pocket.",
+          "proven": true
         },
         {
           "x": 2,
           "y": 1,
-          "verdict": "toward_goal",
-          "steps": 72,
-          "reason": "shortest path toward the goal"
-        },
-        {
-          "x": 1,
-          "y": 2,
-          "verdict": "detour",
-          "steps": 74,
-          "reason": "detours through upper corridor, 2 steps longer"
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end at the maze edge.",
+          "proven": true
         }
       ]
     },
@@ -43,211 +47,303 @@
           "x": 6,
           "y": 1,
           "verdict": "toward_goal",
-          "steps": 68,
-          "reason": "fastest path continuing along the top edge toward goal"
+          "steps": 47,
+          "reason": "Leads directly to the maze exit.",
+          "proven": false
         },
         {
           "x": 5,
           "y": 2,
-          "verdict": "detour",
-          "steps": 76,
-          "reason": "detours down vertical shaft, 8 steps longer"
+          "verdict": "dead_end",
+          "steps": 12,
+          "reason": "Terminates in a dead-end pocket.",
+          "proven": true
         },
         {
           "x": 4,
           "y": 1,
           "verdict": "dead_end",
-          "steps": 4,
-          "reason": "leads into dead-end loop after 4 steps"
+          "steps": 12,
+          "reason": "Leads to a dead-end corridor.",
+          "proven": true
         }
       ]
     },
     {
-      "x": 13,
+      "x": 7,
       "y": 1,
       "branches": [
         {
-          "x": 14,
+          "x": 8,
           "y": 1,
           "verdict": "toward_goal",
-          "steps": 12,
-          "reason": "direct path continuing along top row toward goal"
+          "steps": 46,
+          "reason": "Successfully reaches the exit.",
+          "proven": true
         },
         {
-          "x": 13,
+          "x": 7,
           "y": 2,
-          "verdict": "detour",
-          "steps": 24,
-          "reason": "detours into vertical pocket, 12 steps longer"
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end pocket immediately.",
+          "proven": true
         },
         {
-          "x": 12,
+          "x": 6,
           "y": 1,
           "verdict": "dead_end",
-          "steps": 12,
-          "reason": "leads backward into dead-end after 12 steps"
-        }
-      ]
-    },
-    {
-      "x": 17,
-      "y": 1,
-      "branches": [
-        {
-          "x": 18,
-          "y": 1,
-          "verdict": "toward_goal",
-          "steps": 4,
-          "reason": "direct path along top row to the exit"
-        },
-        {
-          "x": 17,
-          "y": 2,
-          "verdict": "detour",
-          "steps": 16,
-          "reason": "detours down vertical passage, 12 steps longer"
-        },
-        {
-          "x": 16,
-          "y": 1,
-          "verdict": "dead_end",
-          "steps": 16,
-          "reason": "leads backward into dead-end after 16 steps"
+          "steps": 14,
+          "reason": "Leads to a dead-end pocket.",
+          "proven": true
         }
       ]
     },
     {
       "x": 9,
-      "y": 3,
+      "y": 1,
       "branches": [
+        {
+          "x": 10,
+          "y": 1,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end corridor.",
+          "proven": true
+        },
         {
           "x": 9,
           "y": 2,
           "verdict": "dead_end",
-          "steps": 2,
-          "reason": "dead-end pocket closing off after 2 steps"
-        },
-        {
-          "x": 9,
-          "y": 4,
-          "verdict": "toward_goal",
-          "steps": 50,
-          "reason": "leads directly into main maze path toward goal"
+          "steps": 20,
+          "reason": "Dead end pocket.",
+          "proven": true
         },
         {
           "x": 8,
-          "y": 3,
-          "verdict": "detour",
-          "steps": 54,
-          "reason": "takes longer loop around, 4 steps longer"
+          "y": 1,
+          "verdict": "toward_goal",
+          "steps": 85,
+          "reason": "Leads to the exit.",
+          "proven": false
+        }
+      ]
+    },
+    {
+      "x": 21,
+      "y": 1,
+      "branches": [
+        {
+          "x": 22,
+          "y": 1,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Dead end at 23,3.",
+          "proven": true
+        },
+        {
+          "x": 21,
+          "y": 2,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end at 21,3.",
+          "proven": true
+        },
+        {
+          "x": 20,
+          "y": 1,
+          "verdict": "toward_goal",
+          "steps": 48,
+          "reason": "Leads to the goal.",
+          "proven": false
         }
       ]
     },
     {
       "x": 3,
-      "y": 5,
+      "y": 3,
       "branches": [
+        {
+          "x": 3,
+          "y": 2,
+          "verdict": "toward_goal",
+          "steps": 45,
+          "reason": "Successfully navigates to the goal.",
+          "proven": false
+        },
         {
           "x": 3,
           "y": 4,
           "verdict": "dead_end",
-          "steps": 2,
-          "reason": "dead-end pocket closing after 2 steps"
-        },
-        {
-          "x": 3,
-          "y": 6,
-          "verdict": "toward_goal",
-          "steps": 42,
-          "reason": "leads down into main route toward goal"
+          "steps": 8,
+          "reason": "Leads to a dead-end pocket.",
+          "proven": true
         },
         {
           "x": 2,
-          "y": 5,
-          "verdict": "detour",
-          "steps": 46,
-          "reason": "loops back around, 4 steps longer"
-        }
-      ]
-    },
-    {
-      "x": 5,
-      "y": 5,
-      "branches": [
-        {
-          "x": 5,
-          "y": 4,
+          "y": 3,
           "verdict": "dead_end",
           "steps": 2,
-          "reason": "dead-end pocket closing after 2 steps"
-        },
-        {
-          "x": 6,
-          "y": 5,
-          "verdict": "toward_goal",
-          "steps": 38,
-          "reason": "direct path forward toward goal"
-        },
-        {
-          "x": 5,
-          "y": 6,
-          "verdict": "detour",
-          "steps": 44,
-          "reason": "detours down and around, 6 steps longer"
+          "reason": "Immediate dead end.",
+          "proven": true
         }
       ]
     },
     {
-      "x": 7,
-      "y": 5,
+      "x": 13,
+      "y": 3,
       "branches": [
         {
-          "x": 8,
-          "y": 5,
-          "verdict": "toward_goal",
-          "steps": 34,
-          "reason": "shortest continuation toward the goal"
-        },
-        {
-          "x": 7,
-          "y": 6,
-          "verdict": "detour",
-          "steps": 40,
-          "reason": "detours through lower corridor, 6 steps longer"
-        },
-        {
-          "x": 6,
-          "y": 5,
+          "x": 13,
+          "y": 2,
           "verdict": "dead_end",
-          "steps": 3,
-          "reason": "closes off after 3 steps in dead-end pocket"
+          "steps": 2,
+          "reason": "Dead end.",
+          "proven": true
+        },
+        {
+          "x": 14,
+          "y": 3,
+          "verdict": "dead_end",
+          "steps": 14,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 13,
+          "y": 4,
+          "verdict": "toward_goal",
+          "steps": 38,
+          "reason": "Reaches the goal.",
+          "proven": true
+        },
+        {
+          "x": 12,
+          "y": 3,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "Dead end pocket.",
+          "proven": true
         }
       ]
     },
     {
       "x": 15,
-      "y": 5,
+      "y": 3,
       "branches": [
         {
           "x": 15,
-          "y": 4,
+          "y": 2,
           "verdict": "dead_end",
-          "steps": 2,
-          "reason": "dead-end pocket closing after 2 steps"
+          "steps": 4,
+          "reason": "Dead end pocket.",
+          "proven": true
         },
         {
           "x": 16,
-          "y": 5,
+          "y": 3,
+          "verdict": "dead_end",
+          "steps": 14,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 14,
+          "y": 3,
           "verdict": "toward_goal",
-          "steps": 18,
-          "reason": "shortest path toward goal"
+          "steps": 45,
+          "reason": "Reaches the goal.",
+          "proven": false
+        }
+      ]
+    },
+    {
+      "x": 17,
+      "y": 3,
+      "branches": [
+        {
+          "x": 18,
+          "y": 3,
+          "verdict": "dead_end",
+          "steps": 10,
+          "reason": "Leads to a dead-end pocket.",
+          "proven": true
+        },
+        {
+          "x": 17,
+          "y": 4,
+          "verdict": "dead_end",
+          "steps": 12,
+          "reason": "Trapped in a dead end.",
+          "proven": true
+        },
+        {
+          "x": 16,
+          "y": 3,
+          "verdict": "toward_goal",
+          "steps": 55,
+          "reason": "Correct path leading to the goal.",
+          "proven": false
+        }
+      ]
+    },
+    {
+      "x": 13,
+      "y": 5,
+      "branches": [
+        {
+          "x": 13,
+          "y": 4,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Dead end at top wall.",
+          "proven": true
         },
         {
           "x": 14,
           "y": 5,
-          "verdict": "detour",
-          "steps": 26,
-          "reason": "detours backward and around, 8 steps longer"
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 12,
+          "y": 5,
+          "verdict": "toward_goal",
+          "steps": 45,
+          "reason": "Reaches the goal.",
+          "proven": false
+        }
+      ]
+    },
+    {
+      "x": 1,
+      "y": 7,
+      "branches": [
+        {
+          "x": 1,
+          "y": 6,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "Leads to a dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 2,
+          "y": 7,
+          "verdict": "toward_goal",
+          "steps": 45,
+          "reason": "Correct path leading to the goal.",
+          "proven": false
+        },
+        {
+          "x": 1,
+          "y": 8,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Immediate dead end.",
+          "proven": true
         }
       ]
     },
@@ -256,241 +352,540 @@
       "y": 7,
       "branches": [
         {
-          "x": 3,
-          "y": 6,
-          "verdict": "dead_end",
-          "steps": 3,
-          "reason": "leads to dead end after 3 steps"
-        },
-        {
           "x": 4,
           "y": 7,
-          "verdict": "toward_goal",
-          "steps": 36,
-          "reason": "correct path toward goal"
+          "verdict": "dead_end",
+          "steps": 6,
+          "reason": "Leads to a dead end pocket.",
+          "proven": true
         },
         {
           "x": 3,
           "y": 8,
-          "verdict": "detour",
-          "steps": 42,
-          "reason": "detours into longer loop, 6 steps longer"
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Leads to a dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 2,
+          "y": 7,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Leads to a dead end pocket.",
+          "proven": true
         }
       ]
     },
     {
-      "x": 7,
+      "x": 13,
       "y": 7,
       "branches": [
         {
-          "x": 7,
-          "y": 6,
-          "verdict": "dead_end",
-          "steps": 2,
-          "reason": "dead end after 2 steps"
-        },
-        {
-          "x": 8,
+          "x": 14,
           "y": 7,
-          "verdict": "toward_goal",
-          "steps": 28,
-          "reason": "shortest path toward goal"
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Dead end pocket.",
+          "proven": true
         },
         {
-          "x": 7,
+          "x": 13,
           "y": 8,
-          "verdict": "detour",
-          "steps": 34,
-          "reason": "detours into longer path, 6 steps longer"
+          "verdict": "toward_goal",
+          "steps": 30,
+          "reason": "Leads directly to the goal.",
+          "proven": true
+        },
+        {
+          "x": 12,
+          "y": 7,
+          "verdict": "dead_end",
+          "steps": 16,
+          "reason": "Long dead end pocket.",
+          "proven": true
         }
       ]
     },
     {
-      "x": 11,
+      "x": 21,
+      "y": 7,
+      "branches": [
+        {
+          "x": 21,
+          "y": 6,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 22,
+          "y": 7,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 21,
+          "y": 8,
+          "verdict": "dead_end",
+          "steps": 6,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 20,
+          "y": 7,
+          "verdict": "toward_goal",
+          "steps": 45,
+          "reason": "Reaches the exit.",
+          "proven": false
+        }
+      ]
+    },
+    {
+      "x": 5,
       "y": 9,
       "branches": [
         {
-          "x": 11,
+          "x": 5,
           "y": 8,
+          "verdict": "toward_goal",
+          "steps": 45,
+          "reason": "Leads to the exit.",
+          "proven": false
+        },
+        {
+          "x": 6,
+          "y": 9,
           "verdict": "dead_end",
           "steps": 2,
-          "reason": "dead end after 2 steps"
+          "reason": "Dead end.",
+          "proven": true
+        },
+        {
+          "x": 5,
+          "y": 10,
+          "verdict": "dead_end",
+          "steps": 6,
+          "reason": "Dead end pocket.",
+          "proven": true
+        }
+      ]
+    },
+    {
+      "x": 13,
+      "y": 9,
+      "branches": [
+        {
+          "x": 13,
+          "y": 8,
+          "verdict": "dead_end",
+          "steps": 6,
+          "reason": "Leads to a dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 14,
+          "y": 9,
+          "verdict": "dead_end",
+          "steps": 6,
+          "reason": "Dead end corridor.",
+          "proven": true
+        },
+        {
+          "x": 13,
+          "y": 10,
+          "verdict": "toward_goal",
+          "steps": 28,
+          "reason": "Direct route to the goal.",
+          "proven": true
         },
         {
           "x": 12,
           "y": 9,
-          "verdict": "toward_goal",
-          "steps": 20,
-          "reason": "direct path toward goal"
-        },
-        {
-          "x": 11,
-          "y": 10,
-          "verdict": "detour",
-          "steps": 26,
-          "reason": "detours around loop, 6 steps longer"
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Leads to a dead end.",
+          "proven": true
         }
       ]
     },
     {
-      "x": 1,
+      "x": 3,
       "y": 11,
       "branches": [
         {
-          "x": 1,
-          "y": 10,
+          "x": 4,
+          "y": 11,
+          "verdict": "dead_end",
+          "steps": 6,
+          "reason": "Leads to a dead end.",
+          "proven": true
+        },
+        {
+          "x": 3,
+          "y": 12,
           "verdict": "dead_end",
           "steps": 2,
-          "reason": "dead end after 2 steps"
+          "reason": "Dead end pocket.",
+          "proven": true
         },
         {
           "x": 2,
           "y": 11,
           "verdict": "toward_goal",
-          "steps": 40,
-          "reason": "shortest path toward goal"
-        },
-        {
-          "x": 1,
-          "y": 12,
-          "verdict": "detour",
-          "steps": 46,
-          "reason": "detours down vertical branch, 6 steps longer"
-        }
-      ]
-    },
-    {
-      "x": 9,
-      "y": 11,
-      "branches": [
-        {
-          "x": 9,
-          "y": 10,
-          "verdict": "dead_end",
-          "steps": 2,
-          "reason": "dead end after 2 steps"
-        },
-        {
-          "x": 10,
-          "y": 11,
-          "verdict": "toward_goal",
-          "steps": 24,
-          "reason": "shortest path toward goal"
-        },
-        {
-          "x": 9,
-          "y": 12,
-          "verdict": "detour",
-          "steps": 30,
-          "reason": "detours down vertical path, 6 steps longer"
-        }
-      ]
-    },
-    {
-      "x": 11,
-      "y": 11,
-      "branches": [
-        {
-          "x": 11,
-          "y": 10,
-          "verdict": "dead_end",
-          "steps": 2,
-          "reason": "dead end after 2 steps"
-        },
-        {
-          "x": 11,
-          "y": 12,
-          "verdict": "detour",
-          "steps": 26,
-          "reason": "detours down vertical path, 4 steps longer"
-        },
-        {
-          "x": 10,
-          "y": 11,
-          "verdict": "toward_goal",
-          "steps": 22,
-          "reason": "shortest path toward goal"
-        }
-      ]
-    },
-    {
-      "x": 17,
-      "y": 11,
-      "branches": [
-        {
-          "x": 17,
-          "y": 10,
-          "verdict": "dead_end",
-          "steps": 2,
-          "reason": "dead end after 2 steps"
-        },
-        {
-          "x": 17,
-          "y": 12,
-          "verdict": "detour",
-          "steps": 12,
-          "reason": "detours down vertical path, 4 steps longer"
-        },
-        {
-          "x": 16,
-          "y": 11,
-          "verdict": "toward_goal",
-          "steps": 8,
-          "reason": "shortest path toward goal"
+          "steps": 45,
+          "reason": "Correct path to goal.",
+          "proven": false
         }
       ]
     },
     {
       "x": 5,
-      "y": 15,
+      "y": 11,
       "branches": [
         {
+          "x": 5,
+          "y": 10,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
           "x": 6,
-          "y": 15,
-          "verdict": "toward_goal",
-          "steps": 20,
-          "reason": "shortest path toward goal"
+          "y": 11,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Immediate dead end.",
+          "proven": true
         },
         {
           "x": 5,
-          "y": 16,
-          "verdict": "detour",
-          "steps": 26,
-          "reason": "detours down vertical path, 6 steps longer"
+          "y": 12,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Dead end pocket.",
+          "proven": true
         },
         {
           "x": 4,
-          "y": 15,
+          "y": 11,
           "verdict": "dead_end",
-          "steps": 4,
-          "reason": "dead end after 4 steps"
+          "steps": 10,
+          "reason": "Long dead end corridor.",
+          "proven": true
         }
       ]
     },
     {
-      "x": 7,
+      "x": 13,
+      "y": 11,
+      "branches": [
+        {
+          "x": 13,
+          "y": 10,
+          "verdict": "dead_end",
+          "steps": 6,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 14,
+          "y": 11,
+          "verdict": "dead_end",
+          "steps": 6,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 13,
+          "y": 12,
+          "verdict": "toward_goal",
+          "steps": 26,
+          "reason": "Reaches the goal.",
+          "proven": true
+        }
+      ]
+    },
+    {
+      "x": 13,
+      "y": 13,
+      "branches": [
+        {
+          "x": 13,
+          "y": 12,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "Dead end to the right.",
+          "proven": true
+        },
+        {
+          "x": 13,
+          "y": 14,
+          "verdict": "toward_goal",
+          "steps": 24,
+          "reason": "Leads directly to the goal.",
+          "proven": true
+        },
+        {
+          "x": 12,
+          "y": 13,
+          "verdict": "dead_end",
+          "steps": 6,
+          "reason": "Dead end to the left.",
+          "proven": true
+        }
+      ]
+    },
+    {
+      "x": 17,
+      "y": 13,
+      "branches": [
+        {
+          "x": 18,
+          "y": 13,
+          "verdict": "dead_end",
+          "steps": 10,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 17,
+          "y": 14,
+          "verdict": "toward_goal",
+          "steps": 35,
+          "reason": "Leads to the exit.",
+          "proven": false
+        },
+        {
+          "x": 16,
+          "y": 13,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end pocket.",
+          "proven": true
+        }
+      ]
+    },
+    {
+      "x": 21,
+      "y": 13,
+      "branches": [
+        {
+          "x": 22,
+          "y": 13,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 21,
+          "y": 14,
+          "verdict": "dead_end",
+          "steps": 6,
+          "reason": "Dead end corridor.",
+          "proven": true
+        },
+        {
+          "x": 20,
+          "y": 13,
+          "verdict": "toward_goal",
+          "steps": 45,
+          "reason": "Leads to the exit.",
+          "proven": false
+        }
+      ]
+    },
+    {
+      "x": 1,
       "y": 15,
       "branches": [
         {
-          "x": 7,
+          "x": 1,
+          "y": 14,
+          "verdict": "dead_end",
+          "steps": 10,
+          "reason": "Leads to a dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 2,
+          "y": 15,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Leads to a dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 1,
+          "y": 16,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Leads to an immediate dead end.",
+          "proven": true
+        }
+      ]
+    },
+    {
+      "x": 3,
+      "y": 15,
+      "branches": [
+        {
+          "x": 4,
+          "y": 15,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 3,
+          "y": 16,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end.",
+          "proven": true
+        },
+        {
+          "x": 2,
+          "y": 15,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Dead end.",
+          "proven": true
+        }
+      ]
+    },
+    {
+      "x": 9,
+      "y": 15,
+      "branches": [
+        {
+          "x": 9,
           "y": 14,
           "verdict": "dead_end",
           "steps": 2,
-          "reason": "dead end after 2 steps"
+          "reason": "Dead end.",
+          "proven": true
         },
         {
-          "x": 7,
-          "y": 16,
-          "verdict": "detour",
-          "steps": 24,
-          "reason": "detours down vertical path, 6 steps longer"
-        },
-        {
-          "x": 6,
+          "x": 10,
           "y": 15,
           "verdict": "toward_goal",
-          "steps": 18,
-          "reason": "shortest path toward goal"
+          "steps": 42,
+          "reason": "Leads to the exit.",
+          "proven": false
+        },
+        {
+          "x": 8,
+          "y": 15,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end.",
+          "proven": true
+        }
+      ]
+    },
+    {
+      "x": 11,
+      "y": 15,
+      "branches": [
+        {
+          "x": 12,
+          "y": 15,
+          "verdict": "toward_goal",
+          "steps": 30,
+          "reason": "Leads directly to the maze exit.",
+          "proven": false
+        },
+        {
+          "x": 11,
+          "y": 16,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 10,
+          "y": 15,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Leads to a dead end.",
+          "proven": true
+        }
+      ]
+    },
+    {
+      "x": 13,
+      "y": 15,
+      "branches": [
+        {
+          "x": 13,
+          "y": 14,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "Leads to a dead-end pocket on the left.",
+          "proven": true
+        },
+        {
+          "x": 14,
+          "y": 15,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Terminates in a short dead-end pocket.",
+          "proven": true
+        },
+        {
+          "x": 13,
+          "y": 16,
+          "verdict": "toward_goal",
+          "steps": 22,
+          "reason": "Directly routes south and east to the goal.",
+          "proven": true
+        },
+        {
+          "x": 12,
+          "y": 15,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Terminates in a dead-end pocket.",
+          "proven": true
+        }
+      ]
+    },
+    {
+      "x": 15,
+      "y": 15,
+      "branches": [
+        {
+          "x": 16,
+          "y": 15,
+          "verdict": "dead_end",
+          "steps": 10,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 15,
+          "y": 16,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 14,
+          "y": 15,
+          "verdict": "toward_goal",
+          "steps": 24,
+          "reason": "Reaches goal successfully.",
+          "proven": true
         }
       ]
     },
@@ -499,133 +894,374 @@
       "y": 15,
       "branches": [
         {
+          "x": 17,
+          "y": 14,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
           "x": 18,
           "y": 15,
-          "verdict": "toward_goal",
-          "steps": 4,
-          "reason": "direct path toward goal"
+          "verdict": "dead_end",
+          "steps": 6,
+          "reason": "Dead end pocket.",
+          "proven": true
         },
         {
           "x": 17,
           "y": 16,
-          "verdict": "detour",
-          "steps": 10,
-          "reason": "detours down vertical path, 6 steps longer"
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Dead end pocket.",
+          "proven": true
         },
         {
           "x": 16,
           "y": 15,
-          "verdict": "dead_end",
-          "steps": 4,
-          "reason": "dead end after 4 steps"
+          "verdict": "toward_goal",
+          "steps": 32,
+          "reason": "Leads to the goal.",
+          "proven": false
         }
       ]
     },
     {
-      "x": 9,
+      "x": 19,
       "y": 17,
       "branches": [
         {
-          "x": 9,
+          "x": 19,
           "y": 16,
           "verdict": "dead_end",
-          "steps": 2,
-          "reason": "dead end after 2 steps"
+          "steps": 8,
+          "reason": "Leads to dead end pocket",
+          "proven": true
         },
         {
-          "x": 9,
+          "x": 20,
+          "y": 17,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Leads to dead end",
+          "proven": true
+        },
+        {
+          "x": 19,
           "y": 18,
           "verdict": "toward_goal",
-          "steps": 4,
-          "reason": "direct path toward goal"
+          "steps": 25,
+          "reason": "Direct route to goal",
+          "proven": false
+        }
+      ]
+    },
+    {
+      "x": 3,
+      "y": 19,
+      "branches": [
+        {
+          "x": 4,
+          "y": 19,
+          "verdict": "toward_goal",
+          "steps": 45,
+          "reason": "Leads to the goal via the lower corridors.",
+          "proven": false
         },
         {
+          "x": 3,
+          "y": 20,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 2,
+          "y": 19,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Dead end pocket.",
+          "proven": true
+        }
+      ]
+    },
+    {
+      "x": 7,
+      "y": 19,
+      "branches": [
+        {
           "x": 8,
-          "y": 17,
-          "verdict": "detour",
-          "steps": 10,
-          "reason": "detours around loop, 6 steps longer"
+          "y": 19,
+          "verdict": "toward_goal",
+          "steps": 20,
+          "reason": "Leads directly to the goal.",
+          "proven": true
+        },
+        {
+          "x": 7,
+          "y": 20,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 6,
+          "y": 19,
+          "verdict": "dead_end",
+          "steps": 6,
+          "reason": "Leads to a dead end.",
+          "proven": true
         }
       ]
     },
     {
       "x": 11,
-      "y": 17,
+      "y": 19,
       "branches": [
         {
-          "x": 11,
-          "y": 16,
-          "verdict": "dead_end",
-          "steps": 2,
-          "reason": "dead end after 2 steps"
-        },
-        {
           "x": 12,
-          "y": 17,
+          "y": 19,
           "verdict": "toward_goal",
-          "steps": 10,
-          "reason": "shortest path toward goal"
+          "steps": 45,
+          "reason": "Leads directly to the goal.",
+          "proven": false
         },
         {
           "x": 11,
-          "y": 18,
-          "verdict": "detour",
-          "steps": 10,
-          "reason": "alternative path, equal length"
+          "y": 20,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 10,
+          "y": 19,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "Dead end pocket.",
+          "proven": true
         }
       ]
     },
     {
       "x": 13,
-      "y": 17,
+      "y": 19,
       "branches": [
         {
           "x": 13,
-          "y": 16,
+          "y": 18,
           "verdict": "dead_end",
-          "steps": 2,
-          "reason": "dead end after 2 steps"
+          "steps": 22,
+          "reason": "Leads to dead end pocket",
+          "proven": true
         },
         {
           "x": 14,
-          "y": 17,
-          "verdict": "toward_goal",
-          "steps": 8,
-          "reason": "shortest path toward goal"
+          "y": 19,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Immediate dead end",
+          "proven": true
         },
         {
           "x": 12,
-          "y": 17,
-          "verdict": "detour",
+          "y": 19,
+          "verdict": "toward_goal",
+          "steps": 18,
+          "reason": "Reaches the exit successfully",
+          "proven": true
+        }
+      ]
+    },
+    {
+      "x": 11,
+      "y": 21,
+      "branches": [
+        {
+          "x": 11,
+          "y": 20,
+          "verdict": "dead_end",
+          "steps": 10,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 12,
+          "y": 21,
+          "verdict": "toward_goal",
+          "steps": 14,
+          "reason": "Reaches the exit.",
+          "proven": true
+        },
+        {
+          "x": 11,
+          "y": 22,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 10,
+          "y": 21,
+          "verdict": "dead_end",
           "steps": 12,
-          "reason": "detours around, 4 steps longer"
+          "reason": "Dead end pocket.",
+          "proven": true
+        }
+      ]
+    },
+    {
+      "x": 13,
+      "y": 21,
+      "branches": [
+        {
+          "x": 14,
+          "y": 21,
+          "verdict": "toward_goal",
+          "steps": 12,
+          "reason": "Leads directly to the goal.",
+          "proven": true
+        },
+        {
+          "x": 13,
+          "y": 22,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 12,
+          "y": 21,
+          "verdict": "dead_end",
+          "steps": 18,
+          "reason": "Long winding dead end.",
+          "proven": true
         }
       ]
     },
     {
       "x": 15,
-      "y": 19,
+      "y": 21,
       "branches": [
         {
-          "x": 15,
-          "y": 18,
-          "verdict": "detour",
-          "steps": 16,
-          "reason": "detours up and around, 12 steps longer"
+          "x": 16,
+          "y": 21,
+          "verdict": "toward_goal",
+          "steps": 10,
+          "reason": "Leads directly to the goal.",
+          "proven": true
         },
         {
-          "x": 16,
-          "y": 19,
-          "verdict": "toward_goal",
+          "x": 15,
+          "y": 22,
+          "verdict": "dead_end",
           "steps": 4,
-          "reason": "direct 4 steps to the exit"
+          "reason": "Dead end pocket.",
+          "proven": true
         },
         {
           "x": 14,
-          "y": 19,
-          "verdict": "detour",
-          "steps": 40,
-          "reason": "detours left across maze, much longer"
+          "y": 21,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Leads to dead end.",
+          "proven": true
+        }
+      ]
+    },
+    {
+      "x": 19,
+      "y": 21,
+      "branches": [
+        {
+          "x": 20,
+          "y": 21,
+          "verdict": "toward_goal",
+          "steps": 6,
+          "reason": "Leads directly to the goal.",
+          "proven": true
+        },
+        {
+          "x": 19,
+          "y": 22,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 18,
+          "y": 21,
+          "verdict": "dead_end",
+          "steps": 8,
+          "reason": "Leads to a dead end.",
+          "proven": true
+        }
+      ]
+    },
+    {
+      "x": 21,
+      "y": 21,
+      "branches": [
+        {
+          "x": 22,
+          "y": 21,
+          "verdict": "toward_goal",
+          "steps": 4,
+          "reason": "Direct path to the goal.",
+          "proven": true
+        },
+        {
+          "x": 21,
+          "y": 22,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 20,
+          "y": 21,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Leads to a dead end.",
+          "proven": true
+        }
+      ]
+    },
+    {
+      "x": 23,
+      "y": 21,
+      "branches": [
+        {
+          "x": 23,
+          "y": 20,
+          "verdict": "dead_end",
+          "steps": 2,
+          "reason": "Dead end pocket.",
+          "proven": true
+        },
+        {
+          "x": 23,
+          "y": 22,
+          "verdict": "toward_goal",
+          "steps": 2,
+          "reason": "Direct path to goal.",
+          "proven": true
+        },
+        {
+          "x": 22,
+          "y": 21,
+          "verdict": "dead_end",
+          "steps": 4,
+          "reason": "Leads to a dead end.",
+          "proven": true
         }
       ]
     }

@@ -13,7 +13,7 @@ require("dotenv").config();
 const engine = require("../lib/hint-engine.js");
 const { FIXED_8X8_MAZE_CONFIG } = await import("../public/fixed_8x8_maze.js");
 const { ORIGINAL_15X15_MAZE_CONFIG } = await import("../public/original_15x15_maze.js");
-const { DISAPPEAR_10X10_MAZE_CONFIG } = await import("../public/disappear_10x10_maze.js");
+const { DISAPPEAR_MAZE_CONFIG } = await import("../public/disappear_maze.js");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.join(__dirname, "..", "public", "data");
@@ -36,41 +36,40 @@ function findJunctions(maze) {
   return junctions;
 }
 
-async function buildOne(key, config, attempts = 5) {
+// Per-junction "show your work": the AI traces a path for every branch and we
+// validate it (adjacency only, no BFS), deriving verdict/steps from the proven path.
+async function buildOne(key, config) {
   const maze = config.maze;
   const goal = config.goal;
   const junctions = findJunctions(maze);
-  process.stdout.write(`\n[${key}] ${junctions.length} junctions — calling AI (${engine.provider}/${engine.model}, high reasoning)…\n`);
+  process.stdout.write(`\n[${key}] ${junctions.length} junctions — per-junction traced eval (${engine.provider}/${engine.model}, high reasoning)\n`);
 
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    const t0 = Date.now();
+  const out = [];
+  let full = 0, partial = 0;
+  const t0 = Date.now();
+  for (const j of junctions) {
     try {
-      const result = await engine.evaluateJunctionsBatch({ maze, goal, junctions }, (a, d) => console.warn("  logError:", a, JSON.stringify(d).slice(0, 200)));
-      const returned = (result.junctions || []).length;
-      const took = ((Date.now() - t0) / 1000).toFixed(1);
-      if (result.status === "evaluated" && returned === junctions.length) {
-        const payload = {
-          maze: key,
-          generated_at: new Date().toISOString(),
-          provider: engine.provider,
-          model: engine.model,
-          goal,
-          junctions: result.junctions,
-        };
-        fs.mkdirSync(outDir, { recursive: true });
-        const file = path.join(outDir, `junction-cues.${key}.json`);
-        fs.writeFileSync(file, JSON.stringify(payload, null, 2));
-        console.log(`  ✅ ${returned}/${junctions.length} junctions in ${took}s → public/data/junction-cues.${key}.json`);
-        return true;
-      }
-      console.warn(`  ⚠️ attempt ${attempt}: got ${returned}/${junctions.length} (status=${result.status}) in ${took}s — retrying`);
+      const res = await engine.evaluateJunctionTraced({ maze, goal, junction: { x: j.x, y: j.y }, branches: j.branches }, () => {});
+      out.push({ x: j.x, y: j.y, branches: res.branches });
+      full += 1;
+      process.stdout.write(`  (${j.x},${j.y}) ✅ ${res.attempts} attempt(s)\n`);
     } catch (error) {
-      console.warn(`  ⚠️ attempt ${attempt}: ${error.message} (${((Date.now() - t0) / 1000).toFixed(1)}s) — retrying`);
+      const parts = error.partial || [];
+      out.push({ x: j.x, y: j.y, branches: parts });
+      partial += 1;
+      process.stdout.write(`  (${j.x},${j.y}) ⚠️ partial (${parts.length}/${j.branches.length} branches validated)\n`);
     }
-    if (attempt < attempts) await new Promise((r) => setTimeout(r, 4000)); // backoff (503s)
   }
-  console.error(`  ❌ [${key}] failed after ${attempts} attempts`);
-  return false;
+
+  const payload = {
+    maze: key, generated_at: new Date().toISOString(),
+    provider: engine.provider, model: engine.model, method: "traced-validated",
+    goal, junctions: out,
+  };
+  fs.mkdirSync(outDir, { recursive: true });
+  fs.writeFileSync(path.join(outDir, `junction-cues.${key}.json`), JSON.stringify(payload, null, 2));
+  console.log(`  wrote ${out.length} junctions (${full} full, ${partial} partial) in ${((Date.now() - t0) / 1000).toFixed(1)}s → junction-cues.${key}.json`);
+  return partial === 0;
 }
 
 const credErr = engine.getCredentialError();
@@ -82,7 +81,7 @@ if (credErr) {
 const allTargets = [
   ["default", FIXED_8X8_MAZE_CONFIG],
   ["original", ORIGINAL_15X15_MAZE_CONFIG],
-  ["disappear", DISAPPEAR_10X10_MAZE_CONFIG],
+  ["disappear", DISAPPEAR_MAZE_CONFIG],
 ];
 // Optional CLI filter: `node build-cues.mjs disappear` builds only that maze
 // (so we don't re-spend quota regenerating the ones already committed).
