@@ -1018,9 +1018,10 @@ function drawRouteCues() {
   for (const b of valid) {
     const t = max === min ? 0 : ((Number(b.steps) || 0) - min) / (max - min); // 0 = shortest, 1 = longest
     const color = new THREE.Color().lerpColors(CUE_COLOR_SHORT, CUE_COLOR_LONG, t);
-    const material = new THREE.MeshBasicMaterial({ color });
+    const material = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
     const cells = traceBranchCells(player, { x: b.x, y: b.y }, CUE_LINE_STEPS);
     drawCueSegments(cells, material);
+    drawCueArrow(cells, material); // arrowhead at the tip, same shade as the line
     window.__routeCues.push({ x: b.x, y: b.y, steps: Number(b.steps) || 0, verdict: b.verdict, hex: color.getHexString(), cells: cells.length });
   }
 }
@@ -1041,6 +1042,23 @@ function drawCueSegments(cells, material) {
     seg.scale.set(horizontal ? cellSize + lineWidth : lineWidth, 1, horizontal ? lineWidth : cellSize + lineWidth);
     routeCueGroup.add(seg);
   }
+}
+
+// Arrowhead at the far end of a cue line, aimed along the final step — same as the
+// old hint arrow, but tinted to match this branch's shade.
+function drawCueArrow(cells, material) {
+  if (cells.length < 2) return;
+  const prev = cells[cells.length - 2];
+  const last = cells[cells.length - 1];
+  const dx = last.x - prev.x;
+  const dz = last.y - prev.y; // grid y maps to world z
+  if (Math.abs(dx) + Math.abs(dz) !== 1) return;
+  const end = worldFromCell(last.x, last.y);
+  const arrow = new THREE.Mesh(reusable.hintArrow, material);
+  arrow.position.set(end.x, 0.13, end.z);
+  arrow.rotation.y = Math.atan2(dx, dz);
+  arrow.scale.set(1.9, 1, 1.9); // prominent arrowhead, like the old hint
+  routeCueGroup.add(arrow);
 }
 
 // Re-align the already-computed junction cue to the current facing when the player
