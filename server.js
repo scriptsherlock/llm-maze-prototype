@@ -49,6 +49,15 @@ app.get(["/disappear/participant", "/disappear/moderator"], (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// Looped variant of the AI-disappears maze (several valid routes per junction).
+app.get("/looped", (_req, res) => {
+  res.redirect("/looped/participant");
+});
+
+app.get(["/looped/participant", "/looped/moderator"], (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 app.get("/api/state", (_req, res) => {
   res.json({ ai_enabled: aiEnabled, provider, model });
 });
