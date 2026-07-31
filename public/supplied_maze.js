@@ -25,12 +25,12 @@ const WALL_ROWS = [
   "111111111110111111111",
 ];
 
-export const NO_AI_MAZE_GRID = WALL_ROWS.map((row) => [...row].map(Number));
+export const SUPPLIED_MAZE_GRID = WALL_ROWS.map((row) => [...row].map(Number));
 
-export const NO_AI_MAZE_CONFIG = {
-  id: "no_ai-10x10",
-  name: "10 by 10 orthogonal maze",
-  maze: NO_AI_MAZE_GRID,
+export const SUPPLIED_MAZE_CONFIG = {
+  id: "supplied-10x10",
+  name: "10 by 10 orthogonal maze (supplied)",
+  maze: SUPPLIED_MAZE_GRID,
   start: { x: 9, y: 1 },
   entrance: { x: 9, y: 0 },
   startFacing: 2,

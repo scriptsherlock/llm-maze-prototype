@@ -28,12 +28,12 @@ const WALL_ROWS = [
   "111111111110111111111",
 ];
 
-export const AI_MAZE_GRID = WALL_ROWS.map((row) => [...row].map(Number));
+export const GENERATED_MAZE_GRID = WALL_ROWS.map((row) => [...row].map(Number));
 
-export const AI_MAZE_CONFIG = {
-  id: "ai-10x10",
-  name: "10 by 10 maze (AI condition)",
-  maze: AI_MAZE_GRID,
+export const GENERATED_MAZE_CONFIG = {
+  id: "generated-10x10",
+  name: "10 by 10 maze (generated, matched)",
+  maze: GENERATED_MAZE_GRID,
   start: { x: 9, y: 1 },
   entrance: { x: 9, y: 0 },
   startFacing: 2,

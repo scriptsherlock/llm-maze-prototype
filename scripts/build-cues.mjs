@@ -14,7 +14,7 @@ const engine = require("../lib/hint-engine.js");
 const { FIXED_8X8_MAZE_CONFIG } = await import("../public/fixed_8x8_maze.js");
 const { ORIGINAL_15X15_MAZE_CONFIG } = await import("../public/original_15x15_maze.js");
 const { DISAPPEAR_MAZE_CONFIG } = await import("../public/disappear_maze.js");
-const { AI_MAZE_CONFIG } = await import("../public/ai_maze.js");
+const { SUPPLIED_MAZE_CONFIG } = await import("../public/supplied_maze.js");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.join(__dirname, "..", "public", "data");
@@ -88,7 +88,7 @@ const allTargets = [
   ["default", FIXED_8X8_MAZE_CONFIG],
   ["original", ORIGINAL_15X15_MAZE_CONFIG],
   ["disappear", DISAPPEAR_MAZE_CONFIG],
-  ["ai", AI_MAZE_CONFIG],
+  ["ai", SUPPLIED_MAZE_CONFIG],
 ];
 // Optional CLI filter: `node build-cues.mjs disappear` builds only that maze
 // (so we don't re-spend quota regenerating the ones already committed).
