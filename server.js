@@ -49,6 +49,22 @@ app.get(["/disappear/participant", "/disappear/moderator"], (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// The two study conditions: matched 10x10 mazes, one with AI hints and one without.
+app.get("/ai-maze", (_req, res) => {
+  res.redirect("/ai-maze/participant");
+});
+
+app.get("/no-ai-maze", (_req, res) => {
+  res.redirect("/no-ai-maze/participant");
+});
+
+app.get([
+  "/ai-maze/participant", "/ai-maze/moderator",
+  "/no-ai-maze/participant", "/no-ai-maze/moderator",
+], (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 app.get("/api/state", (_req, res) => {
   res.json({ ai_enabled: aiEnabled, provider, model });
 });

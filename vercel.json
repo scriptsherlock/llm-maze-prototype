@@ -13,6 +13,10 @@
     { "source": "/original/participant", "destination": "/index.html" },
     { "source": "/original/moderator", "destination": "/index.html" },
     { "source": "/disappear/participant", "destination": "/index.html" },
-    { "source": "/disappear/moderator", "destination": "/index.html" }
+    { "source": "/disappear/moderator", "destination": "/index.html" },
+    { "source": "/ai-maze/participant", "destination": "/index.html" },
+    { "source": "/ai-maze/moderator", "destination": "/index.html" },
+    { "source": "/no-ai-maze/participant", "destination": "/index.html" },
+    { "source": "/no-ai-maze/moderator", "destination": "/index.html" }
   ]
 }
