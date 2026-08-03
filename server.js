@@ -68,6 +68,7 @@ app.get([
 
 // The four study mazes, viewable individually.
 app.get([
+  "/maze-0/participant", "/maze-0/moderator",
   "/maze-a/participant", "/maze-a/moderator",
   "/maze-b/participant", "/maze-b/moderator",
   "/maze-c/participant", "/maze-c/moderator",

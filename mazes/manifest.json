@@ -2,11 +2,31 @@
   "_comment": "Single source of truth for the study's mazes and conditions. The same 4 mazes are used in every condition, so difficulty is controlled by construction and only the AI differs (between-subjects: one condition per participant).",
   "mazes": [
     {
+      "id": "maze-0",
+      "svg": null,
+      "generator": "mazes/scripts/build-braided.mjs (seed 54, matched to maze-a)",
+      "module": "public/mazes/maze-0.js",
+      "hints": "public/mazes/hints/maze-0.json",
+      "order": 1,
+      "status": "generated",
+      "note": "BRAIDED: 9 loops give several routes to the exit (20 of 21 junctions have 2+ branches that reach it), while dead-end pockets are capped at 6 cells so every AI claim stays cheaply provable.",
+      "profile": {
+        "size": "10x10",
+        "solution": 53,
+        "coverage": 27,
+        "junctions": 21,
+        "multiRoute": 20,
+        "deadEnds": 4,
+        "deadEndMax": 6,
+        "loops": 9
+      }
+    },
+    {
       "id": "maze-a",
       "svg": "mazes/svg/maze-a.svg",
       "module": "public/mazes/maze-a.js",
       "hints": "public/mazes/hints/maze-a.json",
-      "order": 1,
+      "order": 2,
       "status": "imported",
       "profile": {
         "size": "10x10",
@@ -24,7 +44,7 @@
       "svg": "mazes/svg/maze-b.svg",
       "module": "public/mazes/maze-b.js",
       "hints": "public/mazes/hints/maze-b.json",
-      "order": 2,
+      "order": 3,
       "status": "imported",
       "profile": {
         "size": "10x10",
@@ -42,7 +62,7 @@
       "svg": "mazes/svg/maze-c.svg",
       "module": "public/mazes/maze-c.js",
       "hints": "public/mazes/hints/maze-c.json",
-      "order": 3,
+      "order": 4,
       "status": "imported",
       "profile": {
         "size": "10x10",
@@ -64,7 +84,7 @@
       "svg": "mazes/svg/maze-d.svg",
       "module": "public/mazes/maze-d.js",
       "hints": "public/mazes/hints/maze-d.json",
-      "order": 4,
+      "order": 5,
       "status": "imported",
       "profile": {
         "size": "10x10",
@@ -98,6 +118,7 @@
       "label": "No AI",
       "ai": "off",
       "mazes": [
+        "maze-0",
         "maze-a",
         "maze-b",
         "maze-c",
@@ -109,6 +130,7 @@
       "label": "Stable AI",
       "ai": "on",
       "mazes": [
+        "maze-0",
         "maze-a",
         "maze-b",
         "maze-c",
@@ -120,6 +142,7 @@
       "label": "AI disappears",
       "ai": "on",
       "mazes": [
+        "maze-0",
         "maze-a",
         "maze-b",
         "maze-c",

@@ -18,6 +18,8 @@
     { "source": "/ai-maze/moderator", "destination": "/index.html" },
     { "source": "/study/participant", "destination": "/index.html" },
     { "source": "/study/moderator", "destination": "/index.html" },
+    { "source": "/maze-0/participant", "destination": "/index.html" },
+    { "source": "/maze-0/moderator", "destination": "/index.html" },
     { "source": "/maze-a/participant", "destination": "/index.html" },
     { "source": "/maze-a/moderator", "destination": "/index.html" },
     { "source": "/maze-b/participant", "destination": "/index.html" },

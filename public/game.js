@@ -1166,15 +1166,15 @@ function showTaskComplete() {
   if (!panel || !button) return;
 
   const hasNext = IS_STUDY && STUDY_INDEX < STUDY_TOTAL - 1;
-  const seconds = Math.round(((finishedAt ?? Date.now()) - startTime) / 1000);
-  const timing = `${moves} moves · ${formatTime(seconds * 1000)}`;
 
+  // Deliberately no moves/time here: showing a participant their score mid-study
+  // invites them to compare trials and change strategy. It is all still logged.
   if (IS_STUDY) {
     title.textContent = hasNext ? "Task complete!" : "All tasks complete!";
-    sub.textContent = `Maze ${STUDY_INDEX + 1} of ${STUDY_TOTAL} — ${timing}`;
+    sub.textContent = `Maze ${STUDY_INDEX + 1} of ${STUDY_TOTAL}`;
   } else {
     title.textContent = "Task complete!";
-    sub.textContent = timing;
+    sub.textContent = "";
   }
   button.textContent = hasNext ? "Next maze" : "Finished";
   button.disabled = !hasNext;

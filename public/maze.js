@@ -3,6 +3,7 @@ import { ORIGINAL_15X15_MAZE_CONFIG } from "./original_15x15_maze.js";
 import { DISAPPEAR_MAZE_CONFIG } from "./disappear_maze.js";
 import { SUPPLIED_MAZE_CONFIG } from "./supplied_maze.js";
 import { V6_MAZE_CONFIG } from "./v6_maze.js";
+import { MAZE_0_MAZE_CONFIG } from "./mazes/maze-0.js";
 import { MAZE_A_MAZE_CONFIG } from "./mazes/maze-a.js";
 import { MAZE_B_MAZE_CONFIG } from "./mazes/maze-b.js";
 import { MAZE_C_MAZE_CONFIG } from "./mazes/maze-c.js";
@@ -10,6 +11,7 @@ import { MAZE_D_MAZE_CONFIG } from "./mazes/maze-d.js";
 
 // The four study mazes, addressable at /maze-a/participant ... /maze-d/participant.
 const STUDY_MAZES = {
+  "maze-0": MAZE_0_MAZE_CONFIG,
   "maze-a": MAZE_A_MAZE_CONFIG,
   "maze-b": MAZE_B_MAZE_CONFIG,
   "maze-c": MAZE_C_MAZE_CONFIG,
@@ -26,7 +28,7 @@ const STUDY_MAZES = {
 // held in sessionStorage rather than the address, so the participant never sees the
 // sequence position and cannot skip ahead by editing the url. Advancing re-inits
 // the page, which is what keeps each trial completely clean.
-export const STUDY_SEQUENCE = ["maze-a", "maze-b", "maze-c", "maze-d"];
+export const STUDY_SEQUENCE = ["maze-0", "maze-a", "maze-b", "maze-c", "maze-d"];
 const STUDY_PROGRESS_KEY = "llm_maze_study_index";
 const isStudy = ((globalThis.location && globalThis.location.pathname) || "").includes("study");
 
