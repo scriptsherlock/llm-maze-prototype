@@ -29,13 +29,30 @@ const STUDY_MAZES = {
 // sequence position and cannot skip ahead by editing the url. Advancing re-inits
 // the page, which is what keeps each trial completely clean.
 export const STUDY_SEQUENCE = ["maze-0", "maze-a", "maze-b", "maze-c", "maze-d"];
-const STUDY_PROGRESS_KEY = "llm_maze_study_index";
+const STUDY_PROGRESS_KEY = "llm_maze_study_progress";
 const isStudy = ((globalThis.location && globalThis.location.pathname) || "").includes("study");
+// Stored progress is tagged with the sequence it belongs to. Change the sequence
+// (add a maze, reorder) and any older progress is discarded rather than pointing at
+// the wrong maze — otherwise a stale tab would silently start mid-study.
+const SEQUENCE_SIGNATURE = STUDY_SEQUENCE.join(">");
 
 function readStudyIndex() {
   try {
-    const raw = globalThis.sessionStorage && globalThis.sessionStorage.getItem(STUDY_PROGRESS_KEY);
-    const n = Number.parseInt(raw ?? "0", 10);
+    if (!globalThis.sessionStorage) return 0;
+    // ?restart clears progress, for re-running without hunting through devtools.
+    const search = (globalThis.location && globalThis.location.search) || "";
+    if (new URLSearchParams(search).has("restart")) {
+      globalThis.sessionStorage.removeItem(STUDY_PROGRESS_KEY);
+      return 0;
+    }
+    const raw = globalThis.sessionStorage.getItem(STUDY_PROGRESS_KEY);
+    if (!raw) return 0;
+    const saved = JSON.parse(raw);
+    if (!saved || saved.sequence !== SEQUENCE_SIGNATURE) {
+      globalThis.sessionStorage.removeItem(STUDY_PROGRESS_KEY); // sequence changed
+      return 0;
+    }
+    const n = Number.parseInt(saved.index, 10);
     return Number.isFinite(n) ? Math.min(Math.max(n, 0), STUDY_SEQUENCE.length - 1) : 0;
   } catch (_error) {
     return 0;
@@ -51,7 +68,9 @@ export function advanceStudyMaze() {
   if (!isStudy) return false;
   const next = STUDY_INDEX + 1;
   if (next >= STUDY_SEQUENCE.length) return false;
-  try { globalThis.sessionStorage.setItem(STUDY_PROGRESS_KEY, String(next)); } catch (_error) { /* ignore */ }
+  try {
+    globalThis.sessionStorage.setItem(STUDY_PROGRESS_KEY, JSON.stringify({ sequence: SEQUENCE_SIGNATURE, index: next }));
+  } catch (_error) { /* ignore */ }
   globalThis.location.reload();
   return true;
 }

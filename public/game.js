@@ -3,6 +3,7 @@ import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
 import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze } from "./maze.js";
 
 const maze = MAZE_CONFIG.maze;
+if (typeof window !== "undefined") window.__mazeRows = maze.map((r) => r.join("")).join("");
 const rows = maze.length;
 const cols = maze[0].length;
 const start = MAZE_CONFIG.start;
