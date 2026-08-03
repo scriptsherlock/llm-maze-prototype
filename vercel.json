@@ -16,6 +16,14 @@
     { "source": "/disappear/moderator", "destination": "/index.html" },
     { "source": "/ai-maze/participant", "destination": "/index.html" },
     { "source": "/ai-maze/moderator", "destination": "/index.html" },
+    { "source": "/maze-a/participant", "destination": "/index.html" },
+    { "source": "/maze-a/moderator", "destination": "/index.html" },
+    { "source": "/maze-b/participant", "destination": "/index.html" },
+    { "source": "/maze-b/moderator", "destination": "/index.html" },
+    { "source": "/maze-c/participant", "destination": "/index.html" },
+    { "source": "/maze-c/moderator", "destination": "/index.html" },
+    { "source": "/maze-d/participant", "destination": "/index.html" },
+    { "source": "/maze-d/moderator", "destination": "/index.html" },
     { "source": "/no-ai-maze/participant", "destination": "/index.html" },
     { "source": "/no-ai-maze/moderator", "destination": "/index.html" }
   ]

@@ -1,6 +1,6 @@
 import * as THREE from "/vendor/three/three.module.js";
 import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
-import { DIRS, MAZE_CONFIG, MAZE_KEY } from "./maze.js";
+import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL } from "./maze.js";
 
 const maze = MAZE_CONFIG.maze;
 const rows = maze.length;
@@ -910,7 +910,7 @@ async function precomputeJunctions() {
   if (CUE_SOURCE === "file") {
     // No runtime AI call: load cues the offline generator already produced.
     try {
-      const response = await fetch(`/data/junction-cues.${MAZE_KEY}.json`);
+      const response = await fetch(HINTS_URL);
       if (!response.ok) throw new Error(`cue file HTTP ${response.status}`);
       const data = await response.json();
       for (const j of data.junctions || []) junctionEvals.set(`${j.x},${j.y}`, j.branches || []);

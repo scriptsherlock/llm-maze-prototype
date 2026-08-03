@@ -65,6 +65,17 @@ app.get([
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+
+// The four study mazes, viewable individually.
+app.get([
+  "/maze-a/participant", "/maze-a/moderator",
+  "/maze-b/participant", "/maze-b/moderator",
+  "/maze-c/participant", "/maze-c/moderator",
+  "/maze-d/participant", "/maze-d/moderator",
+], (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 app.get("/api/state", (_req, res) => {
   res.json({ ai_enabled: aiEnabled, provider, model });
 });
