@@ -797,6 +797,7 @@ function cueColor(steps) {
 // Returns HTML: each branch that has a line on the floor is prefixed with a swatch
 // of that line's colour, so the participant can match text to ground.
 function formatRouteEval(branches) {
+  setCueRangeForJunction(branches);
   const parts = [];
   for (const b of branches) {
     const dx = b.x - player.x;
@@ -1039,19 +1040,18 @@ function traceBranchCells(junction, firstCell, maxSteps) {
   return path;
 }
 
-// Shade scale spans the goal-distances actually present in the cues, so the full
-// dark->light range is used (nearest cue = darkest, furthest = lightest).
-function refreshCueStepsScale() {
-  let min = Infinity, max = 0;
-  for (const branches of junctionEvals.values()) {
-    for (const b of branches) {
-      if (b.verdict === "dead_end") continue;
-      const s = Number(b.steps) || 0;
-      if (s < min) min = s;
-      if (s > max) max = s;
-    }
-  }
-  if (max > 0 && Number.isFinite(min)) cueStepsRange = { min, max };
+// Shade scale is set from the branches AT THIS JUNCTION, not the whole maze: the
+// question the participant is answering is "which of these is closer", so the nearer
+// option should always be clearly dark and the farther clearly light. A maze-wide
+// scale made two branches a few steps apart look almost identical.
+function setCueRangeForJunction(branches) {
+  const steps = branches
+    .filter((b) => b.verdict !== "dead_end")
+    .map((b) => Number(b.steps) || 0);
+  if (!steps.length) return;
+  const min = Math.min(...steps);
+  const max = Math.max(...steps);
+  cueStepsRange = { min, max: max > min ? max : min + 1 }; // a lone branch reads as closest
 }
 
 function clearRouteCues() {
@@ -1065,7 +1065,6 @@ function clearRouteCues() {
 // to the goal, lighter = more. Dead ends draw nothing (still listed in the text).
 function drawRouteCues() {
   clearRouteCues();
-  refreshCueStepsScale();
   window.__routeCues = []; // debug snapshot of the drawn lines (like window.__aiCues)
   window.__aiActive = aiActive;
   if (!aiActive) return; // AI has disappeared for this trial
@@ -1081,6 +1080,7 @@ function drawRouteCues() {
     return true;
   });
   if (!valid.length) return;
+  setCueRangeForJunction(valid);
 
   for (const b of valid) {
     // Distance-based shade: dark near the exit, light when far. Consistent maze-wide,
