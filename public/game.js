@@ -183,6 +183,7 @@ scene.add(hintGroup, avatarGroup, routeCueGroup);
 // Set false for text-only. The text hints are unchanged either way.
 const VISUAL_CUES = true;
 const CUE_LINE_STEPS = 3;
+const CUE_LINE_OPACITY = 0.62;   // lines read as an overlay, not paint
 const CUE_COLOR_SHORT = new THREE.Color(0x7f1d1d); // dark red = closer to the exit
 const CUE_COLOR_LONG = new THREE.Color(0xfca5a5);  // light red = further from the exit
 // Shading scale: cue colour tracks the branch's distance to the exit across the whole
@@ -781,18 +782,36 @@ function egoLabel(dx, dy) {
   return { straight: "Ahead", right: "Right", left: "Left", back: "Back" }[relativeTurn(DIRS[facing], dx, dy)];
 }
 
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => (
+  { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+));
+
+// Shade for a branch: dark near the exit, light far from it. Shared by the floor
+// lines and the swatch in the banner, so the two always agree.
+function cueColor(steps) {
+  const span = Math.max(1, cueStepsRange.max - cueStepsRange.min);
+  const t = Math.min(1, Math.max(0, ((Number(steps) || 0) - cueStepsRange.min) / span));
+  return new THREE.Color().lerpColors(CUE_COLOR_SHORT, CUE_COLOR_LONG, t);
+}
+
+// Returns HTML: each branch that has a line on the floor is prefixed with a swatch
+// of that line's colour, so the participant can match text to ground.
 function formatRouteEval(branches) {
   const parts = [];
   for (const b of branches) {
     const dx = b.x - player.x;
     const dy = b.y - player.y;
     if (Math.abs(dx) + Math.abs(dy) !== 1) continue; // only adjacent branches
-    const reason = b.reason ? ` — ${b.reason}` : "";
+    const reason = b.reason ? ` — ${escapeHtml(b.reason)}` : "";
     let phrase;
-    if (b.verdict === "dead_end") phrase = `${b.reason ? "a" : "likely a"} dead end${reason}`;
-    else if (b.verdict === "detour") phrase = `longer, ~${b.steps} steps${reason}`;
-    else phrase = `~${b.steps} steps`;
-    parts.push(`${egoLabel(dx, dy)}: ${phrase}`);
+    let swatch = "";
+    if (b.verdict === "dead_end") {
+      phrase = `${b.reason ? "a" : "likely a"} dead end${reason}`; // no line, so no swatch
+    } else {
+      phrase = b.verdict === "detour" ? `longer, ~${b.steps} steps${reason}` : `~${b.steps} steps`;
+      swatch = `<span class="cue-dot" style="background:#${cueColor(b.steps).getHexString()}"></span>`;
+    }
+    parts.push(`${swatch}${egoLabel(dx, dy)}: ${phrase}`);
   }
   return parts.join("   ·   ");
 }
@@ -1066,13 +1085,11 @@ function drawRouteCues() {
   for (const b of valid) {
     // Distance-based shade: dark near the exit, light when far. Consistent maze-wide,
     // so the colour still informs even when a junction has a single valid route.
-    const span = Math.max(1, cueStepsRange.max - cueStepsRange.min);
-    const t = Math.min(1, Math.max(0, ((Number(b.steps) || 0) - cueStepsRange.min) / span));
-    const color = new THREE.Color().lerpColors(CUE_COLOR_SHORT, CUE_COLOR_LONG, t);
-    const material = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
+    const color = cueColor(b.steps);
+    // Slightly transparent so the line reads as an overlay on the ground, not paint.
+    const material = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: CUE_LINE_OPACITY });
     const cells = traceBranchCells(player, { x: b.x, y: b.y }, CUE_LINE_STEPS);
     drawCueSegments(cells, material);
-    drawCueArrow(cells, material); // arrowhead at the tip, same shade as the line
     window.__routeCues.push({ x: b.x, y: b.y, steps: Number(b.steps) || 0, verdict: b.verdict, hex: color.getHexString(), cells: cells.length });
   }
 }
@@ -1095,22 +1112,6 @@ function drawCueSegments(cells, material) {
   }
 }
 
-// Arrowhead at the far end of a cue line, aimed along the final step — same as the
-// old hint arrow, but tinted to match this branch's shade.
-function drawCueArrow(cells, material) {
-  if (cells.length < 2) return;
-  const prev = cells[cells.length - 2];
-  const last = cells[cells.length - 1];
-  const dx = last.x - prev.x;
-  const dz = last.y - prev.y; // grid y maps to world z
-  if (Math.abs(dx) + Math.abs(dz) !== 1) return;
-  const end = worldFromCell(last.x, last.y);
-  const arrow = new THREE.Mesh(reusable.hintArrow, material);
-  arrow.position.set(end.x, 0.13, end.z);
-  arrow.rotation.y = Math.atan2(dx, dz);
-  arrow.scale.set(1.9, 1, 1.9); // prominent arrowhead, like the old hint
-  routeCueGroup.add(arrow);
-}
 
 // Re-align the already-computed junction cue to the current facing when the player
 // turns in place: Ahead/Left/Right shift with the view. Uses only stored cues —
@@ -2065,7 +2066,7 @@ function updateUi() {
       : routeEvalInFlight
         ? "AI weighing up the paths…"
         : routeEvalText || "Explore the maze and find the EXIT";
-    elements.hintBanner.textContent = evalText;
+    elements.hintBanner.innerHTML = evalText;
     bannerVisible = true;
   }
   elements.hintBanner.classList.toggle("visible", bannerVisible);

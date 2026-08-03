@@ -646,3 +646,14 @@ h2 {
 
 .task-complete-card button:hover { background: #16233d; }
 .task-complete-card button:disabled { opacity: 0.5; cursor: default; }
+
+/* Colour key inside the AI hint: matches the line drawn on the ground. */
+.cue-dot {
+  display: inline-block;
+  width: 0.72em;
+  height: 0.72em;
+  margin-right: 0.4em;
+  border-radius: 3px;
+  vertical-align: baseline;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45);
+}

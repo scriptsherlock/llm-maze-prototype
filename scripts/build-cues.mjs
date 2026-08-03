@@ -15,6 +15,7 @@ const { FIXED_8X8_MAZE_CONFIG } = await import("../public/fixed_8x8_maze.js");
 const { ORIGINAL_15X15_MAZE_CONFIG } = await import("../public/original_15x15_maze.js");
 const { DISAPPEAR_MAZE_CONFIG } = await import("../public/disappear_maze.js");
 const { SUPPLIED_MAZE_CONFIG } = await import("../public/supplied_maze.js");
+const { MAZE_0_MAZE_CONFIG } = await import("../public/mazes/maze-0.js");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.join(__dirname, "..", "public", "data");
@@ -48,8 +49,11 @@ async function buildOne(key, config) {
   const out = [];
   let full = 0, partial = 0;
   const t0 = Date.now();
-  fs.mkdirSync(outDir, { recursive: true });
-  const outFile = path.join(outDir, `junction-cues.${key}.json`);
+  // Study mazes keep their hints beside the maze module; older ones use data/.
+  const outFile = key.startsWith("maze-")
+    ? path.join(__dirname, "..", "public", "mazes", "hints", `${key}.json`)
+    : path.join(outDir, `junction-cues.${key}.json`);
+  fs.mkdirSync(path.dirname(outFile), { recursive: true });
   // Checkpoint after every junction so a long run can be interrupted (or the
   // machine shut down) without losing the junctions already paid for.
   const save = (done) => fs.writeFileSync(outFile, JSON.stringify({
@@ -74,7 +78,7 @@ async function buildOne(key, config) {
   }
 
   save(true);
-  console.log(`  wrote ${out.length} junctions (${full} full, ${partial} partial) in ${((Date.now() - t0) / 1000).toFixed(1)}s → junction-cues.${key}.json`);
+  console.log(`  wrote ${out.length} junctions (${full} full, ${partial} partial) in ${((Date.now() - t0) / 1000).toFixed(1)}s → ${path.relative(process.cwd(), outFile)}`);
   return partial === 0;
 }
 
@@ -89,6 +93,7 @@ const allTargets = [
   ["original", ORIGINAL_15X15_MAZE_CONFIG],
   ["disappear", DISAPPEAR_MAZE_CONFIG],
   ["ai", SUPPLIED_MAZE_CONFIG],
+  ["maze-0", MAZE_0_MAZE_CONFIG],
 ];
 // Optional CLI filter: `node build-cues.mjs disappear` builds only that maze
 // (so we don't re-spend quota regenerating the ones already committed).
