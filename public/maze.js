@@ -21,8 +21,47 @@ const STUDY_MAZES = {
 //   /no-ai-maze/*  the v6 braided maze, with NO AI at all from the start
 // /disappear/* and /original/* are the earlier mazes; anything else is the
 // default 8x8.
+// ---- Study sequence -------------------------------------------------------
+// /study/* plays the four mazes back to back on ONE url. Which maze is showing is
+// held in sessionStorage rather than the address, so the participant never sees the
+// sequence position and cannot skip ahead by editing the url. Advancing re-inits
+// the page, which is what keeps each trial completely clean.
+export const STUDY_SEQUENCE = ["maze-a", "maze-b", "maze-c", "maze-d"];
+const STUDY_PROGRESS_KEY = "llm_maze_study_index";
+const isStudy = ((globalThis.location && globalThis.location.pathname) || "").includes("study");
+
+function readStudyIndex() {
+  try {
+    const raw = globalThis.sessionStorage && globalThis.sessionStorage.getItem(STUDY_PROGRESS_KEY);
+    const n = Number.parseInt(raw ?? "0", 10);
+    return Number.isFinite(n) ? Math.min(Math.max(n, 0), STUDY_SEQUENCE.length - 1) : 0;
+  } catch (_error) {
+    return 0;
+  }
+}
+
+export const STUDY_INDEX = isStudy ? readStudyIndex() : -1;
+export const STUDY_TOTAL = STUDY_SEQUENCE.length;
+export const IS_STUDY = isStudy;
+
+// Move to the next maze and re-init on the same url. Returns false at the end.
+export function advanceStudyMaze() {
+  if (!isStudy) return false;
+  const next = STUDY_INDEX + 1;
+  if (next >= STUDY_SEQUENCE.length) return false;
+  try { globalThis.sessionStorage.setItem(STUDY_PROGRESS_KEY, String(next)); } catch (_error) { /* ignore */ }
+  globalThis.location.reload();
+  return true;
+}
+
+export function resetStudyProgress() {
+  try { globalThis.sessionStorage.removeItem(STUDY_PROGRESS_KEY); } catch (_error) { /* ignore */ }
+}
+
 const path = (globalThis.location && globalThis.location.pathname) || "";
-const studyId = Object.keys(STUDY_MAZES).find((id) => path.includes(id)) || null;
+const studyId = isStudy
+  ? STUDY_SEQUENCE[STUDY_INDEX]
+  : (Object.keys(STUDY_MAZES).find((id) => path.includes(id)) || null);
 const mazeKey = studyId
   || (path.includes("no-ai-maze") ? "no_ai"
   : path.includes("ai-maze") ? "ai"

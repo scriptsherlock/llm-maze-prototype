@@ -16,6 +16,8 @@
     { "source": "/disappear/moderator", "destination": "/index.html" },
     { "source": "/ai-maze/participant", "destination": "/index.html" },
     { "source": "/ai-maze/moderator", "destination": "/index.html" },
+    { "source": "/study/participant", "destination": "/index.html" },
+    { "source": "/study/moderator", "destination": "/index.html" },
     { "source": "/maze-a/participant", "destination": "/index.html" },
     { "source": "/maze-a/moderator", "destination": "/index.html" },
     { "source": "/maze-b/participant", "destination": "/index.html" },

@@ -1,6 +1,6 @@
 import * as THREE from "/vendor/three/three.module.js";
 import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
-import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL } from "./maze.js";
+import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze } from "./maze.js";
 
 const maze = MAZE_CONFIG.maze;
 const rows = maze.length;
@@ -538,6 +538,8 @@ function bindControls() {
   document.getElementById("turnLeftButton").addEventListener("click", turnLeft);
   document.getElementById("turnRightButton").addEventListener("click", turnRight);
   document.getElementById("forwardButton").addEventListener("click", moveForward);
+  const nextMazeButton = document.getElementById("nextMazeButton");
+  if (nextMazeButton) nextMazeButton.addEventListener("click", handleNextMaze);
   document.getElementById("backButton").addEventListener("click", moveBackward);
   elements.hintButton.addEventListener("click", showHint);
   elements.aiToggle.addEventListener("click", toggleAI);
@@ -751,6 +753,7 @@ function attemptMove(dx, dy, action) {
     logState("goal_reached");
     hintBannerText = "Goal reached";
     hintMessageUntil = Date.now() + 2500;
+    showTaskComplete();
   }
 
   updateUi();
@@ -1148,6 +1151,43 @@ async function evaluateJunction() {
   } finally {
     routeEvalInFlight = false;
     updateUi();
+  }
+}
+
+// ---- Task complete overlay ------------------------------------------------
+// Shown on reaching the exit. In a /study run the button advances to the next maze
+// on the SAME url; on the last maze (or outside a study run) it just reports done.
+function showTaskComplete() {
+  if (currentView !== "participant") return;
+  const panel = document.getElementById("taskComplete");
+  const title = document.getElementById("taskCompleteTitle");
+  const sub = document.getElementById("taskCompleteSub");
+  const button = document.getElementById("nextMazeButton");
+  if (!panel || !button) return;
+
+  const hasNext = IS_STUDY && STUDY_INDEX < STUDY_TOTAL - 1;
+  const seconds = Math.round(((finishedAt ?? Date.now()) - startTime) / 1000);
+  const timing = `${moves} moves · ${formatTime(seconds * 1000)}`;
+
+  if (IS_STUDY) {
+    title.textContent = hasNext ? "Task complete!" : "All tasks complete!";
+    sub.textContent = `Maze ${STUDY_INDEX + 1} of ${STUDY_TOTAL} — ${timing}`;
+  } else {
+    title.textContent = "Task complete!";
+    sub.textContent = timing;
+  }
+  button.textContent = hasNext ? "Next maze" : "Finished";
+  button.disabled = !hasNext;
+  panel.classList.remove("hidden");
+}
+
+function handleNextMaze() {
+  const button = document.getElementById("nextMazeButton");
+  if (button) { button.disabled = true; button.textContent = "Loading…"; }
+  logState("next_maze_clicked", { from_index: STUDY_INDEX });
+  // Re-inits the page on the same url; false means there is nothing left to load.
+  if (!advanceStudyMaze() && button) {
+    button.textContent = "Finished";
   }
 }
 

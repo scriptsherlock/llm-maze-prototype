@@ -76,6 +76,17 @@ app.get([
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+
+// The study run: the four mazes back to back on one url. Which maze is showing is
+// kept in the browser session, so the url never changes and cannot be skipped.
+app.get("/study", (_req, res) => {
+  res.redirect("/study/participant");
+});
+
+app.get(["/study/participant", "/study/moderator"], (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 app.get("/api/state", (_req, res) => {
   res.json({ ai_enabled: aiEnabled, provider, model });
 });
