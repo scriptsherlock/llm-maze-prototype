@@ -1,6 +1,6 @@
 import * as THREE from "/vendor/three/three.module.js";
 import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
-import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze } from "./maze.js";
+import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze } from "./maze.js";
 
 const maze = MAZE_CONFIG.maze;
 if (typeof window !== "undefined") window.__mazeRows = maze.map((r) => r.join("")).join("");
@@ -96,6 +96,33 @@ const ROUTE_EVAL_MODE = true;
 let routeEvalText = "";
 let routeEvalInFlight = false;
 let lastPlayerCell = null;
+// Verified whole-maze routes the AI found (moderator view only).
+let aiSolutions = [];
+const SOLUTION_COLORS = ["#2563eb", "#16a34a", "#d97706", "#db2777", "#7c3aed", "#0891b2"];
+
+async function loadAiSolutions() {
+  if (!SOLUTIONS_URL || currentView !== "moderator") return;
+  try {
+    const response = await fetch(SOLUTIONS_URL);
+    if (!response.ok) return;                       // not generated for this maze yet
+    const data = await response.json();
+    aiSolutions = Array.isArray(data.routes) ? data.routes : [];
+    renderAiRoutesLegend(data.shortest_possible);
+    renderModeratorGrid();
+  } catch (_error) { /* no solutions to show */ }
+}
+
+function renderAiRoutesLegend(shortest) {
+  const box = document.getElementById("aiRoutesLegend");
+  if (!box) return;
+  if (!aiSolutions.length) { box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  box.innerHTML = `<strong>AI routes (${aiSolutions.length})</strong>` + aiSolutions.map((r, i) => {
+    const over = shortest ? ` (+${r.steps - shortest})` : "";
+    return `<span class="ai-route-item"><span class="ai-route-dot" style="background:${SOLUTION_COLORS[i % SOLUTION_COLORS.length]}"></span>${r.steps} steps${over}</span>`;
+  }).join("") + (shortest ? `<span class="ai-route-item muted">true shortest ${shortest}</span>` : "");
+}
+
 const junctionEvals = new Map(); // "x,y" -> [{x,y,verdict,steps,reason}] (precomputed)
 let precomputing = false;
 // CUE_SOURCE selects who produces the junction cues:
@@ -205,6 +232,7 @@ if (!aiCondition || AUTO_HERD || ROUTE_EVAL_MODE) {
   if (controls) controls.classList.add("no-ai");
 }
 loadServerState().then(() => { startAutoHerd(); startRouteEval(); });
+loadAiSolutions();
 logState("start_trial");
 resizeRenderer();
 renderFrame();
@@ -1667,6 +1695,16 @@ function renderModeratorGrid() {
   const localPath = shortestPath(player, goal);
   const localSet = pathSet(localPath);
   const aiSet = pathSet(visibleAiPath);
+  // Each verified AI route in its own colour; where routes overlap the earlier
+  // (shorter) one wins, so the map stays readable.
+  const routeColor = new Map();
+  aiSolutions.forEach((r, i) => {
+    const color = SOLUTION_COLORS[i % SOLUTION_COLORS.length];
+    for (const c of r.path || []) {
+      const k = `${c.x},${c.y}`;
+      if (!routeColor.has(k)) routeColor.set(k, color);
+    }
+  });
   const prefetchSet = pathSet(remotePrefetchHint);
 
   // Render as a line maze: this is a (2N+1) thin-wall grid, so odd tracks are the
@@ -1691,7 +1729,9 @@ function renderModeratorGrid() {
       const isIsolatedPillar = x % 2 === 0 && y % 2 === 0 &&
         noWall(x - 1, y) && noWall(x + 1, y) && noWall(x, y - 1) && noWall(x, y + 1);
       if (maze[y][x] === 1 && !isIsolatedPillar) cell.classList.add("wall");
-      if (localSet.has(key)) cell.classList.add("local-path");
+      if (routeColor.has(key)) {
+        cell.style.background = routeColor.get(key);
+      } else if (localSet.has(key)) cell.classList.add("local-path");
       if (prefetchSet.has(key)) cell.classList.add("prefetch-path");
       if (aiSet.has(key)) cell.classList.add("ai-path");
       if (x === goal.x && y === goal.y) cell.classList.add("goal");

@@ -105,6 +105,10 @@ export const HINTS_URL = studyId
   ? `/mazes/hints/${studyId}.json`
   : `/data/junction-cues.${mazeKey}.json`;
 
+// Verified whole-maze routes the AI found, drawn on the moderator view. Study
+// mazes only — the older mazes have none.
+export const SOLUTIONS_URL = studyId ? `/mazes/solutions/${studyId}.json` : null;
+
 export const DIRS = [
   { dx: 0, dy: -1, name: "North", short: "N", angle: -Math.PI / 2 },
   { dx: 1, dy: 0, name: "East", short: "E", angle: 0 },

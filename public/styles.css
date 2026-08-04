@@ -657,3 +657,17 @@ h2 {
   vertical-align: baseline;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45);
 }
+
+/* Verified AI routes drawn on the moderator map. */
+.ai-routes-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: #33415a;
+}
+.ai-routes-legend.hidden { display: none; }
+.ai-route-item { display: inline-flex; align-items: center; gap: 6px; }
+.ai-route-dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
