@@ -1,6 +1,6 @@
 import * as THREE from "/vendor/three/three.module.js";
 import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
-import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze } from "./maze.js";
+import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze } from "./maze.js";
 
 const maze = MAZE_CONFIG.maze;
 if (typeof window !== "undefined") window.__mazeRows = maze.map((r) => r.join("")).join("");
@@ -13,6 +13,12 @@ const goal = MAZE_CONFIG.goal;
 // AI stops giving hints for the rest of the trial (one-way latch). null on mazes
 // without a choke. See aiActive / latchAiOff below.
 const chokeCell = MAZE_CONFIG.chokeCell || null;
+// The AI stops halfway through the "disappear" condition. A choke cell only works on
+// a maze with no loops, where every route must cross it; on a braided maze a walker
+// can go round it. Distance-to-exit cannot be dodged — it only reaches 0 at the exit
+// — so the fallback trigger is "distance has halved", which always fires.
+const AI_CUTOFF_FRACTION = 0.5;
+let startGoalDistance = null;
 let aiActive = true;
 const aiCueLength = MAZE_CONFIG.hintSteps;
 const hintDurationMs = 3200;
@@ -75,8 +81,9 @@ function getInitialView() {
 // Experiment condition from the URL: `?ai=off` is the no-AI (control) group, which
 // removes the Ask AI button entirely. Default is AI on. Orthogonal to the maze path.
 function getAiCondition() {
-  // The no-AI maze is a study condition, not a URL option: it stays AI-free even if
-  // the ?ai= parameter is edited away.
+  // Conditions are study design, not user options: no_ai stays AI-free even if the
+  // ?ai= parameter is edited away.
+  if (CONDITION === "no_ai") return false;
   if (MAZE_KEY === "no_ai") return false;
   const search = globalThis.location ? globalThis.location.search : "";
   const value = (new URLSearchParams(search).get("ai") || "").toLowerCase();
@@ -780,7 +787,15 @@ function attemptMove(dx, dy, action) {
   schedulePrefetch();
   logState("move", { attempted_move: action, attempted_x: nx, attempted_y: ny, plan_status: planStatus });
 
-  if (chokeCell && aiActive && sameCell(player, chokeCell)) latchAiOff();
+  if (CONDITION === "disappear" && aiActive) {
+    if (chokeCell) {
+      if (sameCell(player, chokeCell)) latchAiOff();
+    } else {
+      if (startGoalDistance == null) startGoalDistance = shortestPath(start, goal).length - 1;
+      const left = shortestPath(player, goal).length - 1;
+      if (left <= Math.floor(startGoalDistance * AI_CUTOFF_FRACTION)) latchAiOff();
+    }
+  }
 
   if (ROUTE_EVAL_MODE) {
     lastPlayerCell = cameFrom;

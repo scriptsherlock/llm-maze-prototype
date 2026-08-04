@@ -109,6 +109,18 @@ export const HINTS_URL = studyId
 // mazes only — the older mazes have none.
 export const SOLUTIONS_URL = studyId ? `/mazes/solutions/${studyId}.json` : null;
 
+// ---- Study condition -------------------------------------------------------
+//   no_ai      no AI at all
+//   stable_ai  AI throughout
+//   disappear  AI throughout, then it stops about halfway
+// Set with ?condition=... ; defaults to stable_ai so an unqualified link still
+// shows the assistant.
+const CONDITIONS = ["no_ai", "stable_ai", "disappear"];
+export const CONDITION = (() => {
+  const v = (new URLSearchParams(globalThis.location ? globalThis.location.search : "").get("condition") || "").toLowerCase();
+  return CONDITIONS.includes(v) ? v : "stable_ai";
+})();
+
 export const DIRS = [
   { dx: 0, dy: -1, name: "North", short: "N", angle: -Math.PI / 2 },
   { dx: 1, dy: 0, name: "East", short: "E", angle: 0 },
