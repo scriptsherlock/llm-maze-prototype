@@ -4,6 +4,9 @@ import { DISAPPEAR_MAZE_CONFIG } from "./disappear_maze.js";
 import { SUPPLIED_MAZE_CONFIG } from "./supplied_maze.js";
 import { V6_MAZE_CONFIG } from "./v6_maze.js";
 import { MAZE_0_MAZE_CONFIG } from "./mazes/maze-0.js";
+import { MAZE_1_MAZE_CONFIG } from "./mazes/maze-1.js";
+import { MAZE_2_MAZE_CONFIG } from "./mazes/maze-2.js";
+import { MAZE_3_MAZE_CONFIG } from "./mazes/maze-3.js";
 import { MAZE_A_MAZE_CONFIG } from "./mazes/maze-a.js";
 import { MAZE_B_MAZE_CONFIG } from "./mazes/maze-b.js";
 import { MAZE_C_MAZE_CONFIG } from "./mazes/maze-c.js";
@@ -12,6 +15,9 @@ import { MAZE_D_MAZE_CONFIG } from "./mazes/maze-d.js";
 // The four study mazes, addressable at /maze-a/participant ... /maze-d/participant.
 const STUDY_MAZES = {
   "maze-0": MAZE_0_MAZE_CONFIG,
+  "maze-1": MAZE_1_MAZE_CONFIG,
+  "maze-2": MAZE_2_MAZE_CONFIG,
+  "maze-3": MAZE_3_MAZE_CONFIG,
   "maze-a": MAZE_A_MAZE_CONFIG,
   "maze-b": MAZE_B_MAZE_CONFIG,
   "maze-c": MAZE_C_MAZE_CONFIG,
