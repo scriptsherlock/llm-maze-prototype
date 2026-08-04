@@ -826,21 +826,26 @@ function cueColor(steps) {
 // of that line's colour, so the participant can match text to ground.
 function formatRouteEval(branches) {
   setCueRangeForJunction(branches);
+  const shown = branches.filter((b) => Math.abs(b.x - player.x) + Math.abs(b.y - player.y) === 1);
+  // Shorter/longer is judged against the options actually on screen — the branch the
+  // player came from is already gone, so comparing to the stored verdict would be wrong.
+  const routeSteps = shown.filter((b) => b.verdict !== "dead_end").map((b) => Number(b.steps) || 0);
+  const shortest = routeSteps.length ? Math.min(...routeSteps) : null;
+  const allSame = routeSteps.length > 1 && Math.max(...routeSteps) === shortest;
+
   const parts = [];
-  for (const b of branches) {
-    const dx = b.x - player.x;
-    const dy = b.y - player.y;
-    if (Math.abs(dx) + Math.abs(dy) !== 1) continue; // only adjacent branches
-    const reason = b.reason ? ` — ${escapeHtml(b.reason)}` : "";
+  for (const b of shown) {
     let phrase;
     let swatch = "";
     if (b.verdict === "dead_end") {
-      phrase = `${b.reason ? "a" : "likely a"} dead end${reason}`; // no line, so no swatch
+      phrase = "dead end"; // no line drawn, so no swatch
     } else {
-      phrase = b.verdict === "detour" ? `longer, ~${b.steps} steps${reason}` : `~${b.steps} steps`;
+      phrase = routeSteps.length < 2 ? "this way"
+        : allSame ? "same"
+        : (Number(b.steps) || 0) === shortest ? "shorter" : "longer";
       swatch = `<span class="cue-dot" style="background:#${cueColor(b.steps).getHexString()}"></span>`;
     }
-    parts.push(`${swatch}${egoLabel(dx, dy)}: ${phrase}`);
+    parts.push(`${swatch}${egoLabel(b.x - player.x, b.y - player.y)}: ${phrase}`);
   }
   return parts.join("   ·   ");
 }
