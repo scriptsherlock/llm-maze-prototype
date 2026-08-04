@@ -835,16 +835,13 @@ function formatRouteEval(branches) {
 
   const parts = [];
   for (const b of shown) {
-    let phrase;
-    let swatch = "";
-    if (b.verdict === "dead_end") {
-      phrase = "dead end"; // no line drawn, so no swatch
-    } else {
-      phrase = routeSteps.length < 2 ? "this way"
-        : allSame ? "same"
-        : (Number(b.steps) || 0) === shortest ? "shorter" : "longer";
-      swatch = `<span class="cue-dot" style="background:#${cueColor(b.steps).getHexString()}"></span>`;
-    }
+    // Dead ends are left out entirely: they draw no line, and saying nothing about
+    // them keeps the cue to the options actually worth comparing.
+    if (b.verdict === "dead_end") continue;
+    const phrase = routeSteps.length < 2 ? "this way"
+      : allSame ? "same"
+      : (Number(b.steps) || 0) === shortest ? "shorter" : "longer";
+    const swatch = `<span class="cue-dot" style="background:#${cueColor(b.steps).getHexString()}"></span>`;
     parts.push(`${swatch}${egoLabel(b.x - player.x, b.y - player.y)}: ${phrase}`);
   }
   return parts.join("   ·   ");
