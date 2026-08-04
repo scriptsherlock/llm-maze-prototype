@@ -211,6 +211,15 @@ scene.add(hintGroup, avatarGroup, routeCueGroup);
 const VISUAL_CUES = true;
 const CUE_LINE_STEPS = 3;
 const CUE_LINE_OPACITY = 0.62;   // lines read as an overlay, not paint
+// MULTI_ROUTE_ONLY: say nothing at junctions with only one usable route, so the AI
+// speaks only where there is an actual choice to make. Override per session with
+// ?multi=1 / ?multi=0.
+const MULTI_ROUTE_ONLY = (() => {
+  const v = new URLSearchParams(globalThis.location ? globalThis.location.search : "").get("multi");
+  if (v === "1" || v === "true") return true;
+  if (v === "0" || v === "false") return false;
+  return false;   // default: speak wherever anything is known
+})();
 const CUE_COLOR_SHORT = new THREE.Color(0x7f1d1d); // dark red = closer to the exit
 const CUE_COLOR_LONG = new THREE.Color(0xfca5a5);  // light red = further from the exit
 // Shading scale: cue colour tracks the branch's distance to the exit across the whole
@@ -831,6 +840,7 @@ function formatRouteEval(branches) {
   // player came from is already gone, so comparing to the stored verdict would be wrong.
   const routeSteps = shown.filter((b) => b.verdict !== "dead_end").map((b) => Number(b.steps) || 0);
   const shortest = routeSteps.length ? Math.min(...routeSteps) : null;
+  if (MULTI_ROUTE_ONLY && routeSteps.length < 2) return "";
   const allSame = routeSteps.length > 1 && Math.max(...routeSteps) === shortest;
 
   const parts = [];
@@ -838,7 +848,7 @@ function formatRouteEval(branches) {
     // Dead ends are left out entirely: they draw no line, and saying nothing about
     // them keeps the cue to the options actually worth comparing.
     if (b.verdict === "dead_end") continue;
-    const phrase = routeSteps.length < 2 ? "this way"
+    const phrase = routeSteps.length < 2 ? "this way looks promising"
       : allSame ? "same"
       : (Number(b.steps) || 0) === shortest ? "shorter" : "longer";
     const swatch = `<span class="cue-dot" style="background:#${cueColor(b.steps).getHexString()}"></span>`;
@@ -1110,6 +1120,7 @@ function drawRouteCues() {
     return true;
   });
   if (!valid.length) return;
+  if (MULTI_ROUTE_ONLY && valid.length < 2) return;   // no choice here, so draw nothing
   setCueRangeForJunction(valid);
 
   for (const b of valid) {
