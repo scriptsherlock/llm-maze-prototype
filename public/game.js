@@ -1,6 +1,6 @@
 import * as THREE from "/vendor/three/three.module.js";
 import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
-import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, MAZE_HAS_CUTOFF, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze } from "./maze.js";
+import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, MAZE_AI_REMOVED, MID_MAZE_CUTOFF, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze } from "./maze.js";
 
 const maze = MAZE_CONFIG.maze;
 if (typeof window !== "undefined") window.__mazeRows = maze.map((r) => r.join("")).join("");
@@ -84,6 +84,7 @@ function getAiCondition() {
   // Conditions are study design, not user options: no_ai stays AI-free even if the
   // ?ai= parameter is edited away.
   if (CONDITION === "no_ai") return false;
+  if (MAZE_AI_REMOVED) return false;   // disappear condition, second half of the run
   if (MAZE_KEY === "no_ai") return false;
   const search = globalThis.location ? globalThis.location.search : "";
   const value = (new URLSearchParams(search).get("ai") || "").toLowerCase();
@@ -794,7 +795,7 @@ function attemptMove(dx, dy, action) {
   schedulePrefetch();
   logState("move", { attempted_move: action, attempted_x: nx, attempted_y: ny, plan_status: planStatus });
 
-  if (CONDITION === "disappear" && MAZE_HAS_CUTOFF && aiActive) {
+  if (MID_MAZE_CUTOFF && aiActive) {
     if (chokeCell) {
       if (sameCell(player, chokeCell)) latchAiOff();
     } else {

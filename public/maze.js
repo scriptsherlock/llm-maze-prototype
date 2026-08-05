@@ -47,7 +47,8 @@ function conditionFromUrl() {
 // Progress is tagged with the CONDITION as well as the sequence. Switching condition
 // is a different run, so it must start from the first maze — otherwise finishing one
 // condition and changing the url resumes on the last maze of the previous run.
-const SEQUENCE_SIGNATURE = `${STUDY_SEQUENCE.join(">")}|${conditionFromUrl()}`;
+const CONDITION_VALUE = conditionFromUrl();
+const SEQUENCE_SIGNATURE = `${STUDY_SEQUENCE.join(">")}|${CONDITION_VALUE}`;
 
 function readStudyIndex() {
   try {
@@ -82,11 +83,17 @@ function readStudyIndex() {
 export const STUDY_INDEX = isStudy ? readStudyIndex() : -1;
 export const STUDY_TOTAL = STUDY_SEQUENCE.length;
 export const IS_STUDY = isStudy;
-// Disappearance applies to the last two mazes of a study run; the earlier ones act
-// as stable AI so the assistant is established before it is taken away. A single
-// maze opened directly always uses it, which is what makes it testable.
+// In the disappear condition the assistant is present for the first two mazes and
+// absent for the last two: the removal happens between tasks, not part-way through
+// one. The first two establish the assistant so its loss is felt.
 const DISAPPEAR_LAST_N = 2;
-export const MAZE_HAS_CUTOFF = !isStudy || STUDY_INDEX >= STUDY_SEQUENCE.length - DISAPPEAR_LAST_N;
+export const MAZE_AI_REMOVED = isStudy
+  && CONDITION_VALUE === "disappear"
+  && STUDY_INDEX >= STUDY_SEQUENCE.length - DISAPPEAR_LAST_N;
+
+// The mid-maze cutoff (AI stops once the exit is half as far) is kept for testing
+// the mechanism itself: ?cutoff=mid on a single maze. It is not used by the study.
+export const MID_MAZE_CUTOFF = (new URLSearchParams(globalThis.location ? globalThis.location.search : "").get("cutoff") || "") === "mid";
 
 // Move to the next maze and re-init on the same url. Returns false at the end.
 export function advanceStudyMaze() {
@@ -140,7 +147,7 @@ export const SOLUTIONS_URL = studyId ? `/mazes/solutions/${studyId}.json` : null
 //   disappear  AI throughout, then it stops about halfway
 // Set with ?condition=... ; defaults to stable_ai so an unqualified link still
 // shows the assistant.
-export const CONDITION = conditionFromUrl();
+export const CONDITION = CONDITION_VALUE;
 
 export const DIRS = [
   { dx: 0, dy: -1, name: "North", short: "N", angle: -Math.PI / 2 },
