@@ -40,7 +40,14 @@ const isStudy = ((globalThis.location && globalThis.location.pathname) || "").in
 // Stored progress is tagged with the sequence it belongs to. Change the sequence
 // (add a maze, reorder) and any older progress is discarded rather than pointing at
 // the wrong maze — otherwise a stale tab would silently start mid-study.
-const SEQUENCE_SIGNATURE = STUDY_SEQUENCE.join(">");
+function conditionFromUrl() {
+  const v = (new URLSearchParams(globalThis.location ? globalThis.location.search : "").get("condition") || "").toLowerCase();
+  return ["no_ai", "stable_ai", "disappear"].includes(v) ? v : "stable_ai";
+}
+// Progress is tagged with the CONDITION as well as the sequence. Switching condition
+// is a different run, so it must start from the first maze — otherwise finishing one
+// condition and changing the url resumes on the last maze of the previous run.
+const SEQUENCE_SIGNATURE = `${STUDY_SEQUENCE.join(">")}|${conditionFromUrl()}`;
 
 function readStudyIndex() {
   try {
@@ -133,11 +140,7 @@ export const SOLUTIONS_URL = studyId ? `/mazes/solutions/${studyId}.json` : null
 //   disappear  AI throughout, then it stops about halfway
 // Set with ?condition=... ; defaults to stable_ai so an unqualified link still
 // shows the assistant.
-const CONDITIONS = ["no_ai", "stable_ai", "disappear"];
-export const CONDITION = (() => {
-  const v = (new URLSearchParams(globalThis.location ? globalThis.location.search : "").get("condition") || "").toLowerCase();
-  return CONDITIONS.includes(v) ? v : "stable_ai";
-})();
+export const CONDITION = conditionFromUrl();
 
 export const DIRS = [
   { dx: 0, dy: -1, name: "North", short: "N", angle: -Math.PI / 2 },
