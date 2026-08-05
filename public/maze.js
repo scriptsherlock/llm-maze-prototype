@@ -34,7 +34,7 @@ const STUDY_MAZES = {
 // held in sessionStorage rather than the address, so the participant never sees the
 // sequence position and cannot skip ahead by editing the url. Advancing re-inits
 // the page, which is what keeps each trial completely clean.
-export const STUDY_SEQUENCE = ["maze-0", "maze-a", "maze-b", "maze-c", "maze-d"];
+export const STUDY_SEQUENCE = ["maze-0", "maze-1", "maze-2", "maze-3"];
 const STUDY_PROGRESS_KEY = "llm_maze_study_progress";
 const isStudy = ((globalThis.location && globalThis.location.pathname) || "").includes("study");
 // Stored progress is tagged with the sequence it belongs to. Change the sequence
@@ -49,6 +49,13 @@ function readStudyIndex() {
     const search = (globalThis.location && globalThis.location.search) || "";
     if (new URLSearchParams(search).has("restart")) {
       globalThis.sessionStorage.removeItem(STUDY_PROGRESS_KEY);
+      // Drop it from the address bar: advancing reloads the page, and a lingering
+      // ?restart would reset progress every time and trap the run on maze 1.
+      try {
+        const url = new URL(globalThis.location.href);
+        url.searchParams.delete("restart");
+        globalThis.history.replaceState({}, "", url);
+      } catch (_e) { /* ignore */ }
       return 0;
     }
     const raw = globalThis.sessionStorage.getItem(STUDY_PROGRESS_KEY);
@@ -68,6 +75,11 @@ function readStudyIndex() {
 export const STUDY_INDEX = isStudy ? readStudyIndex() : -1;
 export const STUDY_TOTAL = STUDY_SEQUENCE.length;
 export const IS_STUDY = isStudy;
+// Disappearance applies to the last two mazes of a study run; the earlier ones act
+// as stable AI so the assistant is established before it is taken away. A single
+// maze opened directly always uses it, which is what makes it testable.
+const DISAPPEAR_LAST_N = 2;
+export const MAZE_HAS_CUTOFF = !isStudy || STUDY_INDEX >= STUDY_SEQUENCE.length - DISAPPEAR_LAST_N;
 
 // Move to the next maze and re-init on the same url. Returns false at the end.
 export function advanceStudyMaze() {

@@ -1,6 +1,6 @@
 import * as THREE from "/vendor/three/three.module.js";
 import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
-import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze } from "./maze.js";
+import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, MAZE_HAS_CUTOFF, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze } from "./maze.js";
 
 const maze = MAZE_CONFIG.maze;
 if (typeof window !== "undefined") window.__mazeRows = maze.map((r) => r.join("")).join("");
@@ -794,7 +794,7 @@ function attemptMove(dx, dy, action) {
   schedulePrefetch();
   logState("move", { attempted_move: action, attempted_x: nx, attempted_y: ny, plan_status: planStatus });
 
-  if (CONDITION === "disappear" && aiActive) {
+  if (CONDITION === "disappear" && MAZE_HAS_CUTOFF && aiActive) {
     if (chokeCell) {
       if (sameCell(player, chokeCell)) latchAiOff();
     } else {
