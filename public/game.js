@@ -216,7 +216,14 @@ scene.add(hintGroup, avatarGroup, routeCueGroup);
 // cells (like the old hint trail). Dead ends draw no line but stay in the text.
 // Set false for text-only. The text hints are unchanged either way.
 const VISUAL_CUES = true;
-const CUE_LINE_STEPS = 3;
+const CUE_LINE_STEPS = 12;       // how far a cue line runs; longer = more directive
+// Show the AI's step estimate beside each option. The numbers are the length of the
+// route the AI actually traced, which is an upper bound rather than the true
+// shortest, hence the "~". ?steps=0 hides them again.
+const SHOW_STEP_COUNTS = (() => {
+  const v = new URLSearchParams(globalThis.location ? globalThis.location.search : "").get("steps");
+  return !(v === "0" || v === "false");
+})();
 const CUE_LINE_OPACITY = 0.62;   // lines read as an overlay, not paint
 // MULTI_ROUTE_ONLY: say nothing at junctions with only one usable route, so the AI
 // speaks only where there is an actual choice to make. Override per session with
@@ -866,8 +873,9 @@ function formatRouteEval(branches) {
     const phrase = routeSteps.length < 2 ? "this way looks promising"
       : allSame ? "same"
       : (Number(b.steps) || 0) === shortest ? "shorter" : "longer";
+    const steps = SHOW_STEP_COUNTS && Number.isFinite(Number(b.steps)) ? `, ~${b.steps} steps` : "";
     const swatch = `<span class="cue-dot" style="background:#${cueColor(b.steps).getHexString()}"></span>`;
-    parts.push(`${swatch}${egoLabel(b.x - player.x, b.y - player.y)}: ${phrase}`);
+    parts.push(`${swatch}${egoLabel(b.x - player.x, b.y - player.y)}: ${phrase}${steps}`);
   }
   return parts.join("   ·   ");
 }
@@ -1073,23 +1081,23 @@ function openNeighbors(cell) {
   return DIRS.map((d) => ({ x: cell.x + d.dx, y: cell.y + d.dy })).filter((c) => isOpen(c.x, c.y));
 }
 
-// Trace up to `maxSteps` cells along a branch from the junction, keeping the line
-// STRAIGHT: stop at the next junction, a dead-end, or the first turn — so each
-// branch's arrow points cleanly in its go-direction and stays in open corridor
-// (never bends into a wall where it would be hidden).
-function traceBranchCells(junction, firstCell, maxSteps) {
+// Cells to draw for a branch. If the AI stored the start of its own route we follow
+// that exactly, so the line shows where the path really leads — including round
+// corners and past further junctions. Otherwise fall back to following the corridor,
+// which now bends too (the old straight-only rule existed for arrowheads, and the
+// arrowheads are gone).
+function traceBranchCells(junction, firstCell, maxSteps, storedPath) {
+  if (Array.isArray(storedPath) && storedPath.length) {
+    return [junction, ...storedPath.slice(0, maxSteps)];
+  }
   const path = [junction, firstCell];
-  const ddx = firstCell.x - junction.x;
-  const ddy = firstCell.y - junction.y;
   let prev = junction;
   let cur = firstCell;
-  while (path.length <= maxSteps) { // path length = 1 + cells drawn
+  while (path.length <= maxSteps) {
     const nexts = openNeighbors(cur).filter((n) => !sameCell(n, prev));
-    if (nexts.length !== 1) break; // dead-end (0) or junction (>=2) -> stop
-    const n = nexts[0];
-    if (n.x - cur.x !== ddx || n.y - cur.y !== ddy) break; // turn -> keep the line straight
+    if (nexts.length !== 1) break; // dead end (0) or a further junction (>=2) -> stop
     prev = cur;
-    cur = n;
+    cur = nexts[0];
     path.push(cur);
   }
   return path;
@@ -1144,7 +1152,7 @@ function drawRouteCues() {
     const color = cueColor(b.steps);
     // Slightly transparent so the line reads as an overlay on the ground, not paint.
     const material = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: CUE_LINE_OPACITY });
-    const cells = traceBranchCells(player, { x: b.x, y: b.y }, CUE_LINE_STEPS);
+    const cells = traceBranchCells(player, { x: b.x, y: b.y }, CUE_LINE_STEPS, b.path);
     drawCueSegments(cells, material);
     window.__routeCues.push({ x: b.x, y: b.y, steps: Number(b.steps) || 0, verdict: b.verdict, hex: color.getHexString(), cells: cells.length });
   }

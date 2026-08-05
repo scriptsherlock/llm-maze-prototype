@@ -31,6 +31,10 @@ if (!sol.routes || !sol.routes.length) { console.error("no verified routes to de
 // through that junction on its way to the exit; a participant who has committed to a
 // branch cannot rely on doing that, so any suffix that returns through the junction
 // is not usable here. Only suffixes that stay away from it count.
+// How many cells of the route to keep for drawing. Enough to run to the edge of
+// view without storing whole 54-cell paths in every branch.
+const CUE_PATH_CELLS = 14;
+
 function remainingFrom(branch, junction) {
   let best = null;
   for (const r of sol.routes) {
@@ -39,7 +43,7 @@ function remainingFrom(branch, junction) {
       const suffix = r.path.slice(i);
       if (suffix.some((c) => K(c) === K(junction))) continue;   // comes back through here
       const left = suffix.length - 1;
-      if (best == null || left < best) best = left;
+      if (best == null || left < best) best = { left, path: suffix.slice(0, CUE_PATH_CELLS) };
     }
   }
   return best;
@@ -69,9 +73,11 @@ for (let y = 1; y < G; y += 2) {
 
     const branches = [];
     for (const b of ns) {
-      const left = remainingFrom(b, { x, y });
-      if (left != null) {
-        branches.push({ x: b.x, y: b.y, steps: 1 + left, verdict: null, proven: true });
+      const found = remainingFrom(b, { x, y });
+      if (found != null) {
+        // `path` is the start of the AI's own route down this branch, so the line on
+        // the floor traces where it actually leads rather than guessing a corridor.
+        branches.push({ x: b.x, y: b.y, steps: 1 + found.left, verdict: null, proven: true, path: found.path });
         continue;
       }
       const dead = provenDeadEnds.get(`${x},${y}|${b.x},${b.y}`);
