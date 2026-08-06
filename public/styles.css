@@ -505,6 +505,7 @@ h2 {
    lines instead of a uniform grid of filled cells. Tune wall thickness here. */
 .validator-grid.line-maze {
   --maze-wall-track: 0.25fr;
+  --route-line: 6px;
   width: 100%;
   max-width: 540px;
   aspect-ratio: 1 / 1;
@@ -521,6 +522,36 @@ h2 {
   border: 0;
   border-radius: 0;
 }
+
+/* One bar per direction a route leaves the cell by. Each runs from its edge to
+   just past the centre, so two of them meet as a clean corner and a straight run
+   reads as one unbroken line. Thickness is --route-line on the grid above. */
+.route-seg {
+  position: absolute;
+  background: var(--route-color);
+}
+
+.route-seg.up,
+.route-seg.down {
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--route-line);
+  height: calc(50% + var(--route-line) / 2);
+}
+
+.route-seg.up { top: 0; }
+.route-seg.down { bottom: 0; }
+
+.route-seg.left,
+.route-seg.right {
+  top: 50%;
+  transform: translateY(-50%);
+  height: var(--route-line);
+  width: calc(50% + var(--route-line) / 2);
+}
+
+.route-seg.left { left: 0; }
+.route-seg.right { right: 0; }
 
 .legend-row {
   display: flex;

@@ -1735,15 +1735,26 @@ function renderModeratorGrid() {
   const localPath = shortestPath(player, goal);
   const localSet = pathSet(localPath);
   const aiSet = pathSet(visibleAiPath);
-  // Each verified AI route in its own colour; where routes overlap the earlier
-  // (shorter) one wins, so the map stays readable.
-  const routeColor = new Map();
+  // Each verified AI route drawn as a thin line through the cell centres rather
+  // than a filled block, so the maze stays visible underneath. A cell records one
+  // bar per direction the route leaves by, which makes straight runs and corners
+  // both come out continuous. Where routes overlap the earlier (shorter) one still
+  // supplies the colour, but the directions are UNIONED — otherwise a later route
+  // turning a different way through a shared cell would draw a broken line.
+  const routeLines = new Map(); // "x,y" -> { color, dirs:Set<"up"|"down"|"left"|"right"> }
+  const stepDir = (from, to) => (to.x > from.x ? "right"
+    : to.x < from.x ? "left"
+    : to.y > from.y ? "down" : "up");
   aiSolutions.forEach((r, i) => {
     const color = SOLUTION_COLORS[i % SOLUTION_COLORS.length];
-    for (const c of r.path || []) {
+    const path = r.path || [];
+    path.forEach((c, j) => {
       const k = `${c.x},${c.y}`;
-      if (!routeColor.has(k)) routeColor.set(k, color);
-    }
+      if (!routeLines.has(k)) routeLines.set(k, { color, dirs: new Set() });
+      const entry = routeLines.get(k);
+      if (j > 0) entry.dirs.add(stepDir(c, path[j - 1]));
+      if (j < path.length - 1) entry.dirs.add(stepDir(c, path[j + 1]));
+    });
   });
   const prefetchSet = pathSet(remotePrefetchHint);
 
@@ -1769,9 +1780,8 @@ function renderModeratorGrid() {
       const isIsolatedPillar = x % 2 === 0 && y % 2 === 0 &&
         noWall(x - 1, y) && noWall(x + 1, y) && noWall(x, y - 1) && noWall(x, y + 1);
       if (maze[y][x] === 1 && !isIsolatedPillar) cell.classList.add("wall");
-      if (routeColor.has(key)) {
-        cell.style.background = routeColor.get(key);
-      } else if (localSet.has(key)) cell.classList.add("local-path");
+      const routeLine = routeLines.get(key);
+      if (!routeLine && localSet.has(key)) cell.classList.add("local-path");
       if (prefetchSet.has(key)) cell.classList.add("prefetch-path");
       if (aiSet.has(key)) cell.classList.add("ai-path");
       if (x === goal.x && y === goal.y) cell.classList.add("goal");
@@ -1780,6 +1790,14 @@ function renderModeratorGrid() {
         cell.dataset.facing = DIRS[facing].short;
       }
       cell.title = `(${x}, ${y})`;
+      if (routeLine) {
+        for (const dir of routeLine.dirs) {
+          const seg = document.createElement("i");
+          seg.className = `route-seg ${dir}`;
+          seg.style.setProperty("--route-color", routeLine.color);
+          cell.appendChild(seg);
+        }
+      }
       elements.moderatorGrid.appendChild(cell);
     }
   }
