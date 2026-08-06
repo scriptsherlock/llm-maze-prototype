@@ -1067,8 +1067,12 @@ function computeJunctionCueText() {
   const precomputed = junctionEvals.get(`${player.x},${player.y}`);
   if (precomputed) {
     // Instant: drop the branch we came from, label the rest relative to facing.
-    const options = lastPlayerCell ? precomputed.filter((b) => !sameCell(b, lastPlayerCell)) : precomputed;
-    routeEvalText = formatRouteEval(options);
+    // Every branch with a verified route is shown, including the one just walked in
+    // from. Hiding the arrival branch made the advice depend on movement history:
+    // the same cell with the same facing gave different hints depending on whether
+    // the participant had stepped forward-then-back or back-then-forward, and a
+    // branch could be made to vanish by stepping off the junction and returning.
+    routeEvalText = formatRouteEval(precomputed);
     return;
   }
   if (precomputing) { routeEvalText = ""; return; } // cues still loading at start
@@ -1131,6 +1135,7 @@ function drawRouteCues() {
   clearRouteCues();
   window.__routeCues = []; // debug snapshot of the drawn lines (like window.__aiCues)
   window.__aiActive = aiActive;
+  window.__playerPos = { x: player.x, y: player.y, facing };
   if (!aiActive) return; // AI has disappeared for this trial
   if (!VISUAL_CUES || !aiOn || currentView !== "participant") return;
   if (openNeighborCount(player) < 3) return; // only at a junction
@@ -1140,7 +1145,6 @@ function drawRouteCues() {
   const valid = evals.filter((b) => {
     if (b.verdict === "dead_end") return false; // no line for dead ends
     if (Math.abs(b.x - player.x) + Math.abs(b.y - player.y) !== 1) return false; // adjacent branch only
-    if (lastPlayerCell && sameCell(b, lastPlayerCell)) return false; // don't draw back the way we came
     return true;
   });
   if (!valid.length) return;
@@ -1186,12 +1190,11 @@ function realignJunctionCue() {
   if (openNeighborCount(player) < 3) return; // only meaningful at a junction
   const precomputed = junctionEvals.get(`${player.x},${player.y}`);
   if (!precomputed) return; // nothing stored → leave the banner untouched
-  const options = lastPlayerCell ? precomputed.filter((b) => !sameCell(b, lastPlayerCell)) : precomputed;
-  routeEvalText = formatRouteEval(options);
+  routeEvalText = formatRouteEval(precomputed);
 }
 
 async function evaluateJunction() {
-  const branches = junctionBranches(player, lastPlayerCell);
+  const branches = junctionBranches(player, null);
   if (branches.length < 2) { routeEvalText = ""; return; }
 
   routeEvalInFlight = true;
