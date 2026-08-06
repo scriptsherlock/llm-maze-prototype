@@ -2123,8 +2123,12 @@ function updateUi() {
 
   elements.aiToggle.textContent = aiOn ? "Disable AI for participant" : "Enable AI for participant";
   elements.aiToggle.className = aiOn ? "ai-action" : "";
-  elements.moderatorAiDot.className = aiOn ? "dot on" : "dot";
-  elements.moderatorAiStatus.textContent = aiOn ? "AI assistance ON" : "AI assistance OFF";
+  // The live view reports what the PARTICIPANT has, not the state of the moderator's
+  // own switch: in the no_ai and disappear conditions the assistant is gone by design
+  // and the switch is irrelevant, so showing it ON there would misread the trial.
+  const aiForParticipant = aiCondition && aiOn;
+  elements.moderatorAiDot.className = aiForParticipant ? "dot on" : "dot";
+  elements.moderatorAiStatus.textContent = aiForParticipant ? "AI assistance ON" : "AI assistance OFF";
   const hintPlan = hintActive
     ? (STATIC_HINT_TEXT ? "Follow the red path to the exit" : describeHintPlan())
     : "";

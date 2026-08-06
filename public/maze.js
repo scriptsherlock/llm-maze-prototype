@@ -31,56 +31,94 @@ const STUDY_MAZES = {
 // default 8x8.
 // ---- Study sequence -------------------------------------------------------
 // /study/* plays the four mazes back to back on ONE url. Which maze is showing is
-// held in sessionStorage rather than the address, so the participant never sees the
+// held in storage rather than the address, so the participant never sees the
 // sequence position and cannot skip ahead by editing the url. Advancing re-inits
 // the page, which is what keeps each trial completely clean.
+// Progress lives in localStorage, NOT sessionStorage: sessionStorage is per-tab, so
+// the moderator tab could never see the participant advance and would keep drawing
+// the live position on the first maze while the participant was two mazes further on.
+// The cost is that progress now outlives the tab — use ?restart=1 to start a fresh run.
 export const STUDY_SEQUENCE = ["maze-0", "maze-1", "maze-2", "maze-3"];
 const STUDY_PROGRESS_KEY = "llm_maze_study_progress";
-const isStudy = ((globalThis.location && globalThis.location.pathname) || "").includes("study");
+const studyPath = (globalThis.location && globalThis.location.pathname) || "";
+const isStudy = studyPath.includes("study");
+const isModeratorView = studyPath.includes("moderator");
 // Stored progress is tagged with the sequence it belongs to. Change the sequence
 // (add a maze, reorder) and any older progress is discarded rather than pointing at
 // the wrong maze — otherwise a stale tab would silently start mid-study.
+const SEQUENCE_SIGNATURE = STUDY_SEQUENCE.join(">");
+
 function conditionFromUrl() {
   const v = (new URLSearchParams(globalThis.location ? globalThis.location.search : "").get("condition") || "").toLowerCase();
   return ["no_ai", "stable_ai", "disappear"].includes(v) ? v : "stable_ai";
 }
-// Progress is tagged with the CONDITION as well as the sequence. Switching condition
-// is a different run, so it must start from the first maze — otherwise finishing one
-// condition and changing the url resumes on the last maze of the previous run.
-const CONDITION_VALUE = conditionFromUrl();
-const SEQUENCE_SIGNATURE = `${STUDY_SEQUENCE.join(">")}|${CONDITION_VALUE}`;
 
-function readStudyIndex() {
+function readProgress() {
   try {
-    if (!globalThis.sessionStorage) return 0;
-    // ?restart clears progress, for re-running without hunting through devtools.
-    const search = (globalThis.location && globalThis.location.search) || "";
-    if (new URLSearchParams(search).has("restart")) {
-      globalThis.sessionStorage.removeItem(STUDY_PROGRESS_KEY);
-      // Drop it from the address bar: advancing reloads the page, and a lingering
-      // ?restart would reset progress every time and trap the run on maze 1.
-      try {
-        const url = new URL(globalThis.location.href);
-        url.searchParams.delete("restart");
-        globalThis.history.replaceState({}, "", url);
-      } catch (_e) { /* ignore */ }
-      return 0;
-    }
-    const raw = globalThis.sessionStorage.getItem(STUDY_PROGRESS_KEY);
-    if (!raw) return 0;
-    const saved = JSON.parse(raw);
-    if (!saved || saved.sequence !== SEQUENCE_SIGNATURE) {
-      globalThis.sessionStorage.removeItem(STUDY_PROGRESS_KEY); // sequence changed
-      return 0;
-    }
+    if (!globalThis.localStorage) return null;
+    const saved = JSON.parse(globalThis.localStorage.getItem(STUDY_PROGRESS_KEY) || "null");
+    if (!saved || saved.sequence !== SEQUENCE_SIGNATURE) return null; // sequence changed
     const n = Number.parseInt(saved.index, 10);
-    return Number.isFinite(n) ? Math.min(Math.max(n, 0), STUDY_SEQUENCE.length - 1) : 0;
+    if (!Number.isFinite(n)) return null;
+    return { condition: saved.condition, index: Math.min(Math.max(n, 0), STUDY_SEQUENCE.length - 1) };
   } catch (_error) {
-    return 0;
+    return null;
   }
 }
 
-export const STUDY_INDEX = isStudy ? readStudyIndex() : -1;
+function writeProgress(condition, index) {
+  try {
+    globalThis.localStorage.setItem(STUDY_PROGRESS_KEY, JSON.stringify({ sequence: SEQUENCE_SIGNATURE, condition, index }));
+  } catch (_error) { /* ignore */ }
+}
+
+// ?restart clears progress, for re-running without hunting through devtools.
+const wantsRestart = isStudy
+  && new URLSearchParams((globalThis.location && globalThis.location.search) || "").has("restart");
+if (wantsRestart) {
+  resetStudyProgress();
+  // Drop it from the address bar: advancing reloads the page, and a lingering
+  // ?restart would reset progress every time and trap the run on maze 1.
+  try {
+    const url = new URL(globalThis.location.href);
+    url.searchParams.delete("restart");
+    globalThis.history.replaceState({}, "", url);
+  } catch (_e) { /* ignore */ }
+}
+
+const savedProgress = isStudy && !wantsRestart ? readProgress() : null;
+// Progress is tagged with the CONDITION as well as the sequence. Switching condition
+// is a different run, so it must start from the first maze — otherwise finishing one
+// condition and changing the url resumes on the last maze of the previous run.
+// The moderator is a spectator: it adopts whatever run the participant is on, so
+// /study/moderator lands on the right maze and the right AI state even when it was
+// opened without ?condition.
+const CONDITION_VALUE = (isModeratorView && savedProgress && savedProgress.condition)
+  ? savedProgress.condition
+  : conditionFromUrl();
+
+export const STUDY_INDEX = !isStudy ? -1
+  : (savedProgress && savedProgress.condition === CONDITION_VALUE) ? savedProgress.index
+  : 0;
+
+// The participant owns the stored run: it rewrites its position on every load so a
+// restart, or a switch of condition, immediately becomes what the moderator follows.
+if (isStudy && !isModeratorView) writeProgress(CONDITION_VALUE, STUDY_INDEX);
+
+// Other tabs learn about an advance through the storage event — this is what keeps
+// the moderator's bird's-eye view on the same maze as the participant. Re-init by
+// reload, exactly as advancing does, so nothing carries over from the old maze.
+if (isStudy && globalThis.addEventListener) {
+  globalThis.addEventListener("storage", (event) => {
+    if (event.key !== STUDY_PROGRESS_KEY) return;
+    const next = readProgress();
+    if (!next) return;
+    const followsUs = isModeratorView || next.condition === CONDITION_VALUE;
+    if (followsUs && (next.index !== STUDY_INDEX || next.condition !== CONDITION_VALUE)) {
+      globalThis.location.reload();
+    }
+  });
+}
 export const STUDY_TOTAL = STUDY_SEQUENCE.length;
 export const IS_STUDY = isStudy;
 // In the disappear condition the assistant is present for the first two mazes and
@@ -100,15 +138,13 @@ export function advanceStudyMaze() {
   if (!isStudy) return false;
   const next = STUDY_INDEX + 1;
   if (next >= STUDY_SEQUENCE.length) return false;
-  try {
-    globalThis.sessionStorage.setItem(STUDY_PROGRESS_KEY, JSON.stringify({ sequence: SEQUENCE_SIGNATURE, index: next }));
-  } catch (_error) { /* ignore */ }
+  writeProgress(CONDITION_VALUE, next);
   globalThis.location.reload();
   return true;
 }
 
 export function resetStudyProgress() {
-  try { globalThis.sessionStorage.removeItem(STUDY_PROGRESS_KEY); } catch (_error) { /* ignore */ }
+  try { globalThis.localStorage.removeItem(STUDY_PROGRESS_KEY); } catch (_error) { /* ignore */ }
 }
 
 const path = (globalThis.location && globalThis.location.pathname) || "";
