@@ -1732,8 +1732,6 @@ function updateLogBox() {
 function renderModeratorGrid() {
   if (!elements.moderatorGrid) return;
 
-  const localPath = shortestPath(player, goal);
-  const localSet = pathSet(localPath);
   const aiSet = pathSet(visibleAiPath);
   // Each verified AI route drawn as a thin line through the cell centres rather
   // than a filled block, so the maze stays visible underneath. A cell records one
@@ -1781,7 +1779,6 @@ function renderModeratorGrid() {
         noWall(x - 1, y) && noWall(x + 1, y) && noWall(x, y - 1) && noWall(x, y + 1);
       if (maze[y][x] === 1 && !isIsolatedPillar) cell.classList.add("wall");
       const routeLine = routeLines.get(key);
-      if (!routeLine && localSet.has(key)) cell.classList.add("local-path");
       if (prefetchSet.has(key)) cell.classList.add("prefetch-path");
       if (aiSet.has(key)) cell.classList.add("ai-path");
       if (x === goal.x && y === goal.y) cell.classList.add("goal");
