@@ -81,6 +81,19 @@ app.get([
 });
 
 
+// The matched set of eight (mazes8/), viewable individually while it is reviewed.
+app.get("/m8", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "mazes8.html"));
+});
+
+app.get(
+  Array.from({ length: 8 }, (_v, i) => [`/m8-${i+1}/participant`, `/m8-${i+1}/moderator`]).flat(),
+  (_req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+  },
+);
+
+
 // The study run: the four mazes back to back on one url. Which maze is showing is
 // kept in the browser session, so the url never changes and cannot be skipped.
 app.get("/study", (_req, res) => {

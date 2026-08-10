@@ -11,8 +11,19 @@ import { MAZE_A_MAZE_CONFIG } from "./mazes/maze-a.js";
 import { MAZE_B_MAZE_CONFIG } from "./mazes/maze-b.js";
 import { MAZE_C_MAZE_CONFIG } from "./mazes/maze-c.js";
 import { MAZE_D_MAZE_CONFIG } from "./mazes/maze-d.js";
+import { MAZE8_1_MAZE_CONFIG } from "./mazes8/maze-1.js";
+import { MAZE8_2_MAZE_CONFIG } from "./mazes8/maze-2.js";
+import { MAZE8_3_MAZE_CONFIG } from "./mazes8/maze-3.js";
+import { MAZE8_4_MAZE_CONFIG } from "./mazes8/maze-4.js";
+import { MAZE8_5_MAZE_CONFIG } from "./mazes8/maze-5.js";
+import { MAZE8_6_MAZE_CONFIG } from "./mazes8/maze-6.js";
+import { MAZE8_7_MAZE_CONFIG } from "./mazes8/maze-7.js";
+import { MAZE8_8_MAZE_CONFIG } from "./mazes8/maze-8.js";
 
 // The four study mazes, addressable at /maze-a/participant ... /maze-d/participant.
+// The matched set of eight is at /m8-1/participant ... /m8-8/participant. Their keys
+// deliberately avoid the "maze-" prefix: the maze is chosen by substring match on the
+// path, so an "m8" key cannot be swallowed by the existing "maze-1".
 const STUDY_MAZES = {
   "maze-0": MAZE_0_MAZE_CONFIG,
   "maze-1": MAZE_1_MAZE_CONFIG,
@@ -22,7 +33,18 @@ const STUDY_MAZES = {
   "maze-b": MAZE_B_MAZE_CONFIG,
   "maze-c": MAZE_C_MAZE_CONFIG,
   "maze-d": MAZE_D_MAZE_CONFIG,
+  "m8-1": MAZE8_1_MAZE_CONFIG,
+  "m8-2": MAZE8_2_MAZE_CONFIG,
+  "m8-3": MAZE8_3_MAZE_CONFIG,
+  "m8-4": MAZE8_4_MAZE_CONFIG,
+  "m8-5": MAZE8_5_MAZE_CONFIG,
+  "m8-6": MAZE8_6_MAZE_CONFIG,
+  "m8-7": MAZE8_7_MAZE_CONFIG,
+  "m8-8": MAZE8_8_MAZE_CONFIG,
 };
+// The eight have no AI hints generated yet, so asking for a hints file would only
+// 404. Keep them silent rather than noisy until hints exist.
+const MAZES_WITHOUT_HINTS = new Set(["m8-1","m8-2","m8-3","m8-4","m8-5","m8-6","m8-7","m8-8"]);
 
 // Pick the maze from the URL. The two study conditions:
 //   /ai-maze/*     the SUPPLIED maze (imported from the 10x10 SVG) WITH AI hints
@@ -192,13 +214,14 @@ export const MAZE_KEY = mazeKey;
 
 // Where the precomputed cues live. The study mazes keep theirs alongside the maze
 // module (public/mazes/hints/), the older ones use the original data folder.
-export const HINTS_URL = studyId
-  ? `/mazes/hints/${studyId}.json`
+export const HINTS_URL = studyId && MAZES_WITHOUT_HINTS.has(studyId) ? null
+  : studyId ? `/mazes/hints/${studyId}.json`
   : `/data/junction-cues.${mazeKey}.json`;
 
 // Verified whole-maze routes the AI found, drawn on the moderator view. Study
 // mazes only — the older mazes have none.
-export const SOLUTIONS_URL = studyId ? `/mazes/solutions/${studyId}.json` : null;
+export const SOLUTIONS_URL = studyId && !MAZES_WITHOUT_HINTS.has(studyId)
+  ? `/mazes/solutions/${studyId}.json` : null;
 
 // ---- Study condition -------------------------------------------------------
 //   no_ai      no AI at all

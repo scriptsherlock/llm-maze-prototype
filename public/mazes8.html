@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The eight matched mazes</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .m8-page { max-width: 1040px; margin: 0 auto; padding: 24px 20px 48px; }
+    .m8-page h1 { margin: 0 0 4px; font-size: 22px; }
+    .m8-sheet { width: 100%; height: auto; display: block; margin: 20px 0 28px;
+      border: 1px solid rgba(15, 23, 42, 0.12); border-radius: 8px; background: #f8fafc; }
+    .m8-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+    .m8-card { border: 1px solid rgba(15, 23, 42, 0.12); border-radius: 8px; padding: 12px 14px; }
+    .m8-card h2 { margin: 0 0 2px; font-size: 15px; }
+    .m8-card p { margin: 0 0 10px; font-size: 12.5px; color: var(--muted, #64748b); }
+    .m8-card a { display: inline-block; margin-right: 10px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <main class="m8-page">
+    <h1>The eight matched mazes</h1>
+    <p class="muted">
+      Every one: 53 moves along the shortest route, 25 branch points, and 24 branch
+      points where more than one branch reaches the exit. Only the texture differs.
+      No AI hints have been generated for these yet, so the assistant stays silent.
+    </p>
+
+    <img class="m8-sheet" src="/mazes8/preview.svg" alt="all eight mazes seen from above" />
+
+    <div class="m8-grid" id="m8List"></div>
+  </main>
+  <script>
+    // loops and dead ends per maze, from mazes8/manifest.json
+    const MAZES = [
+      { n: 1, loops: 11, dead: 6 }, { n: 2, loops: 9,  dead: 9 },
+      { n: 3, loops: 10, dead: 5 }, { n: 4, loops: 9,  dead: 10 },
+      { n: 5, loops: 11, dead: 6 }, { n: 6, loops: 9,  dead: 9 },
+      { n: 7, loops: 10, dead: 7 }, { n: 8, loops: 10, dead: 6 },
+    ];
+    document.getElementById("m8List").innerHTML = MAZES.map((m) => `
+      <div class="m8-card">
+        <h2>maze ${m.n}</h2>
+        <p>${m.loops} loops · ${m.dead} dead ends</p>
+        <a href="/m8-${m.n}/participant">walk it</a>
+        <a href="/m8-${m.n}/moderator">from above</a>
+      </div>`).join("");
+  </script>
+</body>
+</html>

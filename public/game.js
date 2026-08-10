@@ -996,7 +996,9 @@ async function precomputeJunctions() {
     return;
   }
   if (CUE_SOURCE === "file") {
-    // No runtime AI call: load cues the offline generator already produced.
+    // No runtime AI call: load cues the offline generator already produced. A maze
+    // with no hints yet has no url at all, and asks for nothing.
+    if (!HINTS_URL) { maybeEvaluateJunction(); updateUi(); return; }
     try {
       const response = await fetch(HINTS_URL);
       if (!response.ok) throw new Error(`cue file HTTP ${response.status}`);

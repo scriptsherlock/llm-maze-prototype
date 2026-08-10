@@ -67,6 +67,10 @@ tiles.forEach((t, i) => {
 });
 svg += "\n</svg>\n";
 
-const out = path.join(root, "mazes8", "preview.svg");
-fs.writeFileSync(out, svg);
-console.log(`wrote ${path.relative(root, out)}  (${tiles.length} mazes, blue = start, green = exit)`);
+// Written twice on purpose: one copy next to the module for reviewing offline, one
+// under public/ so the /m8 index page can show it without a build step.
+for (const out of [path.join(root, "mazes8", "preview.svg"), path.join(dir, "preview.svg")]) {
+  fs.writeFileSync(out, svg);
+  console.log(`wrote ${path.relative(root, out)}`);
+}
+console.log(`${tiles.length} mazes, blue = start, green = exit`);
