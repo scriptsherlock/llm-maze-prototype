@@ -15,13 +15,17 @@ const require = createRequire(import.meta.url);
 require("dotenv").config();
 const engine = require("../../lib/hint-engine.js");
 
-const [id, countArg] = process.argv.slice(2);
-if (!id) { console.error("usage: build-solutions.mjs <maze-id> [count]"); process.exit(1); }
+// --set picks which folder under public/ the maze lives in, so the same generator
+// serves the original four and the matched eight without a second copy of it.
+const argv = process.argv.slice(2);
+const SET = (argv.find((a) => a.startsWith("--set=")) || "--set=mazes").split("=")[1];
+const [id, countArg] = argv.filter((a) => !a.startsWith("--"));
+if (!id) { console.error("usage: build-solutions.mjs <maze-id> [count] [--set=mazes8]"); process.exit(1); }
 const count = Number(countArg) || 6;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..", "..");
-const mod = await import(`file://${path.join(root, "public", "mazes", `${id}.js`)}`);
+const mod = await import(`file://${path.join(root, "public", SET, `${id}.js`)}`);
 const config = Object.values(mod).find((v) => v && typeof v === "object" && v.maze);
 if (!config) { console.error(`no maze config exported from ${id}.js`); process.exit(1); }
 
@@ -51,9 +55,30 @@ const res = await engine.findMazeSolutions(
   (a, d) => console.warn("  ", a, JSON.stringify(d).slice(0, 160)),
 );
 
-console.log(`\nverified routes: ${res.routes.length} (in ${((Date.now()-t0)/1000).toFixed(1)}s)`);
+console.log(`\nverified routes this run: ${res.routes.length} (in ${((Date.now()-t0)/1000).toFixed(1)}s)`);
+
+const outFile = path.join(root, "public", SET, "solutions", `${id}.json`);
+fs.mkdirSync(path.dirname(outFile), { recursive: true });
+
+// --merge keeps routes an earlier run already verified and adds only genuinely new
+// ones. Coverage is what makes the derived hints trustworthy: a branch no route
+// walks gets no cue at all, and the junction then recommends whatever it does know
+// about, which may not be the best way. One pass rarely covers a whole braided maze,
+// so accumulating beats overwriting.
+const MERGE = argv.includes("--merge");
+let routes = res.routes;
+if (MERGE && fs.existsSync(outFile)) {
+  const old = JSON.parse(fs.readFileSync(outFile, "utf8")).routes || [];
+  const sig = (r) => r.path.map((c) => `${c.x},${c.y}`).join(">");
+  const seen = new Set(old.map(sig));
+  const added = res.routes.filter((r) => !seen.has(sig(r)));
+  routes = [...old, ...added].sort((a, b) => a.steps - b.steps);
+  console.log(`merged: ${old.length} kept + ${added.length} new = ${routes.length}` +
+    ` (${res.routes.length - added.length} were duplicates)`);
+}
+
 const covered = new Set();
-res.routes.forEach((r, i) => {
+routes.forEach((r, i) => {
   const js = r.path.filter(isJunction).length;
   r.path.forEach((c) => covered.add(`${c.x},${c.y}`));
   console.log(`  ${i + 1}. ${String(r.steps).padStart(3)} steps  (+${r.steps - best} vs best)  ${js} junctions  — ${r.note}`);
@@ -64,12 +89,10 @@ for (let y=1;y<G;y+=2) for (let x=1;x<G;x+=2) if (isOpen(x,y) && isJunction({x,y
 const hit = allJ.filter((c) => covered.has(`${c.x},${c.y}`)).length;
 console.log(`\njunction coverage: ${hit}/${allJ.length} lie on at least one verified route`);
 
-const outFile = path.join(root, "public", "mazes", "solutions", `${id}.json`);
-fs.mkdirSync(path.dirname(outFile), { recursive: true });
 fs.writeFileSync(outFile, JSON.stringify({
   maze: id, generated_at: new Date().toISOString(),
   provider: engine.provider, model: engine.model,
   shortest_possible: best,
-  routes: res.routes,
+  routes,
 }, null, 2));
 console.log(`wrote ${path.relative(root, outFile)}`);

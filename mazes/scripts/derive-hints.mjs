@@ -10,12 +10,15 @@ import { fileURLToPath } from "url";
 import path from "path";
 import fs from "fs";
 
-const id = process.argv[2];
-if (!id) { console.error("usage: derive-hints.mjs <maze-id>"); process.exit(1); }
+// --set picks which folder under public/ the maze lives in, matching build-solutions.
+const argv = process.argv.slice(2);
+const SET = (argv.find((a) => a.startsWith("--set=")) || "--set=mazes").split("=")[1];
+const id = argv.filter((a) => !a.startsWith("--"))[0];
+if (!id) { console.error("usage: derive-hints.mjs <maze-id> [--set=mazes8]"); process.exit(1); }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..", "..");
-const mod = await import(`file://${path.join(root, "public", "mazes", `${id}.js`)}`);
+const mod = await import(`file://${path.join(root, "public", SET, `${id}.js`)}`);
 const config = Object.values(mod).find((v) => v && typeof v === "object" && v.maze);
 const maze = config.maze, goal = config.goal;
 const G = maze.length;
@@ -23,7 +26,7 @@ const isOpen = (x, y) => y>=0&&y<G&&x>=0&&x<G&&maze[y][x]===0;
 const nbrs = (x, y) => [[0,-1],[1,0],[0,1],[-1,0]].map(([dx,dy])=>({x:x+dx,y:y+dy})).filter((c)=>isOpen(c.x,c.y));
 const K = (c) => `${c.x},${c.y}`;
 
-const solFile = path.join(root, "public", "mazes", "solutions", `${id}.json`);
+const solFile = path.join(root, "public", SET, "solutions", `${id}.json`);
 const sol = JSON.parse(fs.readFileSync(solFile, "utf8"));
 if (!sol.routes || !sol.routes.length) { console.error("no verified routes to derive from"); process.exit(1); }
 
@@ -52,7 +55,8 @@ function remainingFrom(branch, junction) {
 // Dead ends that an earlier per-junction run PROVED by enumerating the whole pocket.
 // Anything unproven from that file is discarded — those were guesses.
 const provenDeadEnds = new Map();
-const hintsFile = path.join(root, "public", "mazes", "hints", `${id}.json`);
+const hintsFile = path.join(root, "public", SET, "hints", `${id}.json`);
+fs.mkdirSync(path.dirname(hintsFile), { recursive: true });   // a new set has no folder yet
 if (fs.existsSync(hintsFile)) {
   const old = JSON.parse(fs.readFileSync(hintsFile, "utf8"));
   for (const j of old.junctions || []) {
