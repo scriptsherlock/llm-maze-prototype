@@ -96,3 +96,9 @@ fs.writeFileSync(outFile, JSON.stringify({
   routes,
 }, null, 2));
 console.log(`wrote ${path.relative(root, outFile)}`);
+
+const u = engine.getUsageTotals();
+if (u.calls) {
+  console.log(`tokens: ${u.calls} call(s), ${u.input} in, ${u.output} out` +
+    (u.reasoning ? ` (${u.reasoning} of it reasoning)` : ""));
+}
