@@ -125,37 +125,66 @@ export function profile(g) {
 }
 
 
-// ---- hedge-run repair ------------------------------------------------------
-// A run of one cell reads as a block floating between two gaps rather than a wall,
-// and 60% of the runs in the first set were one cell. They cannot be avoided while
-// carving: of 5,400 sampled braided mazes NONE had a minimum run of even 2, and the
-// count holds at ~20-28 whatever the junction count. So repair after braiding.
-export function hedgeRuns(g) {
-  const out = [];
-  const wall = (x, y) => g[y][x] === 1;
-  for (let x = 2; x < G - 1; x += 2) {
-    let cells = [];
-    for (let y = 1; y < G; y += 2) {
-      if (wall(x, y)) cells.push({ x, y });
-      else { if (cells.length) out.push({ dir: "v", cells }); cells = []; }
-    }
-    if (cells.length) out.push({ dir: "v", cells });
+// ---- blocks ----------------------------------------------------------------
+// Two things read in the first-person view as a block rather than a wall:
+//   a hedge run only one cell long, standing between two gaps
+//   a corner post with open track on all four sides, holding nothing up
+//
+// Neither can be avoided while carving. A perfect maze has no orphaned posts at all
+// (one needs a cycle, and a spanning tree has none) but averages 24 one-cell runs,
+// and braiding adds the posts. Greedy repair does not work either: opening a stub
+// orphans a post, re-attaching that post lays a fresh stub, and the two chase each
+// other -- measured, 98.6% of mazes never settled, and extend-only failed outright.
+//
+// Hill-climbing does work, because it accepts a move that leaves the count unchanged
+// and so can cross the flat ground the greedy version got stuck on.
+export function countBlocks(g) {
+  let bad = 0;
+  const w = (x, y) => g[y][x] === 1;
+  for (let x = 2; x < G-1; x += 2) {
+    let r = 0;
+    for (let y = 1; y < G; y += 2) { if (w(x,y)) r += 1; else { if (r === 1) bad += 1; r = 0; } }
+    if (r === 1) bad += 1;
   }
-  for (let y = 2; y < G - 1; y += 2) {
-    let cells = [];
-    for (let x = 1; x < G; x += 2) {
-      if (wall(x, y)) cells.push({ x, y });
-      else { if (cells.length) out.push({ dir: "h", cells }); cells = []; }
-    }
-    if (cells.length) out.push({ dir: "h", cells });
+  for (let y = 2; y < G-1; y += 2) {
+    let r = 0;
+    for (let x = 1; x < G; x += 2) { if (w(x,y)) r += 1; else { if (r === 1) bad += 1; r = 0; } }
+    if (r === 1) bad += 1;
   }
-  return out;
+  for (let y = 2; y < G-1; y += 2) for (let x = 2; x < G-1; x += 2)
+    if (g[y][x] === 1 && isOpen(g,x-1,y) && isOpen(g,x+1,y) && isOpen(g,x,y-1) && isOpen(g,x,y+1)) bad += 1;
+  return bad;
 }
 
-// Biggest dead-end pocket hanging off any junction, in cells. Extending a wall
-// lengthens a corridor, and left unchecked that turns a corridor into a long trap:
-// without this check the repaired mazes came out with pockets of ~34 cells, a third
-// of the maze, which is a participant wandering into nothing for a minute.
+function fullyConnected(g) {
+  let total = 0;
+  for (let y = 0; y < G; y += 1) for (let x = 0; x < G; x += 1) if (isOpen(g, x, y)) total += 1;
+  const seen = new Set([key(START)]);
+  let f = [START];
+  while (f.length) {
+    const nx = [];
+    for (const c of f) for (const n of nbrs(g, c.x, c.y)) {
+      if (seen.has(key(n))) continue;
+      seen.add(key(n)); nx.push(n);
+    }
+    f = nx;
+  }
+  return seen.size === total && seen.has(key(GOAL));
+}
+
+// Blocks are not the only thing that matters, so climb on all of it at once. Left to
+// itself the block term alone walks the maze somewhere useless -- loops fell from 9
+// to 2 and dead-end pockets grew to 26 cells against a cap of 6 -- because closing
+// tracks removes blocks and loops together. Loops and pocket size are therefore part
+// of the score rather than filters applied afterwards.
+function cost(g, wantLoops, maxPocket) {
+  const blocks = countBlocks(g);
+  const missingLoops = Math.max(0, wantLoops - loopCount(g));
+  const overPocket = Math.max(0, maxPocketOf(g) - maxPocket);
+  return blocks * 4 + missingLoops * 3 + overPocket;
+}
+
+// Largest dead-end pocket hanging off a junction, in cells.
 export function maxPocketOf(g) {
   let worst = 0;
   for (let y = 1; y < G; y += 2) for (let x = 1; x < G; x += 2) {
@@ -176,70 +205,29 @@ export function maxPocketOf(g) {
           seen.add(k); cells.push(n); st.push(n);
         }
       }
-      if (escapes) continue;
-      worst = Math.max(worst, Math.round(cells.length / 2));
+      if (!escapes) worst = Math.max(worst, Math.round(cells.length / 2));
     }
   }
   return worst;
 }
 
-function everythingReachable(g) {
-  let total = 0;
-  for (let y = 0; y < G; y += 1) for (let x = 0; x < G; x += 1) if (isOpen(g, x, y)) total += 1;
-  const seen = new Set([key(START)]);
-  let f = [START];
-  while (f.length) {
-    const nx = [];
-    for (const c of f) for (const n of nbrs(g, c.x, c.y)) {
-      if (seen.has(key(n))) continue;
-      seen.add(key(n)); nx.push(n);
-    }
-    f = nx;
+export function removeBlocks(g, rng, maxSteps = 30000, wantLoops = 8, maxPocket = 6) {
+  const isTrack = (x,y) => x>0 && x<G-1 && y>0 && y<G-1 && ((x%2===0) !== (y%2===0));
+  let cur = cost(g, wantLoops, maxPocket);
+  for (let step = 0; step < maxSteps && cur > 0; step += 1) {
+    const x = 1 + Math.floor(rng() * (G-2));
+    const y = 1 + Math.floor(rng() * (G-2));
+    if (!isTrack(x, y)) continue;
+    g[y][x] = g[y][x] === 1 ? 0 : 1;
+    const next = cost(g, wantLoops, maxPocket);
+    if (next > cur || !fullyConnected(g)) { g[y][x] = g[y][x] === 1 ? 0 : 1; continue; }
+    cur = next;
   }
-  return seen.size === total;
-}
-
-// Extend a short run by closing a passage at one end; if that would cut the maze in
-// two, open the run instead, which just adds a loop. Extending is preferred because
-// opening makes the maze more porous.
-export function repairHedgeRuns(g, min = 2, maxPocket = Infinity) {
-  for (let pass = 0; pass < 60; pass += 1) {
-    const short = hedgeRuns(g).filter((r) => r.cells.length < min);
-    if (!short.length) return true;
-    let acted = false;
-    for (const run of short) {
-      if (run.cells.length >= min) continue;
-      const step = run.dir === "v" ? { dx: 0, dy: 2 } : { dx: 2, dy: 0 };
-      const ends = [
-        { x: run.cells[0].x - step.dx, y: run.cells[0].y - step.dy },
-        { x: run.cells[run.cells.length - 1].x + step.dx, y: run.cells[run.cells.length - 1].y + step.dy },
-      ];
-      let done = false;
-      for (const e of ends) {
-        if (e.x < 1 || e.x >= G - 1 || e.y < 1 || e.y >= G - 1) continue;
-        if (!isOpen(g, e.x, e.y)) continue;
-        if (e.x === START.x && e.y === 0) continue;
-        g[e.y][e.x] = 1;
-        // Closing a passage is what lengthens a corridor into a trap. Refuse any
-        // closure that leaves a neighbouring cell with only one way out: that is the
-        // step which turns a corridor into a dead end, and chaining those is how the
-        // unchecked version produced pockets of ~34 cells.
-        const makesDeadEnd = [{x:e.x-1,y:e.y},{x:e.x+1,y:e.y},{x:e.x,y:e.y-1},{x:e.x,y:e.y+1}]
-          .some((c) => isOpen(g, c.x, c.y) && c.x % 2 === 1 && c.y % 2 === 1 && nbrs(g, c.x, c.y).length <= 1);
-        if (!makesDeadEnd && everythingReachable(g)) { done = true; acted = true; break; }
-        g[e.y][e.x] = 0;
-      }
-      if (done) continue;
-      for (const c of run.cells) g[c.y][c.x] = 0;
-      acted = true;
-    }
-    if (!acted) break;
-  }
-  return hedgeRuns(g).every((r) => r.cells.length >= min);
+  return cur === 0;
 }
 
 // One braided candidate from a seed. Returns null if the exit got sealed off.
-export function build(seed, tryIndex, loopRange = [6, 12], repairMin = 0, maxPocket = Infinity) {
+export function build(seed, tryIndex, loopRange = [6, 12], removeBlockDefects = false) {
   const base = carve(mulberry32(seed));
   const cands = candidates(base);
   if (cands.length < loopRange[1]) return null;
@@ -247,7 +235,7 @@ export function build(seed, tryIndex, loopRange = [6, 12], repairMin = 0, maxPoc
   const g = base.map((r) => r.slice());
   const n = loopRange[0] + Math.floor(rng() * (loopRange[1] - loopRange[0] + 1));
   for (const w of [...cands].sort(() => rng() - 0.5).slice(0, n)) g[w.y][w.x] = 0;
-  if (repairMin > 0 && !repairHedgeRuns(g, repairMin, maxPocket)) return null;
+  if (removeBlockDefects && !removeBlocks(g, mulberry32(seed * 31 + tryIndex))) return null;
   const p = profile(g);
   if (p.pathLength == null) return null;
   return { g, seed, tryIndex, ...p };

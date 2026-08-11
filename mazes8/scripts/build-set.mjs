@@ -14,7 +14,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { N, START, GOAL, build, divergence, rowsOf, hedgeRuns } from "./lib.mjs";
+import { N, START, GOAL, build, divergence, rowsOf, countBlocks } from "./lib.mjs";
 
 const arg = (k, d) => {
   const hit = process.argv.slice(2).find((a) => a.startsWith(`--${k}=`));
@@ -22,7 +22,7 @@ const arg = (k, d) => {
 };
 const SEEDS = arg("seeds", 6000);
 // Shortest hedge run allowed, in cells. 0 disables the repair.
-const REPAIR_MIN = arg("repair", 2);
+const NO_BLOCKS = !process.argv.includes("--allow-blocks");
 const TRIES = arg("tries", 14);
 const WANT = 8;
 const LEN_TOL = 2;          // path length may vary by +/-2 moves, no more
