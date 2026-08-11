@@ -1,6 +1,6 @@
 import * as THREE from "/vendor/three/three.module.js";
 import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
-import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, MAZE_AI_REMOVED, MID_MAZE_CUTOFF, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze } from "./maze.js";
+import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, MAZE_AI_REMOVED, MID_MAZE_CUTOFF, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze, IS_TRAINING, completeTraining, SURVEY_URL, SURVEY_AFTER_INDEX } from "./maze.js";
 
 const maze = MAZE_CONFIG.maze;
 if (typeof window !== "undefined") window.__mazeRows = maze.map((r) => r.join("")).join("");
@@ -40,6 +40,15 @@ const STATIC_HINT_TEXT = false;
 let player = { ...start };
 let facing = MAZE_CONFIG.startFacing ?? 1;
 let moves = 0;
+const TRAINING_STEPS = [
+  { action: "turnLeft",  text: "Press Turn left to look to your left." },
+  { action: "turnRight", text: "Press Turn right to look back to your right." },
+  { action: "forward",   text: "Press Forward to walk one step ahead." },
+  { action: "back",      text: "Press Back to step backwards, without turning around." },
+  { action: "forward",   text: "Walk forward once more, then you are ready to begin." },
+];
+let trainingAt = 0;
+
 let aiOn = true;
 let hintRequestInFlight = false;
 let latestLatencyMs = null;
@@ -167,9 +176,6 @@ const elements = {
   goalHud: document.getElementById("goalHud"),
   hintButton: document.getElementById("hintButton"),
   hintBanner: document.getElementById("hintBanner"),
-  aiToggle: document.getElementById("aiToggle"),
-  moderatorAiDot: document.getElementById("moderatorAiDot"),
-  moderatorAiStatus: document.getElementById("moderatorAiStatus"),
   moderatorMoves: document.getElementById("moderatorMoves"),
   moderatorTime: document.getElementById("moderatorTime"),
   logBox: document.getElementById("logBox"),
@@ -248,6 +254,7 @@ if (!aiCondition || AUTO_HERD || ROUTE_EVAL_MODE) {
 loadServerState().then(() => { startAutoHerd(); startRouteEval(); });
 loadAiSolutions();
 logState("start_trial");
+if (IS_TRAINING) { logState("training_start"); showTrainingStep(); }
 resizeRenderer();
 renderFrame();
 setInterval(updateUi, 500);
@@ -586,7 +593,6 @@ function bindControls() {
   if (nextMazeButton) nextMazeButton.addEventListener("click", handleNextMaze);
   document.getElementById("backButton").addEventListener("click", moveBackward);
   elements.hintButton.addEventListener("click", showHint);
-  elements.aiToggle.addEventListener("click", toggleAI);
   document.getElementById("downloadJsonButton").addEventListener("click", downloadJson);
 
   document.addEventListener("keydown", (event) => {
@@ -1035,6 +1041,7 @@ function latchAiOff() {
 }
 
 function computeJunctionCueText() {
+  if (IS_TRAINING) { routeEvalText = ""; return; }
   if (!aiActive) { routeEvalText = ""; return; } // AI has disappeared for this trial
   if (!aiOn || openNeighborCount(player) < 3) {
     routeEvalText = ""; // corridor / dead-end: no comparison to make
@@ -1109,6 +1116,7 @@ function clearRouteCues() {
 // to the goal, lighter = more. Dead ends draw nothing (still listed in the text).
 function drawRouteCues() {
   clearRouteCues();
+  if (IS_TRAINING) return;   // practice is about the controls, not the assistant
   window.__routeCues = []; // debug snapshot of the drawn lines (like window.__aiCues)
   window.__aiActive = aiActive;
   window.__playerPos = { x: player.x, y: player.y, facing };
@@ -1203,8 +1211,40 @@ async function evaluateJunction() {
 // ---- Task complete overlay ------------------------------------------------
 // Shown on reaching the exit. In a /study run the button advances to the next maze
 // on the SAME url; on the last maze (or outside a study run) it just reports done.
+// ---- Practice run -----------------------------------------------------------
+// Controls only. Each step is finished by actually pressing the control, so nobody
+// reaches maze 1 without having turned, walked and stepped back at least once. No
+// assistant here: in the no_ai condition a cue shown in practice would be the only
+// one that participant ever saw.
+
+function showTrainingStep() {
+  const panel = document.getElementById("trainingPanel");
+  const step = document.getElementById("trainingStep");
+  const progress = document.getElementById("trainingProgress");
+  if (!panel || !step) return;
+  panel.classList.remove("hidden");
+  step.textContent = TRAINING_STEPS[trainingAt].text;
+  if (progress) progress.textContent = `Step ${trainingAt + 1} of ${TRAINING_STEPS.length}`;
+}
+
+// Called after every control press while practising. A press only counts if it is
+// the control being asked for, so the prompts cannot be clicked past.
+function noteTrainingAction(action) {
+  if (!IS_TRAINING || trainingAt >= TRAINING_STEPS.length) return;
+  if (TRAINING_STEPS[trainingAt].action !== action) return;
+  trainingAt += 1;
+  logState("training_step", { step: trainingAt, action });
+  if (trainingAt < TRAINING_STEPS.length) { showTrainingStep(); return; }
+  const step = document.getElementById("trainingStep");
+  const progress = document.getElementById("trainingProgress");
+  if (step) step.textContent = "That is all the controls. Starting the first maze…";
+  if (progress) progress.textContent = "";
+  logState("training_complete");
+  setTimeout(completeTraining, 1400);
+}
+
 function showTaskComplete() {
-  if (currentView !== "participant") return;
+  if (currentView !== "participant" || IS_TRAINING) return;
   const panel = document.getElementById("taskComplete");
   const title = document.getElementById("taskCompleteTitle");
   const sub = document.getElementById("taskCompleteSub");
@@ -1222,7 +1262,30 @@ function showTaskComplete() {
     title.textContent = "Task complete!";
     sub.textContent = "";
   }
-  button.textContent = hasNext ? "Next maze" : "Finished";
+  // The questionnaire sits between maze 4 and maze 5 in every condition. With no url
+  // configured the step still appears, but only offers Continue, so piloting cannot
+  // post test responses into the real response set.
+  const note = document.getElementById("surveyNote");
+  const link = document.getElementById("surveyLink");
+  const atSurvey = IS_STUDY && hasNext && STUDY_INDEX === SURVEY_AFTER_INDEX;
+  if (note) note.classList.toggle("hidden", !atSurvey);
+  if (link) link.classList.toggle("hidden", !atSurvey || !SURVEY_URL);
+  if (atSurvey) {
+    if (note) {
+      note.textContent = SURVEY_URL
+        ? "Please answer a short questionnaire before continuing. It opens in a new tab; come back here afterwards."
+        : "A short questionnaire goes here. It is not connected yet, so continue straight on.";
+    }
+    if (link && SURVEY_URL) {
+      const url = new URL(SURVEY_URL);
+      url.searchParams.set("condition", CONDITION);
+      url.searchParams.set("maze", String(STUDY_INDEX + 1));
+      link.href = url.toString();
+    }
+    logState("survey_step_shown", { after_maze: STUDY_INDEX + 1, linked: Boolean(SURVEY_URL) });
+  }
+
+  button.textContent = !hasNext ? "Finished" : atSurvey ? "Skip and continue" : "Next maze";
   button.disabled = !hasNext;
   panel.classList.remove("hidden");
 }
@@ -1238,16 +1301,19 @@ function handleNextMaze() {
 }
 
 function moveForward() {
+  if (IS_TRAINING) noteTrainingAction("forward");
   const dir = DIRS[facing];
   attemptMove(dir.dx, dir.dy, "forward");
 }
 
 function moveBackward() {
+  if (IS_TRAINING) noteTrainingAction("back");
   const dir = DIRS[facing];
   attemptMove(-dir.dx, -dir.dy, "backward");
 }
 
 function turnLeft() {
+  if (IS_TRAINING) noteTrainingAction("turnLeft");
   if (currentView !== "participant") return;
   participantHasInteracted = true;
   facing = (facing + 3) % 4;
@@ -1257,6 +1323,7 @@ function turnLeft() {
 }
 
 function turnRight() {
+  if (IS_TRAINING) noteTrainingAction("turnRight");
   if (currentView !== "participant") return;
   participantHasInteracted = true;
   facing = (facing + 1) % 4;
@@ -1617,29 +1684,6 @@ async function showHint() {
     stopThinkingIndicator();
     updateUi();
   }
-}
-
-async function toggleAI() {
-  const next = !aiOn;
-  try {
-    const response = await fetch("/api/moderator/ai", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ enabled: next }),
-    });
-    const data = await response.json();
-    aiOn = Boolean(data.ai_enabled);
-  } catch (_error) {
-    aiOn = next;
-  }
-
-  if (!aiOn) {
-    clearVisibleHint();
-    clearPrefetch();
-  }
-
-  logState(aiOn ? "moderator_enabled_ai" : "moderator_disabled_ai");
-  updateUi();
 }
 
 function resetLocalTrial() {
@@ -2082,14 +2126,6 @@ function updateUi() {
     ? "AI thinking..."
     : aiOn ? "Ask AI" : "AI unavailable";
 
-  elements.aiToggle.textContent = aiOn ? "Disable AI for participant" : "Enable AI for participant";
-  elements.aiToggle.className = aiOn ? "ai-action" : "";
-  // The live view reports what the PARTICIPANT has, not the state of the moderator's
-  // own switch: in the no_ai and disappear conditions the assistant is gone by design
-  // and the switch is irrelevant, so showing it ON there would misread the trial.
-  const aiForParticipant = aiCondition && aiOn;
-  elements.moderatorAiDot.className = aiForParticipant ? "dot on" : "dot";
-  elements.moderatorAiStatus.textContent = aiForParticipant ? "AI assistance ON" : "AI assistance OFF";
   const hintPlan = hintActive
     ? (STATIC_HINT_TEXT ? "Follow the red path to the exit" : describeHintPlan())
     : "";

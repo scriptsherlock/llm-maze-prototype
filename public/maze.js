@@ -38,6 +38,16 @@ const STUDY_MAZES = {
 export const STUDY_SEQUENCE = ["m8-1", "m8-2", "m8-3", "m8-4", "m8-5", "m8-6", "m8-7", "m8-8"];
 const STUDY_PROGRESS_KEY = "llm_maze_study_progress";  // sessionStorage, participant
 const STUDY_LIVE_KEY = "llm_maze_study_live";          // localStorage, moderator mirror
+const TRAINING_KEY = "llm_maze_training_done";         // sessionStorage, per run
+
+// ---- Survey -----------------------------------------------------------------
+// A Qualtrics questionnaire sits between maze 4 and maze 5, in every condition.
+// Left empty on purpose: with no url the step still appears but only offers Continue,
+// so piloting the run cannot post test responses into the real response set. Fill it
+// in when the questionnaire is ready to receive data.
+export const SURVEY_URL = "";
+// Zero-based index of the maze the survey follows. 3 = after the fourth.
+export const SURVEY_AFTER_INDEX = 3;
 const studyPath = (globalThis.location && globalThis.location.pathname) || "";
 const isStudy = studyPath.includes("study");
 const isModeratorView = studyPath.includes("moderator");
@@ -148,6 +158,20 @@ export const MAZE_AI_REMOVED = isStudy
 // the mechanism itself: ?cutoff=mid on a single maze. It is not used by the study.
 export const MID_MAZE_CUTOFF = (new URLSearchParams(globalThis.location ? globalThis.location.search : "").get("cutoff") || "") === "mid";
 
+// ---- Training ---------------------------------------------------------------
+// A controls-only practice run before maze 1: turn, walk, and step back, with no
+// assistant and no exit to find. Held per tab like the run position, so a fresh tab
+// gets the practice again and a reload inside a run does not repeat it.
+export const IS_TRAINING = isStudy && !isModeratorView && (() => {
+  if (wantsRestart) return true;
+  try { return globalThis.sessionStorage.getItem(TRAINING_KEY) !== "1"; } catch (_e) { return true; }
+})();
+
+export function completeTraining() {
+  try { globalThis.sessionStorage.setItem(TRAINING_KEY, "1"); } catch (_e) { /* ignore */ }
+  globalThis.location.reload();
+}
+
 // Move to the next maze and re-init on the same url. Returns false at the end.
 export function advanceStudyMaze() {
   if (!isStudy) return false;
@@ -160,6 +184,7 @@ export function advanceStudyMaze() {
 
 export function resetStudyProgress() {
   try { globalThis.sessionStorage.removeItem(STUDY_PROGRESS_KEY); } catch (_error) { /* ignore */ }
+  try { globalThis.sessionStorage.removeItem(TRAINING_KEY); } catch (_error) { /* ignore */ }
   try { globalThis.localStorage.removeItem(STUDY_LIVE_KEY); } catch (_error) { /* ignore */ }
 }
 

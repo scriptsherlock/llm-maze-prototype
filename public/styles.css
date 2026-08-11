@@ -705,3 +705,60 @@ h2 {
 .ai-routes-legend.hidden { display: none; }
 .ai-route-item { display: inline-flex; align-items: center; gap: 6px; }
 .ai-route-dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+/* Practice run: a prompt strip under the scene telling the participant which control
+   to try next. Deliberately plain -- it is about the buttons, not about the maze. */
+.training-panel {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  max-width: min(560px, 88%);
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: rgba(17, 24, 39, 0.9);
+  color: white;
+  text-align: center;
+}
+
+.training-panel p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.training-progress {
+  margin-top: 6px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.task-complete-note {
+  max-width: 42ch;
+  margin: 4px auto 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.task-complete-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.task-complete-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font-weight: 800;
+  text-decoration: none;
+}

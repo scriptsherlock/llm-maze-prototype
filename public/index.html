@@ -28,8 +28,17 @@
             <div class="task-complete-card">
               <h2 id="taskCompleteTitle">Task complete!</h2>
               <p id="taskCompleteSub">Maze 1 of 8</p>
-              <button id="nextMazeButton" type="button">Next maze</button>
+              <p id="surveyNote" class="task-complete-note hidden"></p>
+              <div class="task-complete-actions">
+                <a id="surveyLink" class="task-complete-link hidden" target="_blank" rel="noopener">Open the questionnaire</a>
+                <button id="nextMazeButton" type="button">Next maze</button>
+              </div>
             </div>
+          </div>
+
+          <div id="trainingPanel" class="training-panel hidden" aria-live="polite">
+            <p id="trainingStep">Practice the controls</p>
+            <p id="trainingProgress" class="training-progress"></p>
           </div>
           <div class="hud">
             <div>
@@ -67,15 +76,6 @@
       </section>
 
       <aside id="moderatorPanel" class="panel moderator-rail">
-        <section>
-          <h2>AI availability</h2>
-          <div class="status-line">
-            <span id="moderatorAiDot" class="dot on"></span>
-            <span id="moderatorAiStatus">AI assistance ON</span>
-          </div>
-          <button id="aiToggle" class="ai-action" type="button">Disable AI for participant</button>
-        </section>
-
         <section class="panel-section">
           <h2>Event log</h2>
           <pre id="logBox" class="log-box" aria-label="event log"></pre>
