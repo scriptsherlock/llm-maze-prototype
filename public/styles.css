@@ -823,6 +823,20 @@ h2 {
   text-align: left;
 }
 
+.help-dismiss {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  font-size: 21px;
+  line-height: 1;
+}
+
 .help-card h2 {
   margin: 0 0 14px;
   font-size: 20px;
@@ -844,8 +858,12 @@ h2 {
   font-weight: 800;
 }
 
-.help-card button {
+/* The card sits over the scene, so the way back needs an edge of its own rather than
+   reading as part of the maze behind it. */
+.help-card > button:not(.help-dismiss) {
   width: 100%;
+  background: var(--accent);
+  border: 2px solid rgba(255, 255, 255, 0.35);
 }
 
 /* Last on purpose: .hidden has to win against any rule that sets display, and several

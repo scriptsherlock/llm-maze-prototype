@@ -39,6 +39,24 @@ export const STUDY_SEQUENCE = ["m8-1", "m8-2", "m8-3", "m8-4", "m8-5", "m8-6", "
 const STUDY_PROGRESS_KEY = "llm_maze_study_progress";  // sessionStorage, participant
 const STUDY_LIVE_KEY = "llm_maze_study_live";          // localStorage, moderator mirror
 const TRAINING_KEY = "llm_maze_training_done";         // sessionStorage, per run
+const PARTICIPANT_KEY = "llm_maze_participant";         // sessionStorage, per run
+
+// One id per run, so the eight mazes can be stitched back into a single record.
+// ?pid=... lets a moderator set it from a recruitment link; otherwise one is minted.
+// Per tab, like the run position: a fresh tab is a fresh participant.
+export const PARTICIPANT_ID = (() => {
+  const fromUrl = new URLSearchParams((globalThis.location && globalThis.location.search) || "").get("pid");
+  try {
+    if (fromUrl) { globalThis.sessionStorage.setItem(PARTICIPANT_KEY, fromUrl); return fromUrl; }
+    const existing = globalThis.sessionStorage.getItem(PARTICIPANT_KEY);
+    if (existing) return existing;
+    const minted = `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    globalThis.sessionStorage.setItem(PARTICIPANT_KEY, minted);
+    return minted;
+  } catch (_e) {
+    return fromUrl || "p_unknown";
+  }
+})();
 
 // ---- Survey -----------------------------------------------------------------
 // A Qualtrics questionnaire sits between maze 4 and maze 5, in every condition.
@@ -47,7 +65,9 @@ const TRAINING_KEY = "llm_maze_training_done";         // sessionStorage, per ru
 // offers only Continue, which is how to pilot without posting into the response set.
 export const SURVEY_URL = "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_a9lhU8KOfXIBJVI";
 // Zero-based index of the maze the survey follows. 3 = after the fourth.
-export const SURVEY_AFTER_INDEX = 3;
+// Zero-based indices of the mazes a questionnaire follows: after the fourth, and
+// again at the end of the run.
+export const SURVEY_AFTER_INDEX = [3, 7];
 const studyPath = (globalThis.location && globalThis.location.pathname) || "";
 const isStudy = studyPath.includes("study");
 const isModeratorView = studyPath.includes("moderator");

@@ -1,6 +1,6 @@
 import * as THREE from "/vendor/three/three.module.js";
 import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
-import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, MAZE_AI_REMOVED, MID_MAZE_CUTOFF, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze, IS_TRAINING, completeTraining, SURVEY_URL, SURVEY_AFTER_INDEX } from "./maze.js";
+import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, MAZE_AI_REMOVED, MID_MAZE_CUTOFF, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze, IS_TRAINING, completeTraining, SURVEY_URL, SURVEY_AFTER_INDEX, PARTICIPANT_ID } from "./maze.js";
 
 const maze = MAZE_CONFIG.maze;
 if (typeof window !== "undefined") window.__mazeRows = maze.map((r) => r.join("")).join("");
@@ -49,6 +49,17 @@ const TRAINING_STEPS = [
 ];
 let trainingAt = 0;
 
+// ---- Per-junction measures ---------------------------------------------------
+// Raw dwell and decision time are recorded, with no attempt to subtract time spent
+// reading a cue. The comparison that matters is disappear vs no_ai over the last
+// four mazes, and neither has an assistant there, so there is no reading-time
+// difference to correct for.
+let junctionVisit = null;          // { key, arrivedAt, recommended, options }
+let visitedCells = new Set();      // for backtracking: cells already stood on
+let backtrackMoves = 0;            // moves onto a cell already visited
+let reverseMoves = 0;              // presses of Back
+const junctionDecisions = [];
+
 let aiOn = true;
 let hintRequestInFlight = false;
 let latestLatencyMs = null;
@@ -79,6 +90,23 @@ const trialBroadcast = typeof BroadcastChannel === "function"
   ? new BroadcastChannel("llm_maze_trial")
   : null;
 const eventLog = [];
+// Advancing a maze reloads the page, which used to wipe eventLog: only the maze in
+// front of you survived and mazes 1-7 were gone by the end. The run is therefore
+// mirrored into localStorage under the participant id and appended to, so one record
+// covers the whole session and can be exported at any point.
+const RUN_LOG_KEY = `llm_maze_run_${PARTICIPANT_ID}`;
+
+function readRunLog() {
+  try { return JSON.parse(localStorage.getItem(RUN_LOG_KEY) || "[]"); } catch (_e) { return []; }
+}
+
+function appendToRunLog(row) {
+  try {
+    const all = readRunLog();
+    all.push(row);
+    localStorage.setItem(RUN_LOG_KEY, JSON.stringify(all));
+  } catch (_e) { /* storage full or blocked: the in-page log still holds this maze */ }
+}
 
 function getInitialView() {
   return globalThis.location && globalThis.location.pathname.includes("moderator")
@@ -602,6 +630,8 @@ function bindControls() {
   const helpCloseButton = document.getElementById("helpCloseButton");
   if (helpButton) helpButton.addEventListener("click", () => toggleHelp(true));
   if (helpCloseButton) helpCloseButton.addEventListener("click", () => toggleHelp(false));
+  const helpDismissButton = document.getElementById("helpDismissButton");
+  if (helpDismissButton) helpDismissButton.addEventListener("click", () => toggleHelp(false));
 
   document.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
@@ -768,11 +798,17 @@ function attemptMove(dx, dy, action) {
   }
 
   const cameFrom = { ...player };
+  recordJunctionDecision({ x: nx, y: ny });
+  const revisit = visitedCells.has(`${nx},${ny}`);
+  if (revisit) backtrackMoves += 1;
+  if (action === "backward") reverseMoves += 1;   // the Back control, not a revisit
+  visitedCells.add(`${cameFrom.x},${cameFrom.y}`);
+  visitedCells.add(`${nx},${ny}`);
   player = { x: nx, y: ny };
   moves += 1;
   advanceStoredPathAfterMove();
   schedulePrefetch();
-  logState("move", { attempted_move: action, attempted_x: nx, attempted_y: ny, plan_status: planStatus });
+  logState("move", { attempted_move: action, attempted_x: nx, attempted_y: ny, plan_status: planStatus, revisit });
 
   if (MID_MAZE_CUTOFF && aiActive) {
     if (chokeCell) {
@@ -791,7 +827,27 @@ function attemptMove(dx, dy, action) {
 
   if (player.x === goal.x && player.y === goal.y) {
     if (finishedAt == null) finishedAt = Date.now();
+    const optimal = Math.max(0, shortestPath(start, goal).length - 1);
+    const withCue = junctionDecisions.filter((d) => d.followed !== null);
     logState("goal_reached");
+    // Excess is measured against the shortest route, as agreed: with several correct
+    // paths any other benchmark is arbitrary.
+    logState("maze_summary", {
+      completion_ms: finishedAt - startTime,
+      moves_taken: moves,
+      shortest_possible: optimal,
+      excess_moves: moves - optimal,
+      revisited_cell_moves: backtrackMoves,
+      back_button_moves: reverseMoves,
+      junctions_passed: junctionDecisions.length,
+      junctions_with_a_cue: withCue.length,
+      followed_cue: withCue.filter((d) => d.followed).length,
+      median_decision_ms: (() => {
+        if (!junctionDecisions.length) return null;
+        const v = junctionDecisions.map((d) => d.decision_ms).sort((a, b) => a - b);
+        return v[Math.floor(v.length / 2)];
+      })(),
+    });
     hintBannerText = "Goal reached";
     hintMessageUntil = Date.now() + 2500;
     showTaskComplete();
@@ -1035,9 +1091,45 @@ function startRouteEval() {
 }
 
 // Only a real junction (3+ open neighbours) is a decision point worth evaluating.
+function noteJunctionArrival() {
+  const key = `${player.x},${player.y}`;
+  if (junctionVisit && junctionVisit.key === key) return;   // still the same junction
+  if (openNeighborCount(player) < 3) { junctionVisit = null; return; }
+  const evals = junctionEvals.get(key) || [];
+  const live = evals.filter((b) => b.verdict !== "dead_end" && Number.isFinite(Number(b.steps)));
+  const best = live.length ? live.reduce((a, b) => (Number(b.steps) < Number(a.steps) ? b : a)) : null;
+  junctionVisit = {
+    key,
+    arrivedAt: Date.now(),
+    // What the participant was shown, if anything. Null in no_ai and after the
+    // assistant goes, which is exactly the contrast the analysis needs.
+    recommended: aiActive && aiCondition && best ? `${best.x},${best.y}` : null,
+    options: live.map((b) => ({ cell: `${b.x},${b.y}`, steps: Number(b.steps) })),
+  };
+}
+
+// Called on the move that leaves a junction: how long they stood there, which way
+// they went, and whether that first choice was the branch the assistant named.
+function recordJunctionDecision(toCell) {
+  if (!junctionVisit) return;
+  const chosen = `${toCell.x},${toCell.y}`;
+  const decision = {
+    junction: junctionVisit.key,
+    chosen,
+    recommended: junctionVisit.recommended,
+    followed: junctionVisit.recommended == null ? null : chosen === junctionVisit.recommended,
+    decision_ms: Date.now() - junctionVisit.arrivedAt,
+    options: junctionVisit.options,
+  };
+  junctionDecisions.push(decision);
+  logState("junction_decision", decision);
+  junctionVisit = null;
+}
+
 function maybeEvaluateJunction() {
   computeJunctionCueText();
   drawRouteCues(); // keep the floor lines in sync with the text cue
+  noteJunctionArrival();
 }
 
 // One-way latch: the AI is gone for the rest of the trial once the choke is reached.
@@ -1301,7 +1393,7 @@ function showTaskComplete() {
   // post test responses into the real response set.
   const note = document.getElementById("surveyNote");
   const link = document.getElementById("surveyLink");
-  const atSurvey = IS_STUDY && hasNext && STUDY_INDEX === SURVEY_AFTER_INDEX;
+  const atSurvey = IS_STUDY && SURVEY_AFTER_INDEX.includes(STUDY_INDEX);
   if (note) note.classList.toggle("hidden", !atSurvey);
   if (link) link.classList.toggle("hidden", !atSurvey || !SURVEY_URL);
   if (atSurvey) {
@@ -1321,6 +1413,11 @@ function showTaskComplete() {
 
   button.textContent = !hasNext ? "Finished" : atSurvey ? "Skip and continue" : "Next maze";
   button.disabled = !hasNext;
+  if (atSurvey && !hasNext && note) {
+    note.textContent = SURVEY_URL
+      ? "One last questionnaire, then you are done. Thank you."
+      : "A final questionnaire goes here. It is not connected yet.";
+  }
   panel.classList.remove("hidden");
 }
 
@@ -1744,9 +1841,13 @@ function formatTime(ms) {
 }
 
 function logState(action, extra = {}) {
-  eventLog.push({
+  const row = {
     timestamp_iso: new Date().toISOString(),
     elapsed_ms: Date.now() - startTime,
+    participant_id: PARTICIPANT_ID,
+    condition: CONDITION,
+    maze: MAZE_KEY,
+    maze_index: STUDY_INDEX,
     action,
     current_view: currentView,
     x: player.x,
@@ -1754,12 +1855,15 @@ function logState(action, extra = {}) {
     facing: DIRS[facing].name,
     moves,
     ai_enabled: aiOn,
+    ai_present: aiCondition,
     maze_seed: MAZE_CONFIG.seed,
     maze_size: `${cols}x${rows}`,
     plan_status: planStatus,
     stored_path_length: activeFullPath.length,
     ...extra,
-  });
+  };
+  eventLog.push(row);
+  if (currentView === "participant") appendToRunLog(row);
   updateLogBox();
   if (currentView === "participant" && participantHasInteracted) publishTrialState();
 }
@@ -2072,7 +2176,16 @@ function normalizeCell(cell) {
 }
 
 function downloadJson() {
-  downloadBlob("llm_maze_trial_log.json", JSON.stringify(eventLog, null, 2), "application/json");
+  const run = readRunLog();
+  const payload = {
+    participant_id: PARTICIPANT_ID,
+    condition: CONDITION,
+    exported_at: new Date().toISOString(),
+    mazes_seen: [...new Set(run.map((r) => r.maze))],
+    summaries: run.filter((r) => r.action === "maze_summary"),
+    events: run.length ? run : eventLog,
+  };
+  downloadBlob(`llm_maze_${PARTICIPANT_ID}.json`, JSON.stringify(payload, null, 2), "application/json");
 }
 
 function downloadBlob(filename, contents, type) {
