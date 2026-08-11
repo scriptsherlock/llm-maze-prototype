@@ -1,6 +1,6 @@
 // Derive the junction hints the game reads from the AI's VERIFIED whole-maze routes.
 //
-//   node mazes/scripts/derive-hints.mjs maze-0
+//   node mazes8/scripts/derive-hints.mjs maze-1 --set=mazes8
 //
 // No AI calls: every number here is arithmetic over routes that were already checked
 // to be walkable. Distance down a branch = 1 step onto it + that cell's remaining

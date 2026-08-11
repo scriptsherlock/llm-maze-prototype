@@ -1,7 +1,7 @@
 // Ask the AI for several different whole-maze solutions and keep the ones that are
 // provably walkable.
 //
-//   node mazes/scripts/build-solutions.mjs maze-0 [count]
+//   node mazes8/scripts/build-solutions.mjs maze-1 [count] --set=mazes8
 //
 // Junction hints are derived from these routes rather than asked for junction by
 // junction, so every distance is a sum of verified segments and cannot be a number

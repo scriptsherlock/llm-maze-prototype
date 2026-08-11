@@ -10,6 +10,6 @@ for n in 1 2 3 4 5 6 7 8; do
     echo "maze-$n: no solutions file — run build-solutions.mjs first"
     continue
   fi
-  node mazes/scripts/derive-hints.mjs "maze-$n" --set=mazes8 2>&1 \
+  node mazes8/scripts/derive-hints.mjs "maze-$n" --set=mazes8 2>&1 \
     | grep -vE "MODULE_TYPELESS|Reparsing|To eliminate|trace-warnings"
 done
