@@ -64,6 +64,17 @@ let aiOn = true;
 let hintRequestInFlight = false;
 let latestLatencyMs = null;
 let startTime = Date.now();
+// Time spent reading the controls card is not time spent on the task: the card shows
+// which button does what, so dwelling on it means the controls were unclear, not the
+// maze. It is held out of the clock. Both the raw wall time and the paused total stay
+// in the log, so a completion time including help time can still be recovered.
+let helpPausedMs = 0;
+let helpOpenedAt = null;
+
+function elapsedMs() {
+  const upTo = helpOpenedAt ?? Date.now();
+  return upTo - startTime - helpPausedMs;
+}
 let finishedAt = null; // timestamp the goal was reached; freezes the timer
 let hintVisibleUntil = 0;
 let hintMessageUntil = 0;
@@ -106,7 +117,59 @@ function appendToRunLog(row) {
     all.push(row);
     localStorage.setItem(RUN_LOG_KEY, JSON.stringify(all));
   } catch (_e) { /* storage full or blocked: the in-page log still holds this maze */ }
+  queueForServer(row);
 }
+
+// localStorage lives on the participant's machine and leaves with the browser, so it
+// is a cache, not the record. Rows are batched to the server as the run proceeds;
+// anything that fails to send stays queued and goes with the next batch, and the
+// browser copy remains as the fallback if the server never becomes reachable.
+let serverQueue = [];
+let serverFlushTimer = null;
+let serverStorageWorks = null;
+
+function queueForServer(row) {
+  serverQueue.push(row);
+  if (serverFlushTimer) return;
+  serverFlushTimer = setTimeout(flushToServer, 1500);
+}
+
+async function flushToServer() {
+  serverFlushTimer = null;
+  if (!serverQueue.length) return;
+  const batch = serverQueue;
+  serverQueue = [];
+  try {
+    const response = await fetch("/api/run-log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ participant_id: PARTICIPANT_ID, rows: batch }),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (serverStorageWorks !== true) {
+      serverStorageWorks = true;
+      logState("run_log_server_ok", { participant_id: PARTICIPANT_ID });
+    }
+  } catch (_error) {
+    serverQueue = batch.concat(serverQueue);       // keep them for the next attempt
+    if (serverStorageWorks !== false) {
+      serverStorageWorks = false;
+      // Not logged through logState: that would queue another row and loop.
+      eventLog.push({ timestamp_iso: new Date().toISOString(), action: "run_log_server_unreachable",
+        participant_id: PARTICIPANT_ID, queued: serverQueue.length });
+    }
+  }
+}
+
+// A closing tab should not take the last few rows with it.
+globalThis.addEventListener("pagehide", () => {
+  if (!serverQueue.length || !navigator.sendBeacon) return;
+  navigator.sendBeacon("/api/run-log", new Blob(
+    [JSON.stringify({ participant_id: PARTICIPANT_ID, rows: serverQueue })],
+    { type: "application/json" },
+  ));
+  serverQueue = [];
+});
 
 function getInitialView() {
   return globalThis.location && globalThis.location.pathname.includes("moderator")
@@ -833,7 +896,9 @@ function attemptMove(dx, dy, action) {
     // Excess is measured against the shortest route, as agreed: with several correct
     // paths any other benchmark is arbitrary.
     logState("maze_summary", {
-      completion_ms: finishedAt - startTime,
+      completion_ms: finishedAt - startTime - helpPausedMs,
+      help_paused_ms: helpPausedMs,
+      completion_ms_including_help: finishedAt - startTime,
       moves_taken: moves,
       shortest_possible: optimal,
       excess_moves: moves - optimal,
@@ -1101,6 +1166,7 @@ function noteJunctionArrival() {
   junctionVisit = {
     key,
     arrivedAt: Date.now(),
+    pausedAtArrival: helpPausedMs,
     // What the participant was shown, if anything. Null in no_ai and after the
     // assistant goes, which is exactly the contrast the analysis needs.
     recommended: aiActive && aiCondition && best ? `${best.x},${best.y}` : null,
@@ -1118,7 +1184,7 @@ function recordJunctionDecision(toCell) {
     chosen,
     recommended: junctionVisit.recommended,
     followed: junctionVisit.recommended == null ? null : chosen === junctionVisit.recommended,
-    decision_ms: Date.now() - junctionVisit.arrivedAt,
+    decision_ms: Date.now() - junctionVisit.arrivedAt - (junctionVisit.pausedAtArrival !== undefined ? helpPausedMs - junctionVisit.pausedAtArrival : 0),
     options: junctionVisit.options,
   };
   junctionDecisions.push(decision);
@@ -1334,7 +1400,16 @@ function toggleHelp(open) {
   if (!card) return;
   card.classList.toggle("hidden", !open);
   if (button) button.classList.toggle("hidden", open);
-  logState(open ? "help_opened" : "help_closed", { maze: MAZE_KEY });
+  if (open) {
+    if (helpOpenedAt == null) helpOpenedAt = Date.now();
+    logState("help_opened", { maze: MAZE_KEY });
+  } else {
+    // logged before the clock restarts, so the row carries the frozen time
+    logState("help_closed", { maze: MAZE_KEY, help_ms: helpOpenedAt ? Date.now() - helpOpenedAt : 0 });
+    if (helpOpenedAt != null) helpPausedMs += Date.now() - helpOpenedAt;
+    helpOpenedAt = null;
+  }
+  updateUi();
 }
 
 function showTrainingStep() {
@@ -1822,6 +1897,8 @@ function resetLocalTrial() {
   facing = MAZE_CONFIG.startFacing ?? 1;
   moves = 0;
   startTime = Date.now();
+  helpPausedMs = 0;
+  helpOpenedAt = null;
   finishedAt = null;
   aiActive = true; // the AI is back for the new trial
   clearRouteCues();
@@ -1843,7 +1920,7 @@ function formatTime(ms) {
 function logState(action, extra = {}) {
   const row = {
     timestamp_iso: new Date().toISOString(),
-    elapsed_ms: Date.now() - startTime,
+    elapsed_ms: elapsedMs(),
     participant_id: PARTICIPANT_ID,
     condition: CONDITION,
     maze: MAZE_KEY,
@@ -2055,7 +2132,7 @@ function serializeTrialState() {
     moves,
     ai_enabled: aiOn,
     start_time: startTime,
-    elapsed_ms: (finishedAt ?? Date.now()) - startTime,
+    elapsed_ms: (finishedAt ? finishedAt - startTime - helpPausedMs : elapsedMs()),
     finished: finishedAt != null,
     active_hint_path: activeHintPath,
     active_full_path: activeFullPath,
@@ -2254,7 +2331,7 @@ function updateCamera() {
 
 function updateUi() {
   updateCamera();
-  const elapsed = formatTime((finishedAt ?? Date.now()) - startTime);
+  const elapsed = formatTime(finishedAt ? finishedAt - startTime - helpPausedMs : elapsedMs());
   const bearing = getGoalBearing();
   const now = Date.now();
   const hintActive = aiOn && now <= hintVisibleUntil;
