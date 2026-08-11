@@ -22,66 +22,10 @@ app.use(express.json({ limit: "80kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/", (_req, res) => {
-  res.redirect("/participant");
+  res.redirect("/m8");
 });
 
-app.get(["/participant", "/moderator"], (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-// Original 7x7 maze served at its own hyperlink. Same page/logic as the default
-// maze; maze.js selects the original grid because the path contains "original".
-app.get("/original", (_req, res) => {
-  res.redirect("/original/participant");
-});
-
-app.get(["/original/participant", "/original/moderator"], (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-// 10x10 "AI disappears" maze at its own hyperlink. Same page/logic; maze.js
-// selects the disappear grid because the path contains "disappear".
-app.get("/disappear", (_req, res) => {
-  res.redirect("/disappear/participant");
-});
-
-app.get(["/disappear/participant", "/disappear/moderator"], (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-// The two study conditions: matched 10x10 mazes, one with AI hints and one without.
-app.get("/ai-maze", (_req, res) => {
-  res.redirect("/ai-maze/participant");
-});
-
-app.get("/no-ai-maze", (_req, res) => {
-  res.redirect("/no-ai-maze/participant");
-});
-
-app.get([
-  "/ai-maze/participant", "/ai-maze/moderator",
-  "/no-ai-maze/participant", "/no-ai-maze/moderator",
-], (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-
-// The four study mazes, viewable individually.
-app.get([
-  "/maze-0/participant", "/maze-0/moderator",
-  "/maze-1/participant", "/maze-1/moderator",
-  "/maze-2/participant", "/maze-2/moderator",
-  "/maze-3/participant", "/maze-3/moderator",
-  "/maze-a/participant", "/maze-a/moderator",
-  "/maze-b/participant", "/maze-b/moderator",
-  "/maze-c/participant", "/maze-c/moderator",
-  "/maze-d/participant", "/maze-d/moderator",
-], (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-
-// The matched set of eight (mazes8/), viewable individually while it is reviewed.
+// The eight matched mazes, viewable individually.
 app.get("/m8", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "mazes8.html"));
 });
@@ -93,8 +37,7 @@ app.get(
   },
 );
 
-
-// The study run: the four mazes back to back on one url. Which maze is showing is
+// The study run: all eight mazes back to back on one url. Which maze is showing is
 // kept in the browser session, so the url never changes and cannot be skipped.
 app.get("/study", (_req, res) => {
   res.redirect("/study/participant");

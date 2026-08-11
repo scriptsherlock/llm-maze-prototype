@@ -15,39 +15,11 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/index.html"
+      "destination": "/mazes8.html"
     },
     {
-      "source": "/participant",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/moderator",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/original/participant",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/original/moderator",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/disappear/participant",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/disappear/moderator",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/ai-maze/participant",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/ai-maze/moderator",
-      "destination": "/index.html"
+      "source": "/m8",
+      "destination": "/mazes8.html"
     },
     {
       "source": "/study/participant",
@@ -56,82 +28,6 @@
     {
       "source": "/study/moderator",
       "destination": "/index.html"
-    },
-    {
-      "source": "/maze-0/participant",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/maze-0/moderator",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/maze-1/participant",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/maze-1/moderator",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/maze-2/participant",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/maze-2/moderator",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/maze-3/participant",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/maze-3/moderator",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/maze-a/participant",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/maze-a/moderator",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/maze-b/participant",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/maze-b/moderator",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/maze-c/participant",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/maze-c/moderator",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/maze-d/participant",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/maze-d/moderator",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/no-ai-maze/participant",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/no-ai-maze/moderator",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/m8",
-      "destination": "/mazes8.html"
     },
     {
       "source": "/m8-1/participant",

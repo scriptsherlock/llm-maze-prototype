@@ -81,7 +81,7 @@ const covered = new Set();
 routes.forEach((r, i) => {
   const js = r.path.filter(isJunction).length;
   r.path.forEach((c) => covered.add(`${c.x},${c.y}`));
-  console.log(`  ${i + 1}. ${String(r.steps).padStart(3)} steps  (+${r.steps - best} vs best)  ${js} junctions  — ${r.note}`);
+  console.log(`  ${i + 1}. ${String(r.steps).padStart(3)} steps  (+${r.steps - best} vs best)  ${js} junctions`);
 });
 
 const allJ = [];

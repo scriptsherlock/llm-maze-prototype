@@ -135,7 +135,7 @@ const junctionEvals = new Map(); // "x,y" -> [{x,y,verdict,steps,reason}] (preco
 let precomputing = false;
 // CUE_SOURCE selects who produces the junction cues:
 //   "file" – load cues precomputed offline by scripts/build-cues.mjs from
-//            public/data/junction-cues.<maze>.json (no runtime AI call — the AI
+//            public/mazes8/hints/maze-N.json (no runtime AI call — the AI
 //            was run once at build time; instant, deploy-safe). DEPLOYMENT DEFAULT.
 //   "ai"   – the LLM solves the maze and returns the cues live at trial start
 //            (its own verdicts/steps/reasons, fallible; used to (re)generate).

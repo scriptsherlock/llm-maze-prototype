@@ -1,16 +1,3 @@
-import { FIXED_8X8_MAZE_CONFIG } from "./fixed_8x8_maze.js";
-import { ORIGINAL_15X15_MAZE_CONFIG } from "./original_15x15_maze.js";
-import { DISAPPEAR_MAZE_CONFIG } from "./disappear_maze.js";
-import { SUPPLIED_MAZE_CONFIG } from "./supplied_maze.js";
-import { V6_MAZE_CONFIG } from "./v6_maze.js";
-import { MAZE_0_MAZE_CONFIG } from "./mazes/maze-0.js";
-import { MAZE_1_MAZE_CONFIG } from "./mazes/maze-1.js";
-import { MAZE_2_MAZE_CONFIG } from "./mazes/maze-2.js";
-import { MAZE_3_MAZE_CONFIG } from "./mazes/maze-3.js";
-import { MAZE_A_MAZE_CONFIG } from "./mazes/maze-a.js";
-import { MAZE_B_MAZE_CONFIG } from "./mazes/maze-b.js";
-import { MAZE_C_MAZE_CONFIG } from "./mazes/maze-c.js";
-import { MAZE_D_MAZE_CONFIG } from "./mazes/maze-d.js";
 import { MAZE8_1_MAZE_CONFIG } from "./mazes8/maze-1.js";
 import { MAZE8_2_MAZE_CONFIG } from "./mazes8/maze-2.js";
 import { MAZE8_3_MAZE_CONFIG } from "./mazes8/maze-3.js";
@@ -20,19 +7,9 @@ import { MAZE8_6_MAZE_CONFIG } from "./mazes8/maze-6.js";
 import { MAZE8_7_MAZE_CONFIG } from "./mazes8/maze-7.js";
 import { MAZE8_8_MAZE_CONFIG } from "./mazes8/maze-8.js";
 
-// The four study mazes, addressable at /maze-a/participant ... /maze-d/participant.
-// The matched set of eight is at /m8-1/participant ... /m8-8/participant. Their keys
-// deliberately avoid the "maze-" prefix: the maze is chosen by substring match on the
-// path, so an "m8" key cannot be swallowed by the existing "maze-1".
+// The eight matched mazes, addressable at /m8-1/participant ... /m8-8/participant.
+// They are the whole set now: every earlier maze has been removed.
 const STUDY_MAZES = {
-  "maze-0": MAZE_0_MAZE_CONFIG,
-  "maze-1": MAZE_1_MAZE_CONFIG,
-  "maze-2": MAZE_2_MAZE_CONFIG,
-  "maze-3": MAZE_3_MAZE_CONFIG,
-  "maze-a": MAZE_A_MAZE_CONFIG,
-  "maze-b": MAZE_B_MAZE_CONFIG,
-  "maze-c": MAZE_C_MAZE_CONFIG,
-  "maze-d": MAZE_D_MAZE_CONFIG,
   "m8-1": MAZE8_1_MAZE_CONFIG,
   "m8-2": MAZE8_2_MAZE_CONFIG,
   "m8-3": MAZE8_3_MAZE_CONFIG,
@@ -43,13 +20,8 @@ const STUDY_MAZES = {
   "m8-8": MAZE8_8_MAZE_CONFIG,
 };
 
-// Pick the maze from the URL. The two study conditions:
-//   /ai-maze/*     the SUPPLIED maze (imported from the 10x10 SVG) WITH AI hints
-//   /no-ai-maze/*  the v6 braided maze, with NO AI at all from the start
-// /disappear/* and /original/* are the earlier mazes; anything else is the
-// default 8x8.
 // ---- Study sequence -------------------------------------------------------
-// /study/* plays the four mazes back to back on ONE url. Which maze is showing is
+// /study/* plays all eight mazes back to back on ONE url. Which maze is showing is
 // held in storage rather than the address, so the participant never sees the
 // sequence position and cannot skip ahead by editing the url. Advancing re-inits
 // the page, which is what keeps each trial completely clean.
@@ -63,7 +35,7 @@ const STUDY_MAZES = {
 //                   sessionStorage at all. The participant writes it, never reads it.
 // Putting progress itself in localStorage instead makes the moderator work but leaves
 // every later tab resuming a finished run, which is worse.
-export const STUDY_SEQUENCE = ["maze-0", "maze-1", "maze-2", "maze-3"];
+export const STUDY_SEQUENCE = ["m8-1", "m8-2", "m8-3", "m8-4", "m8-5", "m8-6", "m8-7", "m8-8"];
 const STUDY_PROGRESS_KEY = "llm_maze_study_progress";  // sessionStorage, participant
 const STUDY_LIVE_KEY = "llm_maze_study_live";          // localStorage, moderator mirror
 const studyPath = (globalThis.location && globalThis.location.pathname) || "";
@@ -162,10 +134,12 @@ if (isStudy && isModeratorView && globalThis.addEventListener) {
 }
 export const STUDY_TOTAL = STUDY_SEQUENCE.length;
 export const IS_STUDY = isStudy;
-// In the disappear condition the assistant is present for the first two mazes and
-// absent for the last two: the removal happens between tasks, not part-way through
-// one. The first two establish the assistant so its loss is felt.
-const DISAPPEAR_LAST_N = 2;
+// In the disappear condition the assistant is present for the first half of the run
+// and absent for the second: the removal happens between tasks, not part-way through
+// one. The first half establishes the assistant so its loss is felt.
+// This was 2-of-4. With eight mazes it is 4-of-4, which keeps the same half-and-half
+// split rather than silently shifting the design to 6 with and 2 without.
+const DISAPPEAR_LAST_N = 4;
 export const MAZE_AI_REMOVED = isStudy
   && CONDITION_VALUE === "disappear"
   && STUDY_INDEX >= STUDY_SEQUENCE.length - DISAPPEAR_LAST_N;
@@ -193,36 +167,21 @@ const path = (globalThis.location && globalThis.location.pathname) || "";
 const studyId = isStudy
   ? STUDY_SEQUENCE[STUDY_INDEX]
   : (Object.keys(STUDY_MAZES).find((id) => path.includes(id)) || null);
-const mazeKey = studyId
-  || (path.includes("no-ai-maze") ? "no_ai"
-  : path.includes("ai-maze") ? "ai"
-  : path.includes("disappear") ? "disappear"
-  : path.includes("original") ? "original"
-  : "default");
+// Every maze is one of the eight now, so an unrecognised path falls back to the
+// first rather than to a differently-shaped legacy maze.
+const mazeKey = studyId || STUDY_SEQUENCE[0];
 
-export const MAZE_CONFIG = studyId ? STUDY_MAZES[studyId]
-  : mazeKey === "no_ai" ? V6_MAZE_CONFIG
-  : mazeKey === "ai" ? SUPPLIED_MAZE_CONFIG
-  : mazeKey === "disappear" ? DISAPPEAR_MAZE_CONFIG
-  : mazeKey === "original" ? ORIGINAL_15X15_MAZE_CONFIG
-  : FIXED_8X8_MAZE_CONFIG;
+export const MAZE_CONFIG = STUDY_MAZES[mazeKey];
 
 export const MAZE_KEY = mazeKey;
 
-// Where the precomputed cues live. The study mazes keep theirs alongside the maze
-// module (public/mazes/hints/), the older ones use the original data folder.
-// The matched eight are addressed as m8-N but their files are named maze-N inside
-// public/mazes8/, so the url is mapped rather than pasted from the key.
-const m8 = studyId ? studyId.match(/^m8-(\d+)$/) : null;
-export const HINTS_URL = m8 ? `/mazes8/hints/maze-${m8[1]}.json`
-  : studyId ? `/mazes/hints/${studyId}.json`
-  : `/data/junction-cues.${mazeKey}.json`;
+// Where the precomputed cues live. The mazes are addressed as m8-N but their files
+// are named maze-N inside public/mazes8/, so the url is mapped, not pasted.
+const m8 = mazeKey.match(/^m8-(\d+)$/);
+export const HINTS_URL = m8 ? `/mazes8/hints/maze-${m8[1]}.json` : null;
 
-// Verified whole-maze routes the AI found, drawn on the moderator view. Study
-// mazes only — the older mazes have none.
-export const SOLUTIONS_URL = m8 ? `/mazes8/solutions/maze-${m8[1]}.json`
-  : studyId ? `/mazes/solutions/${studyId}.json`
-  : null;
+// Verified whole-maze routes the AI found, drawn on the moderator view.
+export const SOLUTIONS_URL = m8 ? `/mazes8/solutions/maze-${m8[1]}.json` : null;
 
 // ---- Study condition -------------------------------------------------------
 //   no_ai      no AI at all
