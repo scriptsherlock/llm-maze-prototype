@@ -43,7 +43,7 @@ console.log(`sampling ${SEEDS} seeds x ${TRIES} braidings ...`);
 const pool = [];
 for (let seed = 1; seed <= SEEDS; seed += 1) {
   for (let t = 0; t < TRIES; t += 1) {
-    const c = build(seed, t, [6, 12], REPAIR_MIN, MAX_POCKET);
+    const c = build(seed, t, [6, 12], NO_BLOCKS);
     if (!c) continue;
     if (c.maxPocket > MAX_POCKET) continue;
     if (c.choicePoints < MIN_CHOICE) continue;
