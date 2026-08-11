@@ -478,6 +478,10 @@ function buildMazeWallPanels() {
       for (const panel of panels) {
         if (shouldSkipWallPanel(x, y, panel)) continue;
         if (isOpen(x + panel.dx, y + panel.dy)) continue;
+        // Braiding can leave a corner post with open track on all four sides. It is
+        // attached to nothing, so panelling it produces a hedge cube standing alone in
+        // the middle of a corridor. The bird's-eye view already hides these; match it.
+        if (isIsolatedPost(x + panel.dx, y + panel.dy)) continue;
 
         const wall = new THREE.Mesh(panel.geometry, materials.wall);
         wall.position.set(pos.x + panel.offsetX, wallHeight / 2, pos.z + panel.offsetZ);
@@ -494,6 +498,13 @@ function buildMazeWallPanels() {
       }
     }
   }
+}
+
+// (even,even) squares are the corner posts of the lattice. One with open track on
+// every side holds nothing up and should not be drawn.
+function isIsolatedPost(x, y) {
+  if (x % 2 !== 0 || y % 2 !== 0) return false;
+  return isOpen(x - 1, y) && isOpen(x + 1, y) && isOpen(x, y - 1) && isOpen(x, y + 1);
 }
 
 function shouldSkipWallPanel(x, y, panel) {
@@ -866,20 +877,30 @@ function formatRouteEval(branches) {
   if (MULTI_ROUTE_ONLY && routeSteps.length < 2) return "";
   const allSame = routeSteps.length > 1 && Math.max(...routeSteps) === shortest;
 
-  const parts = [];
+  // Branches that cost the same are one option, not two: say "Ahead, Right: same
+  // length" rather than repeating the identical number twice. Groups are then read
+  // out shortest first, which is also darkest first — so the order of the text
+  // matches the order of the shading on the floor and the two can be scanned together.
+  const groups = new Map();
   for (const b of shown) {
-    // Dead ends are left out entirely: they draw no line, and saying nothing about
-    // them keeps the cue to the options actually worth comparing.
-    if (b.verdict === "dead_end") continue;
-    // "same length" rather than bare "same": on a loop both branches genuinely cost
-    // the same, and the participant should read that as a real answer about distance
-    // rather than the assistant declining to choose.
+    if (b.verdict === "dead_end") continue;   // no line drawn, and nothing to compare
+    const steps = Number(b.steps) || 0;
+    if (!groups.has(steps)) groups.set(steps, []);
+    groups.get(steps).push(b);
+  }
+
+  const parts = [];
+  for (const [steps, members] of [...groups.entries()].sort((a, b) => a[0] - b[0])) {
     const phrase = routeSteps.length < 2 ? "this way looks promising"
+      // "same length" rather than bare "same": on a loop both branches genuinely cost
+      // the same, and that should read as an answer about distance rather than the
+      // assistant declining to choose.
       : allSame ? "same length"
-      : (Number(b.steps) || 0) === shortest ? "shorter" : "longer";
-    const steps = SHOW_STEP_COUNTS && Number.isFinite(Number(b.steps)) ? `, ~${b.steps} steps` : "";
-    const swatch = `<span class="cue-dot" style="background:#${cueColor(b.steps).getHexString()}"></span>`;
-    parts.push(`${swatch}${egoLabel(b.x - player.x, b.y - player.y)}: ${phrase}${steps}`);
+      : steps === shortest ? "shorter" : "longer";
+    const stepText = SHOW_STEP_COUNTS && Number.isFinite(steps) ? `, ~${steps} steps` : "";
+    const swatch = `<span class="cue-dot" style="background:#${cueColor(steps).getHexString()}"></span>`;
+    const where = members.map((b) => egoLabel(b.x - player.x, b.y - player.y)).join(", ");
+    parts.push(`${swatch}${where}: ${phrase}${stepText}`);
   }
   return parts.join("   ·   ");
 }
