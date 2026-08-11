@@ -790,6 +790,64 @@ h2 {
   text-decoration: none;
 }
 
+/* A reminder of the controls, reachable at any time. Deliberately a card and not a
+   replay of the practice run: the practice run makes the participant MOVE, so
+   replaying it inside a trial would shift their position and add moves to the trial
+   it was meant to help with. This changes nothing in the maze. */
+.help-button {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 38px;
+  min-height: 38px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.72);
+  color: white;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.help-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, 90%);
+  padding: 24px 28px;
+  border-radius: 16px;
+  background: #0f172a;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.55);
+  color: white;
+  text-align: left;
+}
+
+.help-card h2 {
+  margin: 0 0 14px;
+  font-size: 20px;
+}
+
+.help-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  font-size: 15.5px;
+  font-weight: 600;
+}
+
+.help-goal {
+  margin: 16px 0 18px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.help-card button {
+  width: 100%;
+}
+
 /* Last on purpose: .hidden has to win against any rule that sets display, and several
    of those (.task-complete-link, the panels) are declared after it. Same specificity
    means source order decides, which is how the questionnaire link leaked onto every

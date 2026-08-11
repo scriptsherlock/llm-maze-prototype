@@ -254,7 +254,11 @@ if (!aiCondition || AUTO_HERD || ROUTE_EVAL_MODE) {
 loadServerState().then(() => { startAutoHerd(); startRouteEval(); });
 loadAiSolutions();
 logState("start_trial");
-if (IS_TRAINING) { logState("training_start"); showTrainingStep(); }
+if (IS_TRAINING) {
+  logState("training_start");
+  showTrainingStep();
+  document.getElementById("helpButton")?.classList.add("hidden");
+}
 resizeRenderer();
 renderFrame();
 setInterval(updateUi, 500);
@@ -594,6 +598,10 @@ function bindControls() {
   document.getElementById("backButton").addEventListener("click", moveBackward);
   elements.hintButton.addEventListener("click", showHint);
   document.getElementById("downloadJsonButton").addEventListener("click", downloadJson);
+  const helpButton = document.getElementById("helpButton");
+  const helpCloseButton = document.getElementById("helpCloseButton");
+  if (helpButton) helpButton.addEventListener("click", () => toggleHelp(true));
+  if (helpCloseButton) helpCloseButton.addEventListener("click", () => toggleHelp(false));
 
   document.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
@@ -1226,6 +1234,17 @@ function highlightTrainingButton(id) {
   }
 }
 
+// Opening and closing are both logged, so time spent reading the reminder can be
+// separated from time spent solving if it matters to the analysis.
+function toggleHelp(open) {
+  const card = document.getElementById("helpCard");
+  const button = document.getElementById("helpButton");
+  if (!card) return;
+  card.classList.toggle("hidden", !open);
+  if (button) button.classList.toggle("hidden", open);
+  logState(open ? "help_opened" : "help_closed", { maze: MAZE_KEY });
+}
+
 function showTrainingStep() {
   const panel = document.getElementById("trainingPanel");
   const step = document.getElementById("trainingStep");
@@ -1251,7 +1270,7 @@ function noteTrainingAction(action) {
   if (trainingAt < TRAINING_STEPS.length) { showTrainingStep(); return; }
   const step = document.getElementById("trainingStep");
   const progress = document.getElementById("trainingProgress");
-  if (step) step.textContent = "That is all the controls. Starting the first maze…";
+  if (step) step.textContent = "That is all the controls. Your goal is to find the exit. Starting the first maze…";
   if (progress) progress.textContent = "";
   highlightTrainingButton(null);
   logState("training_complete");

@@ -42,10 +42,10 @@ const TRAINING_KEY = "llm_maze_training_done";         // sessionStorage, per ru
 
 // ---- Survey -----------------------------------------------------------------
 // A Qualtrics questionnaire sits between maze 4 and maze 5, in every condition.
-// Left empty on purpose: with no url the step still appears but only offers Continue,
-// so piloting the run cannot post test responses into the real response set. Fill it
-// in when the questionnaire is ready to receive data.
-export const SURVEY_URL = "";
+// The condition and the maze number are appended, so a response can be matched to the
+// run it came from. Blank this string to unlink it again: the step still appears but
+// offers only Continue, which is how to pilot without posting into the response set.
+export const SURVEY_URL = "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_a9lhU8KOfXIBJVI";
 // Zero-based index of the maze the survey follows. 3 = after the fourth.
 export const SURVEY_AFTER_INDEX = 3;
 const studyPath = (globalThis.location && globalThis.location.pathname) || "";
