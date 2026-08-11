@@ -871,8 +871,11 @@ function formatRouteEval(branches) {
     // Dead ends are left out entirely: they draw no line, and saying nothing about
     // them keeps the cue to the options actually worth comparing.
     if (b.verdict === "dead_end") continue;
+    // "same length" rather than bare "same": on a loop both branches genuinely cost
+    // the same, and the participant should read that as a real answer about distance
+    // rather than the assistant declining to choose.
     const phrase = routeSteps.length < 2 ? "this way looks promising"
-      : allSame ? "same"
+      : allSame ? "same length"
       : (Number(b.steps) || 0) === shortest ? "shorter" : "longer";
     const steps = SHOW_STEP_COUNTS && Number.isFinite(Number(b.steps)) ? `, ~${b.steps} steps` : "";
     const swatch = `<span class="cue-dot" style="background:#${cueColor(b.steps).getHexString()}"></span>`;
