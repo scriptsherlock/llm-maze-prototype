@@ -63,6 +63,27 @@ module.exports = async (req, res) => {
 
   if (req.method === "GET") {
     const id = safeId((req.query && req.query.id) || "");
+
+    // ?health=1 answers whether the store is attached and actually reachable, so a
+    // deployment can be checked without running a participant through it.
+    if (req.query && req.query.health) {
+      const configured = Boolean(KV_URL && KV_TOKEN);
+      if (!configured) {
+        res.status(503).json({ ok: false, configured: false,
+          message: "KV_REST_API_URL and KV_REST_API_TOKEN are not set for this deployment." });
+        return;
+      }
+      try {
+        await kv(["SET", "healthcheck", new Date().toISOString()]);
+        const value = await kv(["GET", "healthcheck"]);
+        const runs = (await kv(["SMEMBERS", INDEX_KEY])) || [];
+        res.status(200).json({ ok: true, configured: true, wrote_and_read_back: value, runs_stored: runs.length });
+      } catch (error) {
+        res.status(503).json({ ok: false, configured: true, message: error.message });
+      }
+      return;
+    }
+
     try {
       if (!id) {
         const ids = (await kv(["SMEMBERS", INDEX_KEY])) || [];
