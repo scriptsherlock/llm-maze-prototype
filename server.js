@@ -74,9 +74,19 @@ app.post("/api/run-log", (req, res) => {
   }
 });
 
-// The whole run back as JSON, for checking a session without opening the file.
-app.get("/api/run-log/:id", (req, res) => {
-  const id = safeId(req.params.id);
+// Read paths match the Vercel function so one url works in both places: no id lists
+// the runs, ?id=... or /api/run-log/<id> returns one.
+app.get(["/api/run-log", "/api/run-log/:id"], (req, res) => {
+  const id = safeId(req.params.id || (req.query && req.query.id));
+  if (!id) {
+    try {
+      if (!fs.existsSync(runLogDir)) { res.json({ runs: [] }); return; }
+      res.json({ runs: fs.readdirSync(runLogDir).filter((f) => f.endsWith(".jsonl")).map((f) => f.replace(/\.jsonl$/, "")) });
+    } catch (error) {
+      res.status(500).json({ status: "read_failed", message: error.message });
+    }
+    return;
+  }
   const file = path.join(runLogDir, `${id}.jsonl`);
   if (!id || !fs.existsSync(file)) {
     res.status(404).json({ status: "not_found", participant_id: id });
