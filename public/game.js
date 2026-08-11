@@ -478,10 +478,6 @@ function buildMazeWallPanels() {
       for (const panel of panels) {
         if (shouldSkipWallPanel(x, y, panel)) continue;
         if (isOpen(x + panel.dx, y + panel.dy)) continue;
-        // Braiding can leave a corner post with open track on all four sides. It is
-        // attached to nothing, so panelling it produces a hedge cube standing alone in
-        // the middle of a corridor. The bird's-eye view already hides these; match it.
-        if (isIsolatedPost(x + panel.dx, y + panel.dy)) continue;
 
         const wall = new THREE.Mesh(panel.geometry, materials.wall);
         wall.position.set(pos.x + panel.offsetX, wallHeight / 2, pos.z + panel.offsetZ);
@@ -498,13 +494,6 @@ function buildMazeWallPanels() {
       }
     }
   }
-}
-
-// (even,even) squares are the corner posts of the lattice. One with open track on
-// every side holds nothing up and should not be drawn.
-function isIsolatedPost(x, y) {
-  if (x % 2 !== 0 || y % 2 !== 0) return false;
-  return isOpen(x - 1, y) && isOpen(x + 1, y) && isOpen(x, y - 1) && isOpen(x, y + 1);
 }
 
 function shouldSkipWallPanel(x, y, panel) {
