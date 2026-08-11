@@ -41,11 +41,11 @@ let player = { ...start };
 let facing = MAZE_CONFIG.startFacing ?? 1;
 let moves = 0;
 const TRAINING_STEPS = [
-  { action: "turnLeft",  text: "Press Turn left to look to your left." },
-  { action: "turnRight", text: "Press Turn right to look back to your right." },
-  { action: "forward",   text: "Press Forward to walk one step ahead." },
-  { action: "back",      text: "Press Back to step backwards, without turning around." },
-  { action: "forward",   text: "Walk forward once more, then you are ready to begin." },
+  { action: "turnLeft",  button: "turnLeftButton",  key: "A", text: "Look to your left." },
+  { action: "turnRight", button: "turnRightButton", key: "D", text: "Now look back to your right." },
+  { action: "forward",   button: "forwardButton",   key: "W", text: "Walk one step ahead." },
+  { action: "back",      button: "backButton",      key: "S", text: "Step backwards, without turning around." },
+  { action: "forward",   button: "forwardButton",   key: "W", text: "Walk forward once more, then you are ready to begin." },
 ];
 let trainingAt = 0;
 
@@ -1217,14 +1217,28 @@ async function evaluateJunction() {
 // assistant here: in the no_ai condition a cue shown in practice would be the only
 // one that participant ever saw.
 
+// Highlight the control being asked for, and name both ways of pressing it. The
+// participant can use the on-screen button or the key; the study logs neither
+// differently, but people reach for one or the other.
+function highlightTrainingButton(id) {
+  for (const el of document.querySelectorAll(".experiment-controls button")) {
+    el.classList.toggle("training-target", Boolean(id) && el.id === id);
+  }
+}
+
 function showTrainingStep() {
   const panel = document.getElementById("trainingPanel");
   const step = document.getElementById("trainingStep");
   const progress = document.getElementById("trainingProgress");
   if (!panel || !step) return;
+  const current = TRAINING_STEPS[trainingAt];
   panel.classList.remove("hidden");
-  step.textContent = TRAINING_STEPS[trainingAt].text;
-  if (progress) progress.textContent = `Step ${trainingAt + 1} of ${TRAINING_STEPS.length}`;
+  step.textContent = current.text;
+  if (progress) {
+    progress.innerHTML = `Press the highlighted button, or <span class="training-key">${current.key}</span>` +
+      ` &nbsp;·&nbsp; step ${trainingAt + 1} of ${TRAINING_STEPS.length}`;
+  }
+  highlightTrainingButton(current.button);
 }
 
 // Called after every control press while practising. A press only counts if it is
@@ -1239,6 +1253,7 @@ function noteTrainingAction(action) {
   const progress = document.getElementById("trainingProgress");
   if (step) step.textContent = "That is all the controls. Starting the first maze…";
   if (progress) progress.textContent = "";
+  highlightTrainingButton(null);
   logState("training_complete");
   setTimeout(completeTraining, 1400);
 }
@@ -2131,7 +2146,7 @@ function updateUi() {
     : "";
   const blockedFlashActive = Date.now() <= blockedFlashUntil;
   elements.hintBanner.textContent = hintPlan || hintBannerText;
-  let bannerVisible = hintActive || hintMessageActive || blockedFlashActive;
+  let bannerVisible = !IS_TRAINING && (hintActive || hintMessageActive || blockedFlashActive);
   if (!aiCondition && currentView === "participant") {
     // Control group: keep a neutral, non-directional status line in the banner
     // area so both conditions have comparable UI presence.
@@ -2150,7 +2165,9 @@ function updateUi() {
     elements.hintBanner.innerHTML = evalText;
     bannerVisible = true;
   }
-  elements.hintBanner.classList.toggle("visible", bannerVisible);
+  // Nothing in the banner while practising: it sits in the same part of the scene as
+  // the practice prompt, and the practice run is about the controls, not the maze.
+  elements.hintBanner.classList.toggle("visible", bannerVisible && !IS_TRAINING);
   if (blockedFlashActive) elements.hintBanner.textContent = "A wall is ahead — try another direction";
   updateLogBox();
   if (currentView === "moderator") {

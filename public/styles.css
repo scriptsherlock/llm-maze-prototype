@@ -145,18 +145,17 @@ h2 {
   padding: 18px;
 }
 
-/* The participant view fills whatever screen it is on. It used to be capped at
-   1280px and 80vw, which on a large display left the maze in a small window in the
-   middle and on a laptop wasted the sides. */
+/* About three quarters of the viewport rather than the whole of it: full-bleed left
+   nothing around the scene, and the old fixed 1280px cap wasted a large display. */
 .participant-experience {
-  width: 100%;
-  max-width: none;
+  width: 78%;
+  min-width: min(100%, 720px);
   margin: 0 auto;
 }
 
 .participant-shell {
-  height: calc(100dvh - 2 * var(--page-pad));
-  min-height: 0;
+  height: calc(78dvh);
+  min-height: 460px;
   display: flex;
   flex-direction: column;
 }
@@ -581,9 +580,6 @@ h2 {
 .legend-swatch.goal { background: #22c55e; }
 .legend-swatch.ai { background: #f87171; }
 .legend-swatch.prefetch { background: #c4b5fd; box-shadow: inset 0 0 0 2px #7c3aed; }
-.hidden {
-  display: none;
-}
 
 @media (max-width: 900px) {
   body {
@@ -711,27 +707,58 @@ h2 {
 .training-panel {
   position: absolute;
   left: 50%;
-  bottom: 22px;
-  transform: translateX(-50%);
-  max-width: min(560px, 88%);
-  padding: 12px 18px;
-  border-radius: 12px;
-  background: rgba(17, 24, 39, 0.9);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(680px, 90%);
+  padding: 26px 30px;
+  border-radius: 16px;
+  background: #0f172a;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.55);
   color: white;
   text-align: center;
 }
 
 .training-panel p {
   margin: 0;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.35;
+  font-weight: 800;
 }
 
 .training-progress {
-  margin-top: 6px !important;
-  font-size: 12.5px !important;
+  margin-top: 12px !important;
+  font-size: 14px !important;
   font-weight: 600 !important;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.training-key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  padding: 3px 8px;
+  margin: 0 2px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+/* The button the participant is being asked to press. Pulsing rather than static so
+   it reads as "this one" even against the busy hedge behind it. */
+.experiment-controls button.training-target {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.35);
+  animation: trainingPulse 1.25s ease-in-out infinite;
+}
+
+@keyframes trainingPulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.35); }
+  50%      { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0.12); }
 }
 
 .task-complete-note {
@@ -761,4 +788,12 @@ h2 {
   color: white;
   font-weight: 800;
   text-decoration: none;
+}
+
+/* Last on purpose: .hidden has to win against any rule that sets display, and several
+   of those (.task-complete-link, the panels) are declared after it. Same specificity
+   means source order decides, which is how the questionnaire link leaked onto every
+   maze. */
+.hidden {
+  display: none !important;
 }

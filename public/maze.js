@@ -162,13 +162,17 @@ export const MID_MAZE_CUTOFF = (new URLSearchParams(globalThis.location ? global
 // A controls-only practice run before maze 1: turn, walk, and step back, with no
 // assistant and no exit to find. Held per tab like the run position, so a fresh tab
 // gets the practice again and a reload inside a run does not repeat it.
+// Tagged with the condition, like the run position is. Opening the no_ai link after
+// practising the stable_ai one is a different run and should practise again --
+// without the tag the flag carried over and the second condition skipped straight
+// into maze 1.
 export const IS_TRAINING = isStudy && !isModeratorView && (() => {
   if (wantsRestart) return true;
-  try { return globalThis.sessionStorage.getItem(TRAINING_KEY) !== "1"; } catch (_e) { return true; }
+  try { return globalThis.sessionStorage.getItem(TRAINING_KEY) !== CONDITION_VALUE; } catch (_e) { return true; }
 })();
 
 export function completeTraining() {
-  try { globalThis.sessionStorage.setItem(TRAINING_KEY, "1"); } catch (_e) { /* ignore */ }
+  try { globalThis.sessionStorage.setItem(TRAINING_KEY, CONDITION_VALUE); } catch (_e) { /* ignore */ }
   globalThis.location.reload();
 }
 
