@@ -19,8 +19,9 @@
 }
 
 body {
+  --page-pad: 16px;
   margin: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
   font-family: Arial, Helvetica, sans-serif;
   color: var(--ink);
   background:
@@ -28,7 +29,7 @@ body {
     linear-gradient(120deg, #e0f2fe 0, transparent 34%),
     linear-gradient(250deg, #dcfce7 0, transparent 28%),
     var(--bg);
-  padding: 24px;
+  padding: var(--page-pad);
 }
 
 button {
@@ -67,7 +68,7 @@ button.ai-action {
 }
 
 .experiment-app {
-  width: min(96vw, 1500px);
+  width: 100%;
 }
 
 .topbar {
@@ -144,23 +145,29 @@ h2 {
   padding: 18px;
 }
 
+/* The participant view fills whatever screen it is on. It used to be capped at
+   1280px and 80vw, which on a large display left the maze in a small window in the
+   middle and on a laptop wasted the sides. */
 .participant-experience {
-  width: min(80vw, 1280px);
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
 }
 
 .participant-shell {
-  min-height: calc(100vh - 132px);
+  height: calc(100dvh - 2 * var(--page-pad));
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
 .participant-stage {
   flex: 1;
+  min-height: 0;
 }
 
 .moderator-experience {
-  width: min(96vw, 1480px);
+  width: 100%;
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
@@ -263,9 +270,11 @@ h2 {
   aspect-ratio: 860 / 520;
 }
 
+/* Let the scene take all the height the shell has left after the header and the
+   control row, rather than a fixed fraction of the viewport. */
 .participant-stage .three-scene {
-  min-height: 420px;
-  height: min(66vh, 760px);
+  min-height: 260px;
+  height: 100%;
   aspect-ratio: auto;
 }
 
@@ -596,8 +605,7 @@ h2 {
   }
 
   .participant-stage .three-scene {
-    min-height: 320px;
-    height: 58vh;
+    min-height: 240px;
   }
 
   .moderator-experience {

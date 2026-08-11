@@ -55,7 +55,6 @@ let planStatus = "none";
 let remotePrefetchHint = []; // moderator view: the participant's prefetched next hint
 let remotePrefetchStatus = "none";
 let blockedFlashUntil = 0;
-let lastEventId = 0;
 let lastServerLogFetch = 0;
 let lastRemoteStateFetch = 0;
 let lastAiStateFetch = 0;
@@ -166,22 +165,14 @@ const elements = {
   time: document.getElementById("time"),
   facingHud: document.getElementById("facingHud"),
   goalHud: document.getElementById("goalHud"),
-  goalBearingText: document.getElementById("goalBearingText"),
-  goalDistanceText: document.getElementById("goalDistanceText"),
   hintButton: document.getElementById("hintButton"),
   hintBanner: document.getElementById("hintBanner"),
   aiToggle: document.getElementById("aiToggle"),
   moderatorAiDot: document.getElementById("moderatorAiDot"),
   moderatorAiStatus: document.getElementById("moderatorAiStatus"),
-  positionText: document.getElementById("positionText"),
-  moderatorFacing: document.getElementById("moderatorFacing"),
   moderatorMoves: document.getElementById("moderatorMoves"),
   moderatorTime: document.getElementById("moderatorTime"),
-  storedPathText: document.getElementById("storedPathText"),
-  prefetchText: document.getElementById("prefetchText"),
-  latencyText: document.getElementById("latencyText"),
   logBox: document.getElementById("logBox"),
-  serverLogBox: document.getElementById("serverLogBox"),
   moderatorGrid: document.getElementById("moderatorGrid"),
 };
 
@@ -193,7 +184,6 @@ scene.fog = new THREE.Fog(0xadc7dd, 20, 54);
 // continuous green hedge walls, replacing the procedural box walls. `fill` stretches
 // the model to the cell footprint so hedges tile seamlessly. Empty list = no-op
 // fallback (box walls stay), so the app always works.
-const HEDGE_URL = "/assets/" + encodeURIComponent("Hedge by Quaternius - df8uCl1YpK.glb");
 // Walls are the procedural boxes skinned with the hedge leaf texture (lighter than
 // 100+ hedge model instances). Add { url: HEDGE_URL, fill: true, height: 3.8 } here
 // to switch back to real hedge geometry.
@@ -597,9 +587,7 @@ function bindControls() {
   document.getElementById("backButton").addEventListener("click", moveBackward);
   elements.hintButton.addEventListener("click", showHint);
   elements.aiToggle.addEventListener("click", toggleAI);
-  document.getElementById("downloadCsvButton").addEventListener("click", downloadCsv);
   document.getElementById("downloadJsonButton").addEventListener("click", downloadJson);
-  document.getElementById("resetButton").addEventListener("click", resetTrial);
 
   document.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
@@ -695,10 +683,6 @@ function getGoalBearing() {
   return { label: "Behind", mark: "B" };
 }
 
-function getGoalDistance() {
-  return Math.abs(goal.x - player.x) + Math.abs(goal.y - player.y);
-}
-
 function sameCell(a, b) {
   return Boolean(a && b && a.x === b.x && a.y === b.y);
 }
@@ -753,25 +737,6 @@ function relativeTurn(heading, dx, dy) {
   if (dot === -1) return "back";
   const cross = heading.dx * dy - heading.dy * dx;
   return cross > 0 ? "right" : "left";
-}
-
-function joinHintMoves(moves) {
-  // Group consecutive identical moves (mainly runs of "straight") for readability.
-  const groups = [];
-  for (const move of moves) {
-    const last = groups[groups.length - 1];
-    if (last && last.move === move) last.count += 1;
-    else groups.push({ move, count: 1 });
-  }
-  const firstWord = { straight: "Go straight", right: "Turn right", left: "Turn left", back: "Turn around" };
-  const contWord = { straight: "go straight", right: "turn right", left: "turn left", back: "turn around" };
-  const label = (group, isFirst) => {
-    const base = (isFirst ? firstWord : contWord)[group.move];
-    return group.move === "straight" && group.count > 1 ? `${base} for ${group.count}` : base;
-  };
-  let sentence = label(groups[0], true);
-  for (let i = 1; i < groups.length; i += 1) sentence += `, then ${label(groups[i], false)}`;
-  return sentence;
 }
 
 function attemptMove(dx, dy, action) {
@@ -842,9 +807,6 @@ function egoLabel(dx, dy) {
   return { straight: "Ahead", right: "Right", left: "Left", back: "Back" }[relativeTurn(DIRS[facing], dx, dy)];
 }
 
-const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => (
-  { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
-));
 
 // Shade for a branch: dark near the exit, light far from it. Shared by the floor
 // lines and the swatch in the banner, so the two always agree.
@@ -961,7 +923,6 @@ function pocketDepthBlocking(from, blockedKey) {
   return layers + 1; // +1 for the junction -> branch step
 }
 
-const plural = (n) => (n === 1 ? "" : "s");
 
 // Fill junctionEvals with exact cues for every junction — verdict, step counts,
 // and a justification for why each losing branch fails — all from BFS.
@@ -1681,16 +1642,6 @@ async function toggleAI() {
   updateUi();
 }
 
-function resetTrial() {
-  participantHasInteracted = true;
-  currentResetToken = Date.now();
-  lastAppliedResetToken = currentResetToken;
-  resetLocalTrial();
-  logState("reset_trial", { reset_token: currentResetToken });
-  publishTrialState({ reset_token: currentResetToken }, true);
-  updateUi();
-}
-
 function resetLocalTrial() {
   player = { ...start };
   facing = MAZE_CONFIG.startFacing ?? 1;
@@ -2042,13 +1993,6 @@ function normalizeCell(cell) {
   return { x: Number(cell.x), y: Number(cell.y) };
 }
 
-function downloadCsv() {
-  if (!eventLog.length) return;
-  const headers = Array.from(new Set(eventLog.flatMap((row) => Object.keys(row))));
-  const rows = eventLog.map((row) => headers.map((header) => JSON.stringify(row[header] ?? "")).join(","));
-  downloadBlob("llm_maze_trial_log.csv", [headers.join(","), ...rows].join("\n"), "text/csv");
-}
-
 function downloadJson() {
   downloadBlob("llm_maze_trial_log.json", JSON.stringify(eventLog, null, 2), "application/json");
 }
@@ -2128,23 +2072,10 @@ function updateUi() {
   hintGroup.visible = hintActive;
   elements.facingHud.textContent = DIRS[facing].name;
   elements.goalHud.textContent = "Find the exit";
-  elements.goalBearingText.textContent = bearing.label;
-  elements.goalDistanceText.textContent = `${getGoalDistance()} cells`;
   elements.moves.textContent = moves;
   elements.time.textContent = elapsed;
   elements.moderatorMoves.textContent = moves;
   elements.moderatorTime.textContent = elapsed;
-  elements.positionText.textContent = `(${player.x}, ${player.y})`;
-  elements.moderatorFacing.textContent = DIRS[facing].name;
-  elements.storedPathText.textContent = activeFullPath.length ? `${activeFullPath.length} cells (${planStatus})` : "none";
-  if (elements.prefetchText) {
-    elements.prefetchText.textContent = remotePrefetchStatus === "ready"
-      ? `ready (${remotePrefetchHint.length}-cell hint)`
-      : remotePrefetchStatus === "fetching"
-        ? "fetching…"
-        : "none";
-  }
-  elements.latencyText.textContent = latestLatencyMs == null ? "n/a" : `${latestLatencyMs} ms`;
 
   elements.hintButton.disabled = !aiOn || hintRequestInFlight;
   elements.hintButton.textContent = hintRequestInFlight
