@@ -1,6 +1,6 @@
 import * as THREE from "/vendor/three/three.module.js";
 import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
-import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, MAZE_AI_REMOVED, MID_MAZE_CUTOFF, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze, IS_TRAINING, completeTraining, SURVEY_URL, SURVEY_AFTER_INDEX, PARTICIPANT_ID } from "./maze.js";
+import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, MAZE_AI_REMOVED, MID_MAZE_CUTOFF, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze, IS_TRAINING, completeTraining, surveyUrlFor, SURVEY_AFTER_INDEX, PARTICIPANT_ID } from "./maze.js";
 
 const maze = MAZE_CONFIG.maze;
 if (typeof window !== "undefined") window.__mazeRows = maze.map((r) => r.join("")).join("");
@@ -1469,29 +1469,31 @@ function showTaskComplete() {
   const note = document.getElementById("surveyNote");
   const link = document.getElementById("surveyLink");
   const atSurvey = IS_STUDY && SURVEY_AFTER_INDEX.includes(STUDY_INDEX);
+  const surveyUrl = atSurvey ? surveyUrlFor(STUDY_INDEX) : "";
   if (note) note.classList.toggle("hidden", !atSurvey);
-  if (link) link.classList.toggle("hidden", !atSurvey || !SURVEY_URL);
+  if (link) link.classList.toggle("hidden", !atSurvey || !surveyUrl);
   if (atSurvey) {
     if (note) {
-      note.textContent = SURVEY_URL
+      note.textContent = surveyUrl
         ? "Please answer a short questionnaire before continuing. It opens in a new tab; come back here afterwards."
-        : "A short questionnaire goes here. It is not connected yet, so continue straight on.";
+        : "A questionnaire goes here. It is not connected yet, so continue straight on.";
     }
-    if (link && SURVEY_URL) {
-      const url = new URL(SURVEY_URL);
+    if (link && surveyUrl) {
+      const url = new URL(surveyUrl);
+      url.searchParams.set("participant", PARTICIPANT_ID);
       url.searchParams.set("condition", CONDITION);
       url.searchParams.set("maze", String(STUDY_INDEX + 1));
       link.href = url.toString();
     }
-    logState("survey_step_shown", { after_maze: STUDY_INDEX + 1, linked: Boolean(SURVEY_URL) });
+    logState("survey_step_shown", { after_maze: STUDY_INDEX + 1, linked: Boolean(surveyUrl) });
   }
 
   button.textContent = !hasNext ? "Finished" : atSurvey ? "Skip and continue" : "Next maze";
   button.disabled = !hasNext;
   if (atSurvey && !hasNext && note) {
-    note.textContent = SURVEY_URL
+    note.textContent = surveyUrl
       ? "One last questionnaire, then you are done. Thank you."
-      : "A final questionnaire goes here. It is not connected yet.";
+      : "That is the end of the run. Thank you.";
   }
   panel.classList.remove("hidden");
 }

@@ -58,16 +58,19 @@ export const PARTICIPANT_ID = (() => {
   }
 })();
 
-// ---- Survey -----------------------------------------------------------------
-// A Qualtrics questionnaire sits between maze 4 and maze 5, in every condition.
-// The condition and the maze number are appended, so a response can be matched to the
-// run it came from. Blank this string to unlink it again: the step still appears but
-// offers only Continue, which is how to pilot without posting into the response set.
-export const SURVEY_URL = "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_a9lhU8KOfXIBJVI";
-// Zero-based index of the maze the survey follows. 3 = after the fourth.
-// Zero-based indices of the mazes a questionnaire follows: after the fourth, and
-// again at the end of the run.
-export const SURVEY_AFTER_INDEX = [3, 7];
+// ---- Questionnaires ----------------------------------------------------------
+// Keyed by the zero-based index of the maze each one follows: after the fourth, and
+// again at the end of the run. Participant id, condition and maze number are appended
+// to the url, so a response can be matched to the run it came from.
+//
+// A step with an EMPTY url still appears and still logs, but offers only Continue.
+// That is how to run before a form exists, without posting into a response set.
+export const SURVEY_STEPS = {
+  3: "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_a9lhU8KOfXIBJVI",
+  7: "",   // end-of-run questionnaire: link not issued yet
+};
+export const SURVEY_AFTER_INDEX = Object.keys(SURVEY_STEPS).map(Number);
+export const surveyUrlFor = (index) => SURVEY_STEPS[index] || "";
 const studyPath = (globalThis.location && globalThis.location.pathname) || "";
 const isStudy = studyPath.includes("study");
 const isModeratorView = studyPath.includes("moderator");
