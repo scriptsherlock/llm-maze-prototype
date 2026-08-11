@@ -11,7 +11,9 @@ import { G, START, GOAL, profile, isOpen } from "./lib.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..", "..");
-const dir = path.join(root, "public", "mazes8");
+// --dir renders a candidate set instead of the live one.
+const DIR_ARG = (process.argv.slice(2).find((a) => a.startsWith("--dir=")) || "").split("=")[1];
+const dir = DIR_ARG ? path.join(root, DIR_ARG) : path.join(root, "public", "mazes8");
 
 const WALL = 4, CELL = 17, PAD = 16, LABEL = 40, COLS = 4;
 const track = (i) => (i % 2 === 0 ? WALL : CELL);
@@ -69,7 +71,8 @@ svg += "\n</svg>\n";
 
 // Written twice on purpose: one copy next to the module for reviewing offline, one
 // under public/ so the /m8 index page can show it without a build step.
-for (const out of [path.join(root, "mazes8", "preview.svg"), path.join(dir, "preview.svg")]) {
+const outs = DIR_ARG ? [path.join(dir, "preview.svg")] : [path.join(root, "mazes8", "preview.svg"), path.join(dir, "preview.svg")];
+for (const out of outs) {
   fs.writeFileSync(out, svg);
   console.log(`wrote ${path.relative(root, out)}`);
 }

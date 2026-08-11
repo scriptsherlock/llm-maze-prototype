@@ -14,13 +14,15 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { N, START, GOAL, build, divergence, rowsOf } from "./lib.mjs";
+import { N, START, GOAL, build, divergence, rowsOf, hedgeRuns } from "./lib.mjs";
 
 const arg = (k, d) => {
   const hit = process.argv.slice(2).find((a) => a.startsWith(`--${k}=`));
   return hit ? Number(hit.split("=")[1]) : d;
 };
 const SEEDS = arg("seeds", 6000);
+// Shortest hedge run allowed, in cells. 0 disables the repair.
+const REPAIR_MIN = arg("repair", 2);
 const TRIES = arg("tries", 14);
 const WANT = 8;
 const LEN_TOL = 2;          // path length may vary by +/-2 moves, no more
@@ -31,13 +33,17 @@ const MIN_DIVERGENCE = 0.10; // no two mazes may be near-copies of each other
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..", "..");
-const outDir = path.join(root, "public", "mazes8");
+// --out lets a candidate set be built somewhere harmless. Overwriting the live set
+// invalidates every stored route, and the hints derive from those, so a cutover has
+// to be deliberate rather than a side effect of regenerating.
+const OUT = (process.argv.slice(2).find((a) => a.startsWith("--out=")) || "").split("=")[1];
+const outDir = OUT ? path.join(root, OUT) : path.join(root, "public", "mazes8");
 
 console.log(`sampling ${SEEDS} seeds x ${TRIES} braidings ...`);
 const pool = [];
 for (let seed = 1; seed <= SEEDS; seed += 1) {
   for (let t = 0; t < TRIES; t += 1) {
-    const c = build(seed, t);
+    const c = build(seed, t, [6, 12], REPAIR_MIN, MAX_POCKET);
     if (!c) continue;
     if (c.maxPocket > MAX_POCKET) continue;
     if (c.choicePoints < MIN_CHOICE) continue;
@@ -115,7 +121,7 @@ export const ${V}_MAZE_CONFIG = {
 `);
 });
 
-fs.writeFileSync(path.join(root, "mazes8", "manifest.json"), JSON.stringify({
+fs.writeFileSync(path.join(outDir, "manifest.json"), JSON.stringify({
   generated_at: new Date().toISOString(),
   generator: "mazes8/scripts/build-set.mjs",
   brief: "eight mazes of similar difficulty: same branch points, similar path length, more than one correct path",
