@@ -78,19 +78,19 @@ export const PARTICIPANT_ID = (() => {
 // maze in the Qualtrics survey flow -- otherwise the values arrive and are dropped.
 const SURVEY_LINKS = {
   no_ai: {
-    start: "",
-    mid:   "",
-    end:   "",
+    start: "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_a9lhU8KOfXIBJVI",
+    mid:   "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_5jB6PWhZC99Xck6",
+    end:   "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_cx3eFPRiS1SByPI",
   },
   stable_ai: {
-    start: "",
-    mid:   "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_a9lhU8KOfXIBJVI",
+    start: "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_a9lhU8KOfXIBJVI",
+    mid:   "",
     end:   "",
   },
   disappear: {
-    start: "",
-    mid:   "",
-    end:   "",
+    start: "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_a9lhU8KOfXIBJVI",
+    mid:   "https://qualtricsxm7pgp8wk2l.qualtrics.com/jfe/form/SV_3miV3rr12vrCT8W",
+    end:   "https://qualtricsxm7pgp8wk2l.qualtrics.com/jfe/form/SV_bIBkIfzfRqtosaW",
   },
 };
 
