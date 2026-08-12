@@ -696,6 +696,10 @@ function bindControls() {
   document.getElementById("backButton").addEventListener("click", moveBackward);
   elements.hintButton.addEventListener("click", showHint);
   document.getElementById("downloadJsonButton").addEventListener("click", downloadJson);
+  // plain click saves the tidy per-maze table; shift-click saves every event
+  document.getElementById("downloadCsvButton").addEventListener("click", (event) => {
+    if (event.shiftKey) downloadEventsCsv(); else downloadCsv();
+  });
   const helpButton = document.getElementById("helpButton");
   const helpCloseButton = document.getElementById("helpCloseButton");
   if (helpButton) helpButton.addEventListener("click", () => toggleHelp(true));
@@ -1975,8 +1979,12 @@ function logState(action, extra = {}) {
     elapsed_ms: elapsedMs(),
     participant_id: PARTICIPANT_ID,
     condition: CONDITION,
-    maze: MAZE_KEY,
-    maze_index: STUDY_INDEX,
+    // The practice run borrows a real maze to walk around in, so without this its rows
+    // would carry maze "m8-1" and index 0 and be indistinguishable from the first
+    // experimental trial. Tagged separately instead, and index -1 sorts it first.
+    maze: IS_TRAINING ? "training" : MAZE_KEY,
+    maze_index: IS_TRAINING ? -1 : STUDY_INDEX,
+    phase: IS_TRAINING ? "training" : "maze",
     action,
     current_view: currentView,
     x: player.x,
@@ -2302,6 +2310,48 @@ function isCellLike(cell) {
 
 function normalizeCell(cell) {
   return { x: Number(cell.x), y: Number(cell.y) };
+}
+
+// One tidy row per maze: what the participant- and maze-level analysis actually needs.
+// The practice run is included but tagged "training" with index -1, so it can be
+// filtered out with one expression rather than guessed at.
+const SUMMARY_COLUMNS = [
+  "participant_id", "condition", "phase", "maze", "maze_index",
+  "completion_ms", "completion_ms_including_help", "help_paused_ms",
+  "moves_taken", "shortest_possible", "excess_moves",
+  "revisited_cell_moves", "back_button_moves",
+  "junctions_passed", "junctions_with_a_cue", "followed_cue", "median_decision_ms",
+  "timestamp_iso",
+];
+
+const csvCell = (v) => {
+  if (v === null || v === undefined) return "";
+  const s = String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+function downloadCsv() {
+  const run = readRunLog();
+  const summaries = run.filter((r) => r.action === "maze_summary");
+  if (!summaries.length) return;
+  const lines = [SUMMARY_COLUMNS.join(",")];
+  for (const row of summaries) lines.push(SUMMARY_COLUMNS.map((c) => csvCell(row[c])).join(","));
+  downloadBlob(`llm_maze_${PARTICIPANT_ID}_summary.csv`, lines.join("\n"), "text/csv");
+}
+
+// Every event, long format. Columns are the union of every key seen, so a row type
+// with extra fields does not silently lose them.
+function downloadEventsCsv() {
+  const run = readRunLog();
+  if (!run.length) return;
+  const columns = [...new Set(run.flatMap((r) => Object.keys(r)))];
+  const lines = [columns.join(",")];
+  for (const row of run) {
+    lines.push(columns.map((c) => csvCell(
+      row[c] !== null && typeof row[c] === "object" ? JSON.stringify(row[c]) : row[c],
+    )).join(","));
+  }
+  downloadBlob(`llm_maze_${PARTICIPANT_ID}_events.csv`, lines.join("\n"), "text/csv");
 }
 
 function downloadJson() {
