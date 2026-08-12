@@ -59,55 +59,55 @@ export const PARTICIPANT_ID = (() => {
   }
 })();
 
-// ---- Questionnaires ----------------------------------------------------------
-// Three points in a run:
-//   "start"  before maze 1, once the practice is done
-//   3        after the FOURTH maze  (numeric keys are zero-based maze positions)
-//   7        after the eighth, so the end of the run
+// ============================================================================
+// QUESTIONNAIRE LINKS  --  paste them in below
+// ============================================================================
+// Three points in every run:
 //
-// Note "start" is not 0: key 0 would mean AFTER the first maze, which is a different
-// place. Participant id and condition are appended to every url, plus the maze number
-// for the numeric steps, so a response can be matched to the run it came from.
+//   start   before maze 1, straight after the practice run
+//   mid     after maze 4
+//   end     after maze 8, the last screen of the run
 //
-// An EMPTY url still shows the step and still logs it, but offers only Continue --
-// which is how to run before a form exists, without posting into a response set.
-const SURVEY_STEPS = {
-  start: "",
-  3: "",
-  7: "",
-};
-
-// Each condition gets its own forms. Anything left empty falls back to SURVEY_STEPS
-// above, and an empty string there means the step appears with no link.
-const SURVEY_STEPS_BY_CONDITION = {
+// Leave a slot as "" and that step still appears and is still logged, but shows only
+// a Continue button and links nowhere. That is the safe state: a run can be piloted
+// without posting anything into a real response set.
+//
+// Appended to every link automatically:  ?participant=...&condition=...
+// and for mid and end also              &maze=4  /  &maze=8
+// For those to survive, add Embedded Data fields named participant, condition and
+// maze in the Qualtrics survey flow -- otherwise the values arrive and are dropped.
+const SURVEY_LINKS = {
   no_ai: {
     start: "",
-    3: "",
-    7: "",
+    mid:   "",
+    end:   "",
   },
   stable_ai: {
     start: "",
-    3: "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_a9lhU8KOfXIBJVI",
-    7: "",
+    mid:   "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_a9lhU8KOfXIBJVI",
+    end:   "",
   },
   disappear: {
     start: "",
-    3: "",
-    7: "",
+    mid:   "",
+    end:   "",
   },
 };
 
-// Numeric steps only: "start" is handled before the run rather than on a task-complete
-// screen, so it is not part of this list.
-export const SURVEY_AFTER_INDEX = [...new Set([
-  ...Object.keys(SURVEY_STEPS),
-  ...Object.values(SURVEY_STEPS_BY_CONDITION).flatMap((m) => Object.keys(m)),
-].filter((k) => k !== "start").map(Number))].sort((a, b) => a - b);
+// Which maze each of the numbered points follows, zero-based: 3 is the FOURTH maze.
+// "start" is not in here because it comes before any maze rather than after one.
+const SURVEY_POINTS = { mid: 3, end: 7 };
 
-// Read at call time, not at module load: CONDITION_VALUE is settled further down.
+// ---- plumbing ---------------------------------------------------------------
+export const SURVEY_AFTER_INDEX = Object.values(SURVEY_POINTS).sort((a, b) => a - b);
+
+// Takes "start", or the zero-based index of the maze just finished.
+// CONDITION_VALUE is read at call time because it is settled further down the file.
 export const surveyUrlFor = (key) => {
-  const perCondition = SURVEY_STEPS_BY_CONDITION[CONDITION_VALUE] || {};
-  return (key in perCondition ? perCondition[key] : SURVEY_STEPS[key]) || "";
+  const links = SURVEY_LINKS[CONDITION_VALUE] || {};
+  if (key === "start") return links.start || "";
+  const point = Object.keys(SURVEY_POINTS).find((name) => SURVEY_POINTS[name] === key);
+  return point ? links[point] || "" : "";
 };
 
 const studyPath = (globalThis.location && globalThis.location.pathname) || "";
