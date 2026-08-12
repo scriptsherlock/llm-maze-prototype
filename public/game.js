@@ -1,6 +1,6 @@
 import * as THREE from "/vendor/three/three.module.js";
 import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
-import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, MAZE_AI_REMOVED, MID_MAZE_CUTOFF, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze, IS_TRAINING, completeTraining, surveyUrlFor, SURVEY_AFTER_INDEX, PARTICIPANT_ID } from "./maze.js";
+import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, MAZE_AI_REMOVED, MID_MAZE_CUTOFF, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze, IS_TRAINING, completeTraining, surveyUrlFor, SURVEY_AFTER_INDEX, PARTICIPANT_ID, NEEDS_START_SURVEY, completeStartSurvey } from "./maze.js";
 
 const maze = MAZE_CONFIG.maze;
 if (typeof window !== "undefined") window.__mazeRows = maze.map((r) => r.join("")).join("");
@@ -68,6 +68,11 @@ let startTime = Date.now();
 // which button does what, so dwelling on it means the controls were unclear, not the
 // maze. It is held out of the clock. Both the raw wall time and the paused total stay
 // in the log, so a completion time including help time can still be recovered.
+// Shown once the practice is done and before maze 1, so the participant answers it
+// having learned the controls but seen no maze. Movement is held until it is
+// dismissed, otherwise they could walk the first maze behind it. Declared up here
+// because the panel is raised during module init, before the code further down runs.
+let startSurveyOpen = false;
 let helpPausedMs = 0;
 let helpOpenedAt = null;
 
@@ -349,6 +354,8 @@ if (IS_TRAINING) {
   logState("training_start");
   showTrainingStep();
   document.getElementById("helpButton")?.classList.add("hidden");
+} else if (NEEDS_START_SURVEY) {
+  showStartSurvey();
 }
 resizeRenderer();
 renderFrame();
@@ -693,6 +700,8 @@ function bindControls() {
   const helpCloseButton = document.getElementById("helpCloseButton");
   if (helpButton) helpButton.addEventListener("click", () => toggleHelp(true));
   if (helpCloseButton) helpCloseButton.addEventListener("click", () => toggleHelp(false));
+  const startContinue = document.getElementById("startSurveyContinue");
+  if (startContinue) startContinue.addEventListener("click", dismissStartSurvey);
   const helpDismissButton = document.getElementById("helpDismissButton");
   if (helpDismissButton) helpDismissButton.addEventListener("click", () => toggleHelp(false));
 
@@ -847,7 +856,7 @@ function relativeTurn(heading, dx, dy) {
 }
 
 function attemptMove(dx, dy, action) {
-  if (currentView !== "participant") return;
+  if (currentView !== "participant" || startSurveyOpen) return;
   participantHasInteracted = true;
 
   const nx = player.x + dx;
@@ -1394,6 +1403,45 @@ function highlightTrainingButton(id) {
 
 // Opening and closing are both logged, so time spent reading the reminder can be
 // separated from time spent solving if it matters to the analysis.
+function showStartSurvey() {
+  const panel = document.getElementById("startSurveyPanel");
+  const note = document.getElementById("startSurveyNote");
+  const link = document.getElementById("startSurveyLink");
+  if (!panel) return;
+  const url = surveyUrlFor("start");
+  startSurveyOpen = true;
+  panel.classList.remove("hidden");
+  document.getElementById("helpButton")?.classList.add("hidden");
+  if (note) {
+    note.textContent = url
+      ? "Please answer a short questionnaire first. It opens in a new tab; come back here afterwards."
+      : "A questionnaire goes here. It is not connected yet, so carry straight on.";
+  }
+  if (link) {
+    link.classList.toggle("hidden", !url);
+    if (url) {
+      const u = new URL(url);
+      u.searchParams.set("participant", PARTICIPANT_ID);
+      u.searchParams.set("condition", CONDITION);
+      link.href = u.toString();
+    }
+  }
+  logState("start_survey_shown", { linked: Boolean(url) });
+}
+
+function dismissStartSurvey() {
+  const panel = document.getElementById("startSurveyPanel");
+  if (panel) panel.classList.add("hidden");
+  document.getElementById("helpButton")?.classList.remove("hidden");
+  startSurveyOpen = false;
+  completeStartSurvey();
+  logState("start_survey_dismissed");
+  // the clock only starts once they are actually in the maze
+  startTime = Date.now();
+  helpPausedMs = 0;
+  updateUi();
+}
+
 function toggleHelp(open) {
   const card = document.getElementById("helpCard");
   const button = document.getElementById("helpButton");
@@ -1521,6 +1569,7 @@ function moveBackward() {
 }
 
 function turnLeft() {
+  if (startSurveyOpen) return;
   if (IS_TRAINING) noteTrainingAction("turnLeft");
   if (currentView !== "participant") return;
   participantHasInteracted = true;
@@ -1531,6 +1580,7 @@ function turnLeft() {
 }
 
 function turnRight() {
+  if (startSurveyOpen) return;
   if (IS_TRAINING) noteTrainingAction("turnRight");
   if (currentView !== "participant") return;
   participantHasInteracted = true;

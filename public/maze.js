@@ -40,6 +40,7 @@ const STUDY_PROGRESS_KEY = "llm_maze_study_progress";  // sessionStorage, partic
 const STUDY_LIVE_KEY = "llm_maze_study_live";          // localStorage, moderator mirror
 const TRAINING_KEY = "llm_maze_training_done";         // sessionStorage, per run
 const PARTICIPANT_KEY = "llm_maze_participant";         // sessionStorage, per run
+const START_SURVEY_KEY = "llm_maze_start_survey";       // sessionStorage, per run
 
 // One id per run, so the eight mazes can be stitched back into a single record.
 // ?pid=... lets a moderator set it from a recruitment link; otherwise one is minted.
@@ -59,18 +60,56 @@ export const PARTICIPANT_ID = (() => {
 })();
 
 // ---- Questionnaires ----------------------------------------------------------
-// Keyed by the zero-based index of the maze each one follows: after the fourth, and
-// again at the end of the run. Participant id, condition and maze number are appended
-// to the url, so a response can be matched to the run it came from.
+// Three points in a run:
+//   "start"  before maze 1, once the practice is done
+//   3        after the FOURTH maze  (numeric keys are zero-based maze positions)
+//   7        after the eighth, so the end of the run
 //
-// A step with an EMPTY url still appears and still logs, but offers only Continue.
-// That is how to run before a form exists, without posting into a response set.
-export const SURVEY_STEPS = {
-  3: "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_a9lhU8KOfXIBJVI",
-  7: "",   // end-of-run questionnaire: link not issued yet
+// Note "start" is not 0: key 0 would mean AFTER the first maze, which is a different
+// place. Participant id and condition are appended to every url, plus the maze number
+// for the numeric steps, so a response can be matched to the run it came from.
+//
+// An EMPTY url still shows the step and still logs it, but offers only Continue --
+// which is how to run before a form exists, without posting into a response set.
+const SURVEY_STEPS = {
+  start: "",
+  3: "",
+  7: "",
 };
-export const SURVEY_AFTER_INDEX = Object.keys(SURVEY_STEPS).map(Number);
-export const surveyUrlFor = (index) => SURVEY_STEPS[index] || "";
+
+// Each condition gets its own forms. Anything left empty falls back to SURVEY_STEPS
+// above, and an empty string there means the step appears with no link.
+const SURVEY_STEPS_BY_CONDITION = {
+  no_ai: {
+    start: "",
+    3: "",
+    7: "",
+  },
+  stable_ai: {
+    start: "",
+    3: "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_a9lhU8KOfXIBJVI",
+    7: "",
+  },
+  disappear: {
+    start: "",
+    3: "",
+    7: "",
+  },
+};
+
+// Numeric steps only: "start" is handled before the run rather than on a task-complete
+// screen, so it is not part of this list.
+export const SURVEY_AFTER_INDEX = [...new Set([
+  ...Object.keys(SURVEY_STEPS),
+  ...Object.values(SURVEY_STEPS_BY_CONDITION).flatMap((m) => Object.keys(m)),
+].filter((k) => k !== "start").map(Number))].sort((a, b) => a - b);
+
+// Read at call time, not at module load: CONDITION_VALUE is settled further down.
+export const surveyUrlFor = (key) => {
+  const perCondition = SURVEY_STEPS_BY_CONDITION[CONDITION_VALUE] || {};
+  return (key in perCondition ? perCondition[key] : SURVEY_STEPS[key]) || "";
+};
+
 const studyPath = (globalThis.location && globalThis.location.pathname) || "";
 const isStudy = studyPath.includes("study");
 const isModeratorView = studyPath.includes("moderator");
@@ -199,6 +238,19 @@ export function completeTraining() {
   globalThis.location.reload();
 }
 
+// The start questionnaire sits between the practice run and maze 1, so a participant
+// answers it having seen the controls but not yet any maze. Tagged with the condition
+// like the practice flag, so switching condition asks again.
+export const NEEDS_START_SURVEY = isStudy && !isModeratorView && !IS_TRAINING
+  && STUDY_INDEX === 0 && (() => {
+    if (wantsRestart) return true;
+    try { return globalThis.sessionStorage.getItem(START_SURVEY_KEY) !== CONDITION_VALUE; } catch (_e) { return true; }
+  })();
+
+export function completeStartSurvey() {
+  try { globalThis.sessionStorage.setItem(START_SURVEY_KEY, CONDITION_VALUE); } catch (_e) { /* ignore */ }
+}
+
 // Move to the next maze and re-init on the same url. Returns false at the end.
 export function advanceStudyMaze() {
   if (!isStudy) return false;
@@ -212,6 +264,7 @@ export function advanceStudyMaze() {
 export function resetStudyProgress() {
   try { globalThis.sessionStorage.removeItem(STUDY_PROGRESS_KEY); } catch (_error) { /* ignore */ }
   try { globalThis.sessionStorage.removeItem(TRAINING_KEY); } catch (_error) { /* ignore */ }
+  try { globalThis.sessionStorage.removeItem(START_SURVEY_KEY); } catch (_error) { /* ignore */ }
   try { globalThis.localStorage.removeItem(STUDY_LIVE_KEY); } catch (_error) { /* ignore */ }
 }
 
