@@ -897,6 +897,14 @@ h2 {
   color: rgba(255, 255, 255, 0.86);
 }
 
+.intro-para {
+  display: block;
+}
+
+.intro-para + .intro-para {
+  margin-top: 14px;
+}
+
 .intro-card .task-complete-actions {
   margin-top: 22px;
 }
