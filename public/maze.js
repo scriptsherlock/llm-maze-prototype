@@ -40,7 +40,7 @@ const STUDY_PROGRESS_KEY = "llm_maze_study_progress";  // sessionStorage, partic
 const STUDY_LIVE_KEY = "llm_maze_study_live";          // localStorage, moderator mirror
 const TRAINING_KEY = "llm_maze_training_done";         // sessionStorage, per run
 const PARTICIPANT_KEY = "llm_maze_participant";         // sessionStorage, per run
-const START_SURVEY_KEY = "llm_maze_start_survey";       // sessionStorage, per run
+const INTRO_KEY = "llm_maze_intro_done";                 // sessionStorage, per run
 
 // One id per run, so the eight mazes can be stitched back into a single record.
 // ?pid=... lets a moderator set it from a recruitment link; otherwise one is minted.
@@ -221,6 +221,24 @@ export const MAZE_AI_REMOVED = isStudy
 export const MID_MAZE_CUTOFF = (new URLSearchParams(globalThis.location ? globalThis.location.search : "").get("cutoff") || "") === "mid";
 
 // ---- Training ---------------------------------------------------------------
+// The run opens with an introduction, before the practice and before any maze:
+//
+//   1. the start questionnaire
+//   2. a page saying what is about to happen
+//
+// It runs on its own screen with the maze hidden, so nothing about maze 1 is visible
+// while a participant is still answering questions about what they expect. Tagged with
+// the condition like the other per-run flags, so switching condition shows it again.
+export const NEEDS_INTRO = isStudy && !isModeratorView && (() => {
+  if (wantsRestart) return true;
+  try { return globalThis.sessionStorage.getItem(INTRO_KEY) !== CONDITION_VALUE; } catch (_e) { return true; }
+})();
+
+export function completeIntro() {
+  try { globalThis.sessionStorage.setItem(INTRO_KEY, CONDITION_VALUE); } catch (_e) { /* ignore */ }
+  globalThis.location.reload();
+}
+
 // A controls-only practice run before maze 1: turn, walk, and step back, with no
 // assistant and no exit to find. Held per tab like the run position, so a fresh tab
 // gets the practice again and a reload inside a run does not repeat it.
@@ -228,27 +246,14 @@ export const MID_MAZE_CUTOFF = (new URLSearchParams(globalThis.location ? global
 // practising the stable_ai one is a different run and should practise again --
 // without the tag the flag carried over and the second condition skipped straight
 // into maze 1.
-export const IS_TRAINING = isStudy && !isModeratorView && (() => {
-  if (wantsRestart) return true;
+export const IS_TRAINING = isStudy && !isModeratorView && !NEEDS_INTRO && (() => {
+  if (wantsRestart) return false;   // the introduction comes first after a restart
   try { return globalThis.sessionStorage.getItem(TRAINING_KEY) !== CONDITION_VALUE; } catch (_e) { return true; }
 })();
 
 export function completeTraining() {
   try { globalThis.sessionStorage.setItem(TRAINING_KEY, CONDITION_VALUE); } catch (_e) { /* ignore */ }
   globalThis.location.reload();
-}
-
-// The start questionnaire sits between the practice run and maze 1, so a participant
-// answers it having seen the controls but not yet any maze. Tagged with the condition
-// like the practice flag, so switching condition asks again.
-export const NEEDS_START_SURVEY = isStudy && !isModeratorView && !IS_TRAINING
-  && STUDY_INDEX === 0 && (() => {
-    if (wantsRestart) return true;
-    try { return globalThis.sessionStorage.getItem(START_SURVEY_KEY) !== CONDITION_VALUE; } catch (_e) { return true; }
-  })();
-
-export function completeStartSurvey() {
-  try { globalThis.sessionStorage.setItem(START_SURVEY_KEY, CONDITION_VALUE); } catch (_e) { /* ignore */ }
 }
 
 // Move to the next maze and re-init on the same url. Returns false at the end.
@@ -264,7 +269,7 @@ export function advanceStudyMaze() {
 export function resetStudyProgress() {
   try { globalThis.sessionStorage.removeItem(STUDY_PROGRESS_KEY); } catch (_error) { /* ignore */ }
   try { globalThis.sessionStorage.removeItem(TRAINING_KEY); } catch (_error) { /* ignore */ }
-  try { globalThis.sessionStorage.removeItem(START_SURVEY_KEY); } catch (_error) { /* ignore */ }
+  try { globalThis.sessionStorage.removeItem(INTRO_KEY); } catch (_error) { /* ignore */ }
   try { globalThis.localStorage.removeItem(STUDY_LIVE_KEY); } catch (_error) { /* ignore */ }
 }
 

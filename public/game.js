@@ -1,6 +1,6 @@
 import * as THREE from "/vendor/three/three.module.js";
 import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
-import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, MAZE_AI_REMOVED, MID_MAZE_CUTOFF, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze, IS_TRAINING, completeTraining, surveyUrlFor, SURVEY_AFTER_INDEX, PARTICIPANT_ID, NEEDS_START_SURVEY, completeStartSurvey } from "./maze.js";
+import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, MAZE_AI_REMOVED, MID_MAZE_CUTOFF, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze, IS_TRAINING, completeTraining, surveyUrlFor, SURVEY_AFTER_INDEX, PARTICIPANT_ID, NEEDS_INTRO, completeIntro } from "./maze.js";
 
 const maze = MAZE_CONFIG.maze;
 if (typeof window !== "undefined") window.__mazeRows = maze.map((r) => r.join("")).join("");
@@ -68,11 +68,12 @@ let startTime = Date.now();
 // which button does what, so dwelling on it means the controls were unclear, not the
 // maze. It is held out of the clock. Both the raw wall time and the paused total stay
 // in the log, so a completion time including help time can still be recovered.
-// Shown once the practice is done and before maze 1, so the participant answers it
-// having learned the controls but seen no maze. Movement is held until it is
-// dismissed, otherwise they could walk the first maze behind it. Declared up here
-// because the panel is raised during module init, before the code further down runs.
-let startSurveyOpen = false;
+// The introduction runs before the practice and before any maze, on a screen that
+// covers the scene: nobody should be looking at maze 1 while still answering what
+// they expect of the task. Two steps -- the questionnaire, then what is about to
+// happen -- and movement is held throughout.
+let introStep = 0;
+let introOpen = false;
 let helpPausedMs = 0;
 let helpOpenedAt = null;
 
@@ -354,8 +355,8 @@ if (IS_TRAINING) {
   logState("training_start");
   showTrainingStep();
   document.getElementById("helpButton")?.classList.add("hidden");
-} else if (NEEDS_START_SURVEY) {
-  showStartSurvey();
+} else if (NEEDS_INTRO) {
+  showIntro();
 }
 resizeRenderer();
 renderFrame();
@@ -704,8 +705,8 @@ function bindControls() {
   const helpCloseButton = document.getElementById("helpCloseButton");
   if (helpButton) helpButton.addEventListener("click", () => toggleHelp(true));
   if (helpCloseButton) helpCloseButton.addEventListener("click", () => toggleHelp(false));
-  const startContinue = document.getElementById("startSurveyContinue");
-  if (startContinue) startContinue.addEventListener("click", dismissStartSurvey);
+  const introContinue = document.getElementById("introContinue");
+  if (introContinue) introContinue.addEventListener("click", advanceIntro);
   const helpDismissButton = document.getElementById("helpDismissButton");
   if (helpDismissButton) helpDismissButton.addEventListener("click", () => toggleHelp(false));
 
@@ -860,7 +861,7 @@ function relativeTurn(heading, dx, dy) {
 }
 
 function attemptMove(dx, dy, action) {
-  if (currentView !== "participant" || startSurveyOpen) return;
+  if (currentView !== "participant" || introOpen) return;
   participantHasInteracted = true;
 
   const nx = player.x + dx;
@@ -1407,43 +1408,50 @@ function highlightTrainingButton(id) {
 
 // Opening and closing are both logged, so time spent reading the reminder can be
 // separated from time spent solving if it matters to the analysis.
-function showStartSurvey() {
-  const panel = document.getElementById("startSurveyPanel");
-  const note = document.getElementById("startSurveyNote");
-  const link = document.getElementById("startSurveyLink");
-  if (!panel) return;
-  const url = surveyUrlFor("start");
-  startSurveyOpen = true;
-  panel.classList.remove("hidden");
+function showIntro() {
+  const screen = document.getElementById("introScreen");
+  const title = document.getElementById("introTitle");
+  const body = document.getElementById("introBody");
+  const link = document.getElementById("introLink");
+  const button = document.getElementById("introContinue");
+  if (!screen) return;
+  introOpen = true;
+  screen.classList.remove("hidden");
   document.getElementById("helpButton")?.classList.add("hidden");
-  if (note) {
-    note.textContent = url
-      ? "Please answer a short questionnaire first. It opens in a new tab; come back here afterwards."
-      : "A questionnaire goes here. It is not connected yet, so carry straight on.";
-  }
-  if (link) {
-    link.classList.toggle("hidden", !url);
-    if (url) {
-      const u = new URL(url);
-      u.searchParams.set("participant", PARTICIPANT_ID);
-      u.searchParams.set("condition", CONDITION);
-      link.href = u.toString();
+
+  if (introStep === 0) {
+    const url = surveyUrlFor("start");
+    title.textContent = "Before you begin";
+    body.textContent = url
+      ? "Please answer a short questionnaire first. It opens in a new tab; come back to this page once you have finished it."
+      : "A short questionnaire goes here. It is not connected yet, so carry straight on.";
+    if (link) {
+      link.classList.toggle("hidden", !url);
+      if (url) {
+        const u = new URL(url);
+        u.searchParams.set("participant", PARTICIPANT_ID);
+        u.searchParams.set("condition", CONDITION);
+        link.href = u.toString();
+      }
     }
+    button.textContent = "Continue";
+    logState("intro_survey_shown", { linked: Boolean(url) });
+    return;
   }
-  logState("start_survey_shown", { linked: Boolean(url) });
+
+  title.textContent = "What happens next";
+  body.textContent = "You will be placed inside a hedge maze, seen from behind your own shoulder. "
+    + "Your goal is to find the way out. First there is a short practice so you can try the controls "
+    + "— nothing in the practice counts.";
+  if (link) link.classList.add("hidden");
+  button.textContent = "Start the practice";
+  logState("intro_briefing_shown");
 }
 
-function dismissStartSurvey() {
-  const panel = document.getElementById("startSurveyPanel");
-  if (panel) panel.classList.add("hidden");
-  document.getElementById("helpButton")?.classList.remove("hidden");
-  startSurveyOpen = false;
-  completeStartSurvey();
-  logState("start_survey_dismissed");
-  // the clock only starts once they are actually in the maze
-  startTime = Date.now();
-  helpPausedMs = 0;
-  updateUi();
+function advanceIntro() {
+  if (introStep === 0) { introStep = 1; showIntro(); return; }
+  logState("intro_complete");
+  completeIntro();          // stores the flag and reloads into the practice run
 }
 
 function toggleHelp(open) {
@@ -1573,7 +1581,7 @@ function moveBackward() {
 }
 
 function turnLeft() {
-  if (startSurveyOpen) return;
+  if (introOpen) return;
   if (IS_TRAINING) noteTrainingAction("turnLeft");
   if (currentView !== "participant") return;
   participantHasInteracted = true;
@@ -1584,7 +1592,7 @@ function turnLeft() {
 }
 
 function turnRight() {
-  if (startSurveyOpen) return;
+  if (introOpen) return;
   if (IS_TRAINING) noteTrainingAction("turnRight");
   if (currentView !== "participant") return;
   participantHasInteracted = true;

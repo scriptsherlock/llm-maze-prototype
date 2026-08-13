@@ -866,6 +866,41 @@ h2 {
   border: 2px solid rgba(255, 255, 255, 0.35);
 }
 
+/* The introduction covers the scene completely rather than floating over it: the
+   participant should not be looking at maze 1 while still answering what they expect
+   of the task. Opaque, full-bleed inside the stage. */
+.intro-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #0f172a;
+}
+
+.intro-card {
+  width: min(620px, 100%);
+  color: white;
+  text-align: center;
+}
+
+.intro-card h2 {
+  margin: 0 0 14px;
+  font-size: 24px;
+}
+
+.intro-card p {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.intro-card .task-complete-actions {
+  margin-top: 22px;
+}
+
 /* Last on purpose: .hidden has to win against any rule that sets display, and several
    of those (.task-complete-link, the panels) are declared after it. Same specificity
    means source order decides, which is how the questionnaire link leaked onto every
