@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Questionnaire complete</title>
+  <style>
+    body { margin: 0; display: grid; place-items: center; min-height: 100vh;
+           font-family: Arial, Helvetica, sans-serif; background: #0f172a; color: white; }
+    p { font-size: 17px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <p>Thank you — returning to the maze…</p>
+  <script>
+    // Qualtrics can be pointed here by its End of Survey redirect. This page is on our
+    // own origin, so unlike the survey itself it can talk to the page that framed it,
+    // and the overlay closes on its own. Without the redirect the participant closes
+    // it with the button instead, so this is an upgrade rather than a requirement.
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: "survey-complete" }, window.location.origin);
+      }
+    } catch (_e) { /* framed by something unexpected: the button still works */ }
+  </script>
+</body>
+</html>

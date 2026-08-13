@@ -707,6 +707,8 @@ function bindControls() {
   if (helpCloseButton) helpCloseButton.addEventListener("click", () => toggleHelp(false));
   const introContinue = document.getElementById("introContinue");
   if (introContinue) introContinue.addEventListener("click", advanceIntro);
+  const surveyDone = document.getElementById("surveyOverlayDone");
+  if (surveyDone) surveyDone.addEventListener("click", () => closeSurveyOverlay("button"));
   const helpDismissButton = document.getElementById("helpDismissButton");
   if (helpDismissButton) helpDismissButton.addEventListener("click", () => toggleHelp(false));
 
@@ -1408,6 +1410,48 @@ function highlightTrainingButton(id) {
 
 // Opening and closing are both logged, so time spent reading the reminder can be
 // separated from time spent solving if it matters to the analysis.
+// The questionnaire runs in an iframe over the stage rather than a new tab, so the
+// run is never abandoned in a background window.
+//
+// Knowing when it is finished is the awkward part: the frame is another origin, so
+// nothing inside it can be read. Two ways out, and both are wired:
+//   - Qualtrics End of Survey redirects to /survey-done.html, which IS our origin and
+//     posts a message up. The overlay then closes by itself.
+//   - Failing that the participant closes it with the button on the bar.
+// The redirect is therefore an improvement, not a requirement.
+let onSurveyClosed = null;
+
+function openSurveyOverlay(url, title, onClose) {
+  const overlay = document.getElementById("surveyOverlay");
+  const frame = document.getElementById("surveyFrame");
+  const label = document.getElementById("surveyOverlayTitle");
+  if (!overlay || !frame) { onClose(); return; }
+  onSurveyClosed = onClose;
+  if (label) label.textContent = title;
+  frame.src = url;
+  overlay.classList.remove("hidden");
+  document.getElementById("helpButton")?.classList.add("hidden");
+  logState("survey_opened", { title, url_host: (() => { try { return new URL(url).host; } catch (_e) { return ""; } })() });
+}
+
+function closeSurveyOverlay(how) {
+  const overlay = document.getElementById("surveyOverlay");
+  const frame = document.getElementById("surveyFrame");
+  if (!overlay || overlay.classList.contains("hidden")) return;
+  overlay.classList.add("hidden");
+  if (frame) frame.src = "about:blank";
+  logState("survey_closed", { how });
+  const done = onSurveyClosed;
+  onSurveyClosed = null;
+  if (done) done();
+}
+
+// Only our own origin may close it; a message from the survey itself is ignored.
+globalThis.addEventListener("message", (event) => {
+  if (event.origin !== globalThis.location.origin) return;
+  if (event.data && event.data.type === "survey-complete") closeSurveyOverlay("redirect");
+});
+
 function showIntro() {
   const screen = document.getElementById("introScreen");
   const title = document.getElementById("introTitle");
@@ -1418,40 +1462,36 @@ function showIntro() {
   introOpen = true;
   screen.classList.remove("hidden");
   document.getElementById("helpButton")?.classList.add("hidden");
+  if (link) link.classList.add("hidden");     // the questionnaire is framed, not linked
 
-  if (introStep === 0) {
-    const url = surveyUrlFor("start");
-    title.textContent = "Before you begin";
-    body.textContent = url
-      ? "Please answer a short questionnaire first. It opens in a new tab; come back to this page once you have finished it."
-      : "A short questionnaire goes here. It is not connected yet, so carry straight on.";
-    if (link) {
-      link.classList.toggle("hidden", !url);
-      if (url) {
-        const u = new URL(url);
-        u.searchParams.set("participant", PARTICIPANT_ID);
-        u.searchParams.set("condition", CONDITION);
-        link.href = u.toString();
-      }
-    }
-    button.textContent = "Continue";
-    logState("intro_survey_shown", { linked: Boolean(url) });
-    return;
-  }
-
-  title.textContent = "What happens next";
-  body.textContent = "You will be placed inside a hedge maze, seen from behind your own shoulder. "
-    + "Your goal is to find the way out. First there is a short practice so you can try the controls "
-    + "— nothing in the practice counts.";
-  if (link) link.classList.add("hidden");
-  button.textContent = "Start the practice";
-  logState("intro_briefing_shown");
+  title.textContent = "Before you start";
+  body.textContent = "This session has a few parts: a short questionnaire, then a practice "
+    + "so you can try the controls, then eight mazes with two more questionnaires along the way. "
+    + "Each maze puts you inside a hedge maze and asks you to find the way out.";
+  button.textContent = "Continue";
+  logState("intro_shown");
 }
 
+// Continue from the information screen opens the first questionnaire in place; closing
+// that goes on to the practice run.
 function advanceIntro() {
-  if (introStep === 0) { introStep = 1; showIntro(); return; }
-  logState("intro_complete");
-  completeIntro();          // stores the flag and reloads into the practice run
+  const url = surveyUrlFor("start");
+  const goToPractice = () => { logState("intro_complete"); completeIntro(); };
+  if (!url) { goToPractice(); return; }
+  const screen = document.getElementById("introScreen");
+  if (screen) screen.classList.add("hidden");
+  introOpen = false;
+  openSurveyOverlay(withRunParams(url), "Questionnaire 1 of 3", goToPractice);
+}
+
+// participant and condition ride on every questionnaire url, so a response can be
+// matched to the run it came from.
+function withRunParams(url, mazeNumber) {
+  const u = new URL(url);
+  u.searchParams.set("participant", PARTICIPANT_ID);
+  u.searchParams.set("condition", CONDITION);
+  if (mazeNumber) u.searchParams.set("maze", String(mazeNumber));
+  return u.toString();
 }
 
 function toggleHelp(open) {
@@ -1528,6 +1568,7 @@ function showTaskComplete() {
   // post test responses into the real response set.
   const note = document.getElementById("surveyNote");
   const link = document.getElementById("surveyLink");
+  if (link) link.classList.add("hidden");   // questionnaires are framed, never linked
   const atSurvey = IS_STUDY && SURVEY_AFTER_INDEX.includes(STUDY_INDEX);
   const surveyUrl = atSurvey ? surveyUrlFor(STUDY_INDEX) : "";
   if (note) note.classList.toggle("hidden", !atSurvey);
@@ -1535,31 +1576,47 @@ function showTaskComplete() {
   if (atSurvey) {
     if (note) {
       note.textContent = surveyUrl
-        ? "Please answer a short questionnaire before continuing. It opens in a new tab; come back here afterwards."
+        ? (hasNext
+          ? "A short questionnaire comes next. It opens here, and the mazes carry on once you have finished it."
+          : "One last questionnaire, then you are done.")
         : "A questionnaire goes here. It is not connected yet, so continue straight on.";
-    }
-    if (link && surveyUrl) {
-      const url = new URL(surveyUrl);
-      url.searchParams.set("participant", PARTICIPANT_ID);
-      url.searchParams.set("condition", CONDITION);
-      url.searchParams.set("maze", String(STUDY_INDEX + 1));
-      link.href = url.toString();
     }
     logState("survey_step_shown", { after_maze: STUDY_INDEX + 1, linked: Boolean(surveyUrl) });
   }
 
-  button.textContent = !hasNext ? "Finished" : atSurvey ? "Skip and continue" : "Next maze";
-  button.disabled = !hasNext;
-  if (atSurvey && !hasNext && note) {
-    note.textContent = surveyUrl
-      ? "One last questionnaire, then you are done. Thank you."
-      : "That is the end of the run. Thank you.";
+  button.textContent = !hasNext ? (surveyUrl ? "Open the questionnaire" : "Finished")
+    : atSurvey ? (surveyUrl ? "Continue to the questionnaire" : "Next maze") : "Next maze";
+  // On the last maze the button still has work to do if a final questionnaire is
+  // configured -- it opens it. Only a run with nothing left to show is disabled.
+  button.disabled = !hasNext && !surveyUrl;
+  if (!hasNext && !surveyUrl && note) {
+    note.classList.remove("hidden");
+    note.textContent = "That is the end of the run. Thank you.";
   }
   panel.classList.remove("hidden");
 }
 
 function handleNextMaze() {
   const button = document.getElementById("nextMazeButton");
+  const surveyUrl = SURVEY_AFTER_INDEX.includes(STUDY_INDEX) ? surveyUrlFor(STUDY_INDEX) : "";
+  const isLast = !(IS_STUDY && STUDY_INDEX < STUDY_TOTAL - 1);
+
+  if (surveyUrl) {
+    // The last questionnaire takes the whole page: there is no maze to come back to,
+    // and leaving the run framed behind it only invites a stray click.
+    if (isLast) {
+      logState("final_survey_opened");
+      globalThis.location.href = withRunParams(surveyUrl, STUDY_INDEX + 1);
+      return;
+    }
+    const which = SURVEY_AFTER_INDEX.indexOf(STUDY_INDEX) + 2;
+    openSurveyOverlay(withRunParams(surveyUrl, STUDY_INDEX + 1), `Questionnaire ${which} of 3`, () => {
+      document.getElementById("taskComplete")?.classList.add("hidden");
+      advanceStudyMaze();
+    });
+    return;
+  }
+
   if (button) { button.disabled = true; button.textContent = "Loading…"; }
   logState("next_maze_clicked", { from_index: STUDY_INDEX });
   // Re-inits the page on the same url; false means there is nothing left to load.

@@ -872,7 +872,7 @@ h2 {
 .intro-screen {
   position: absolute;
   inset: 0;
-  z-index: 5;
+  z-index: 25;
   display: grid;
   place-items: center;
   padding: 24px;
@@ -899,6 +899,41 @@ h2 {
 
 .intro-card .task-complete-actions {
   margin-top: 22px;
+}
+
+/* The questionnaire runs inside the page rather than a new tab, so the run is never
+   left behind in a background window. Fills the stage; the bar on top is the only
+   part we own, since the frame itself is another origin and cannot be read into. */
+.survey-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;          /* above .task-complete (20), which opens it */
+  display: flex;
+  flex-direction: column;
+  background: #0f172a;
+}
+
+.survey-overlay-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  color: white;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.survey-overlay-bar button {
+  min-height: 38px;
+  background: var(--accent);
+}
+
+#surveyFrame {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  background: white;
 }
 
 /* Last on purpose: .hidden has to win against any rule that sets display, and several
