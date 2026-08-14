@@ -90,7 +90,9 @@ export function loopCount(g) {
 //   choicePoints  branch points where 2+ ways out independently reach the exit,
 //                 i.e. where there really is more than one correct path
 //   pathLength    shortest route, in player moves
-export function profile(g) {
+// `goal` is a parameter now: the exits differ per maze, so the module constant is
+// only the default the generator uses when carving a fresh one.
+export function profile(g, goal = GOAL) {
   let branchPoints = 0, choicePoints = 0, maxPocket = 0, deadEndBranches = 0;
   for (let y = 1; y < G; y += 2) for (let x = 1; x < G; x += 2) {
     if (!isOpen(g, x, y)) continue;
@@ -98,7 +100,7 @@ export function profile(g) {
     if (ns.length < 3) continue;
     branchPoints += 1;
     const jk = `${x},${y}`;
-    const dm = dmap(g, GOAL, jk);
+    const dm = dmap(g, goal, jk);
     let reaching = 0;
     for (const b of ns) {
       const v = dm.get(key(b));
@@ -120,7 +122,7 @@ export function profile(g) {
     }
     if (reaching >= 2) choicePoints += 1;
   }
-  const pathLength = dmap(g, START).get(key(GOAL));
+  const pathLength = dmap(g, START).get(key(goal));
   return { pathLength, branchPoints, choicePoints, loops: loopCount(g), deadEndBranches, maxPocket };
 }
 

@@ -48,6 +48,7 @@ const best = (() => {
 const isJunction = (c) => nbrs(c.x, c.y).length >= 3;
 
 console.log(`[${id}] asking ${engine.provider}/${engine.model} for up to ${count} different routes (true shortest is ${best} steps)`);
+console.log(`      budget: at most ${process.env.MAX_LLM_CALLS || 40} calls and ${process.env.MAX_LLM_TOKENS || 400000} tokens this run`);
 const t0 = Date.now();
 const res = await engine.findMazeSolutions(
   { maze: config.maze, start: config.start, goal: config.goal },
@@ -101,4 +102,15 @@ const u = engine.getUsageTotals();
 if (u.calls) {
   console.log(`tokens: ${u.calls} call(s), ${u.input} in, ${u.output} out` +
     (u.reasoning ? ` (${u.reasoning} of it reasoning)` : ""));
+  // A running total across every generation run, so spend is visible without
+  // logging into a provider dashboard.
+  const ledger = path.join(root, "error_logs", "llm-spend.jsonl");
+  try {
+    fs.mkdirSync(path.dirname(ledger), { recursive: true });
+    fs.appendFileSync(ledger, JSON.stringify({
+      at: new Date().toISOString(), maze: id, set: SET,
+      provider: engine.provider, model: engine.model,
+      calls: u.calls, input_tokens: u.input, output_tokens: u.output, reasoning_tokens: u.reasoning,
+    }) + "\n");
+  } catch (_e) { /* the numbers are already on screen */ }
 }

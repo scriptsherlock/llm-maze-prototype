@@ -5,3 +5,4 @@ npm-debug.log*
 *.local
 render-*.png
 error_logs/runs/
+error_logs/llm-spend.jsonl

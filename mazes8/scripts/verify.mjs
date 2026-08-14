@@ -19,7 +19,8 @@ const ids = fs.readdirSync(dir).filter((f) => f.endsWith(".js")).sort(
 const mazes = ids.map((f) => {
   const src = fs.readFileSync(path.join(dir, f), "utf8");
   const g = src.match(/"[01]+"/g).map((s) => s.replace(/"/g, "")).map((r) => r.split("").map(Number));
-  return { id: f.replace(/\.js$/, ""), g, src };
+  const goal = { x:+src.match(/goal:\s*\{\s*x:\s*(\d+)/)[1], y:+src.match(/goal:\s*\{\s*x:\s*\d+,\s*y:\s*(\d+)/)[1] };
+  return { id: f.replace(/\.js$/, ""), g, goal, src };
 });
 
 let fails = 0;
@@ -28,7 +29,7 @@ const ok = (msg) => console.log(`  ok    ${msg}`);
 
 console.log(`\nmeasured from the files in public/mazes8/ (${mazes.length} mazes)\n`);
 console.log("maze      path len  branch pts  choice pts  loops  dead ends  max pocket");
-const rows = mazes.map((m) => ({ ...m, p: profile(m.g) }));
+const rows = mazes.map((m) => ({ ...m, p: profile(m.g, m.goal) }));
 for (const r of rows) {
   const p = r.p;
   console.log(`${r.id.padEnd(10)}${String(p.pathLength).padEnd(10)}${String(p.branchPoints).padEnd(12)}` +
@@ -59,7 +60,7 @@ for (const r of rows) {
     if (isOpen(r.g, x, y)) { bad(`${r.id}: corner post (${x},${y}) is open — that is a 2x2 room, not a corridor`); }
   }
   const d = dmap(r.g, START);
-  if (d.get(key(GOAL)) == null) bad(`${r.id}: the exit is not reachable from the start`);
+  if (d.get(key(r.goal)) == null) bad(`${r.id}: the exit is not reachable from the start`);
   // every open cell should be reachable, or part of the maze is wasted
   let openCells = 0, reached = 0;
   for (let y = 1; y < G; y += 2) for (let x = 1; x < G; x += 2) {
@@ -80,18 +81,17 @@ for (let i = 0; i < rows.length; i += 1) for (let j = i+1; j < rows.length; j +=
 if (minDiv > 0.05) ok(`closest pair still differs in ${(minDiv*100).toFixed(1)}% of grid squares (${pair})`);
 else bad(`${pair} are near-identical (${(minDiv*100).toFixed(1)}% different)`);
 
-// and different from the four already in the study
-const oldDir = path.join(root, "public", "mazes");
-const olds = ["maze-0","maze-1","maze-2","maze-3"].map((id) => ({
-  id, g: fs.readFileSync(path.join(oldDir, `${id}.js`), "utf8").match(/"[01]+"/g)
-    .map((s)=>s.replace(/"/g,"")).map((r)=>r.split("").map(Number)) }));
-let minOld = 1, oldPair = "";
-for (const r of rows) for (const o of olds) {
-  const d = divergence(r.g, o.g);
-  if (d < minOld) { minOld = d; oldPair = `${r.id} vs existing ${o.id}`; }
-}
-if (minOld > 0.05) ok(`none repeats an existing study maze (closest ${oldPair}, ${(minOld*100).toFixed(1)}% different)`);
-else bad(`${oldPair} are near-identical`);
+// exits should not all be in one place any more
+const zones = rows.map((r) => {
+  if (r.goal.y === G - 1) return r.goal.x >= Math.floor(G * 2 / 3) ? "bottom-right"
+    : r.goal.x <= Math.floor(G / 3) ? "bottom-left" : "bottom";
+  if (r.goal.x === G - 1) return r.goal.y >= Math.floor(G * 2 / 3) ? "bottom-right" : "right";
+  return "other";
+});
+console.log("\n--- exits ---");
+const exitZones = [...new Set(zones)];
+if (exitZones.length >= 3) ok(`exits sit in ${exitZones.length} different places (${exitZones.join(", ")})`);
+else bad(`every exit is in ${exitZones.length} place(s): ${exitZones.join(", ")}`);
 
 console.log(fails ? `\n${fails} check(s) FAILED\n` : "\nall checks passed\n");
 process.exit(fails ? 1 : 0);

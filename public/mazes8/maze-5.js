@@ -25,7 +25,7 @@ const WALL_ROWS = [
   "100010000000001000001",
   "101111111010111011101",
   "100000000010000000001",
-  "111111111110111111111",
+  "111111101111111111111",
 ];
 
 export const MAZE8_5_MAZE_GRID = WALL_ROWS.map((row) => [...row].map(Number));
@@ -37,7 +37,7 @@ export const MAZE8_5_MAZE_CONFIG = {
   start: { x: 9, y: 1 },
   entrance: { x: 9, y: 0 },
   startFacing: 2,
-  goal: { x: 11, y: 20 },
+  goal: { x: 7, y: 20 },
   hintSteps: 3,
   seed: 1816,
 };
