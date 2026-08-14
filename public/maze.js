@@ -118,9 +118,35 @@ const isModeratorView = studyPath.includes("moderator");
 // the wrong maze — otherwise a stale tab would silently start mid-study.
 const SEQUENCE_SIGNATURE = STUDY_SEQUENCE.join(">");
 
-function conditionFromUrl() {
-  const v = (new URLSearchParams(globalThis.location ? globalThis.location.search : "").get("condition") || "").toLowerCase();
-  return ["no_ai", "stable_ai", "disappear"].includes(v) ? v : "stable_ai";
+const CONDITIONS = ["no_ai", "stable_ai", "disappear"];
+
+// A mistyped or missing condition used to fall through to stable_ai. That is the
+// worst possible default: it is silent, it is a real condition, and it is the one
+// whose mid and end questionnaires are deliberately blank -- so "?condition=isappear"
+// ran a full eight-maze session that looked normal, never removed the assistant, and
+// filed itself under stable_ai. A participant cannot notice, and neither can the
+// export. There is no safe guess here, so an unusable link stops the run instead.
+function readConditionParam() {
+  const raw = (new URLSearchParams(globalThis.location ? globalThis.location.search : "").get("condition") || "").trim().toLowerCase();
+  return { raw, valid: CONDITIONS.includes(raw) };
+}
+
+// Refuse to run rather than run the wrong study. The moderator view is exempt: it is
+// a spectator and adopts whatever condition the participant is actually on.
+function haltOnBadCondition({ raw }) {
+  const doc = globalThis.document;
+  if (!doc) return;
+  const said = raw ? `The link says <code>condition=${raw}</code>, which is not one of them.`
+    : "The link has no <code>condition</code> on the end of it.";
+  doc.body.innerHTML = `
+    <div style="font:16px/1.6 system-ui,sans-serif;max-width:34rem;margin:14vh auto;padding:0 1.5rem;color:#101828">
+      <h1 style="font-size:1.35rem;margin:0 0 .75rem">This link is not usable</h1>
+      <p style="margin:0 0 1rem">${said} A run must say which of the three it is:
+        <code>no_ai</code>, <code>stable_ai</code> or <code>disappear</code>.</p>
+      <p style="margin:0;color:#475467">Nothing has been recorded. Please go back to the
+        invitation and open the link exactly as it was sent.</p>
+    </div>`;
+  throw new Error(`unusable study link: condition=${JSON.stringify(raw)}`);
 }
 
 function parseProgress(raw) {
@@ -174,9 +200,13 @@ const savedProgress = !isStudy || wantsRestart ? null
 // The moderator is a spectator: it adopts whatever run the participant is on, so
 // /study/moderator lands on the right maze and the right AI state even when it was
 // opened without ?condition.
+const conditionParam = readConditionParam();
+// Checked before anything is stored or logged, so a bad link leaves no trace.
+if (isStudy && !isModeratorView && !conditionParam.valid) haltOnBadCondition(conditionParam);
+
 const CONDITION_VALUE = (isModeratorView && savedProgress && savedProgress.condition)
   ? savedProgress.condition
-  : conditionFromUrl();
+  : (conditionParam.valid ? conditionParam.raw : "stable_ai");
 
 export const STUDY_INDEX = !isStudy ? -1
   : (savedProgress && savedProgress.condition === CONDITION_VALUE) ? savedProgress.index
