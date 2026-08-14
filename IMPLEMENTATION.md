@@ -312,9 +312,10 @@ because writing the route out cell by cell *is* its working, and a 32k ceiling
 truncates it mid-search. The earlier "it cannot do this" was written while a name
 collision was rejecting every route regardless of model.
 
-What it does not do is find the optimum: no route in the set matched the true 53, the
-best being 57. That is fine for hints, which only need routes that are genuinely
-walkable, but it is why coverage takes several routes per maze.
+It finds the optimum only sometimes — two mazes in the current set have a 53-move
+route, the rest start at 57–69. That is fine for hints, which need routes that are
+genuinely walkable rather than optimal, but it is why coverage takes several routes
+per maze.
 
 Working code for the contraction and the accumulate loop exists in the session
 scratchpad; it needs porting into `buildSolutionsPayload` and `findMazeSolutions`.
