@@ -121,8 +121,16 @@ segments already checked to be walkable, the model cannot invent a distance.
 
 A branch that no verified route walks gets **no claim at all**. So the cue names the
 best branch *it knows about*, which may not be the best branch. Measured on the
-previous hint set: 30 junctions out of 106 where the cue pointed away from the truly
-shortest branch, 295 branches silent, 73% of distances exact, **zero understated**.
+current set (`audit-hints.mjs`, Aug 14, after the exits moved):
+
+```
+175 of 200 junctions carry a cue      244 branches claimed, 294 silent
+155/244 distances exact (63%)         89 overstated, 0 UNDERSTATED
+38 junctions point away from the truly shortest branch
+```
+
+Weakest mazes are 6 (14/25 junctions cued, only 2 routes verified), 1 (19/25) and
+4 (20/25). More routes with `--merge` is the cheap fix for those three.
 
 Errors are always conservative — the cue never claims a branch is closer than it is —
 and the ranking is only wrong when a better branch was never covered.
@@ -225,21 +233,35 @@ progress, so it drew the live position on the wrong maze. Progress is now mirror
 **Stopping a batch does not stop the call in flight.** `TaskStop` killed the parent
 shell and the child kept running and wrote its empty result.
 
+**One shared `GOAL` after the exits were spread.** `audit-hints.mjs` measured every
+maze against the old exit, so the four mazes whose exit had moved came back with every
+distance unreachable — and an audit that finds nothing to compare reports **zero
+problems**, which reads exactly like a clean bill of health. Four of eight mazes
+audited as perfect while being unmeasured. Each maze now carries its own goal.
+
+**Blaming the model for your own change.** Twice now a `verified routes: 0` was read as
+the model failing when it was a name collision, and once an output-format change was
+credited with a fix that came from raising the token budget. The rejection reason is
+printed on every rejected route — read it before concluding anything about the model.
+
 **Escaping `\n` through a Python heredoc into JS.** Repeatedly produced literal
 newlines inside string literals and regexes. Use `chr(92) + "n"`.
 
 ## 8. Where it stands
 
-Working and deployed: the whole flow, the metrics, the questionnaires, the eight
-mazes with spread exits.
+Working: the whole flow, the metrics, the questionnaires, the eight mazes with spread
+exits, and **all eight hint sets regenerated against the new exits** (Aug 14,
+`gemini-3.5-flash-lite`, 37 calls total).
 
-**Broken locally, do not push:** hints. The exits moved, so every stored route ends
-at the old exit and had to be regenerated. Mazes 1 and 2 are done (8 and 4 routes,
-23/25 and 20/25 coverage). **Mazes 3–8 are empty** — each attempt hits the 180s
-timeout on the raw-grid prompt.
+```
+maze   1   2   3   4   5   6   7   8
+routes 6   7   7   6   7   2   7   7
+cued  19  25  25  20  24  14  25  23   (of 25)
+```
 
-Vercel is still on the previous mazes with their matching hints, which is at least
-self-consistent. Keep it that way until the audit passes.
+Not yet pushed. Vercel still serves the previous mazes with their matching hints,
+which is self-consistent; the local set is now self-consistent too and is the one to
+deploy.
 
 ### The fix that is measured but not wired
 
@@ -256,9 +278,15 @@ The output becomes a node sequence, which expands back to cells deterministicall
 so a route naming real edges *is* walkable by construction, and the only error it can
 express is naming an edge that does not exist.
 
-Also worth knowing: **`gemini-3.5-flash-lite` cannot do this task.** The 180s
-timeouts, the truncations and the 32k reasoning budgets were all it struggling with a
-search it cannot do. `gemini-3.5-flash` on a contracted graph answers in seconds.
+Correction to an earlier note here: **`gemini-3.5-flash-lite` can do this task** — it
+generated the whole current set. What it needs is a `max_completion_tokens` of 65,536,
+because writing the route out cell by cell *is* its working, and a 32k ceiling
+truncates it mid-search. The earlier "it cannot do this" was written while a name
+collision was rejecting every route regardless of model.
+
+What it does not do is find the optimum: no route in the set matched the true 53, the
+best being 57. That is fine for hints, which only need routes that are genuinely
+walkable, but it is why coverage takes several routes per maze.
 
 Working code for the contraction and the accumulate loop exists in the session
 scratchpad; it needs porting into `buildSolutionsPayload` and `findMazeSolutions`.

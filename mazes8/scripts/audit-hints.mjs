@@ -12,7 +12,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { G, GOAL, isOpen, nbrs, dmap, key } from "./lib.mjs";
+import { G, isOpen, nbrs, dmap, key } from "./lib.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..", "..");
@@ -30,6 +30,13 @@ for (const id of ids) {
   const src = fs.readFileSync(path.join(dir, `${id}.js`), "utf8");
   const g = src.match(/"[01]+"/g).map((s)=>s.replace(/"/g,"")).map((r)=>r.split("").map(Number));
   const hints = JSON.parse(fs.readFileSync(path.join(dir, "hints", `${id}.json`), "utf8"));
+  // Each maze carries its own exit since the exits were spread across three zones.
+  // A shared constant here silently measured four mazes against an exit they no
+  // longer have: every distance came back unreachable and the maze audited as clean.
+  const GOAL = {
+    x: +src.match(/goal:\s*\{\s*x:\s*(\d+)/)[1],
+    y: +src.match(/goal:\s*\{\s*x:\s*\d+,\s*y:\s*(\d+)/)[1],
+  };
 
   let allJunctions = 0;
   for (let y=1;y<G;y+=2) for (let x=1;x<G;x+=2) {
