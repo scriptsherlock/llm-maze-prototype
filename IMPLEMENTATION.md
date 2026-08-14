@@ -259,9 +259,13 @@ routes 6   7   7   6   7   2   7   7
 cued  19  25  25  20  24  14  25  23   (of 25)
 ```
 
-Not yet pushed. Vercel still serves the previous mazes with their matching hints,
-which is self-consistent; the local set is now self-consistent too and is the one to
-deploy.
+Deployed. `origin/v9-mazes-module` is the branch Vercel builds, and it carries the new
+mazes with the hints derived from them — the pairing that has to stay in step, since a
+route ending at a moved exit is worthless.
+
+Note that commits reach that branch without an explicit push from the terminal, so
+"committed" and "deployed" are effectively the same event here. Anything that must not
+go live cannot simply be left committed.
 
 ### The fix that is measured but not wired
 
