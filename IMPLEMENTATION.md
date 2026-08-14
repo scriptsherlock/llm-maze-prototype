@@ -60,22 +60,41 @@ Matched on: **53 moves** shortest path, **25 branch points**, **24 choice points
 (branch points where two or more branches independently reach the exit). Identical in
 all eight — that is the point of the set.
 
-Exits are spread across three zones, applied by `mazes8/scripts/set-exits.mjs`:
+### Where the exit is
 
-| zone | mazes |
-|---|---|
-| bottom | 1, 2, 3, 6 |
-| bottom-right | 4, 7 |
-| bottom-left | 5, 8 |
+Both openings move per maze, placed by `mazes8/scripts/place-openings.mjs`. **The only
+measure that means anything is where the exit sits relative to the way the player
+spawns facing**, because the participant has no map and no compass. Map position is not
+perceivable to them, and a whole maze rotated is an identical run.
 
-They all used to exit at the same square, which let a participant learn "head south"
-and be roughly right without reading anything — a shortcut sitting exactly where the
-disappear manipulation needs navigation to matter.
+| maze | enters | facing | exit | from the player |
+|---|---|---|---|---|
+| 1 | top `9,0` | S | `11,20` | ahead |
+| 2 | left `0,15` | E | `11,0` | left |
+| 3 | right `20,1` | W | `1,20` | left |
+| 4 | top `13,0` | S | `20,19` | left |
+| 5 | bottom `7,20` | N | `9,0` | ahead |
+| 6 | top `15,0` | S | `0,19` | right |
+| 7 | right `20,15` | W | `9,0` | right |
+| 8 | bottom `1,20` | N | `20,9` | right |
 
-A **left-hand exit is not reachable at 53 moves in any maze**: the start sits top
-centre, so the left wall is nearer and every left exit came out at 35–47. A fourth
-zone was possible (right-hand exit on maze-7) but cost that maze a branch point, and
-a matched set is worth more than one more direction.
+**2 ahead, 3 left, 3 right.** Every maze used to be "ahead", with four of them exiting
+the identical square, so pushing forward won without navigating — a shortcut sitting
+exactly where the disappear manipulation needs navigation to matter.
+
+Two limits found by exhaustive search over all boundary pairs:
+
+- **"Behind" is impossible in all eight.** No carve admits entering and leaving through
+  the same wall in 53 moves.
+- **Mazes 1 and 5 admit no side exit at all** — every 53-move pair they have runs to the
+  opposite wall. So 2/3/3 is the ceiling while the set stays matched.
+
+Only two boundary squares differ per maze. No interior wall is touched, so the carve,
+the loops and the hedge blocks are exactly as generated.
+
+An earlier attempt moved only the exit gap while pinning the start at top centre. That
+is why it failed: with a fixed start almost no other boundary square is 53 moves away,
+so it produced three columns of the same wall and was written up as three "zones".
 
 ### Grid encoding
 
@@ -120,17 +139,20 @@ segments already checked to be walkable, the model cannot invent a distance.
 ### The accuracy problem, measured
 
 A branch that no verified route walks gets **no claim at all**. So the cue names the
-best branch *it knows about*, which may not be the best branch. Measured on the
-current set (`audit-hints.mjs`, Aug 14, after the exits moved):
+best branch *it knows about*, which may not be the best branch. Measured on the current
+set (`audit-hints.mjs`, after the openings moved):
 
 ```
-175 of 200 junctions carry a cue      244 branches claimed, 294 silent
-155/244 distances exact (63%)         89 overstated, 0 UNDERSTATED
-38 junctions point away from the truly shortest branch
+169 of 200 junctions carry a cue      218 branches claimed, 301 silent
+134/218 distances exact (61%)         84 overstated, 0 UNDERSTATED
+25 junctions point away from the truly shortest branch
 ```
 
-Weakest mazes are 6 (14/25 junctions cued, only 2 routes verified), 1 (19/25) and
-4 (20/25). More routes with `--merge` is the cheap fix for those three.
+Zero understated is the invariant that has to hold: the cue never claims a branch is
+closer than it can be, so its errors are always conservative.
+
+Weakest is maze-5 — 16 of 25 junctions cued, its six routes heavily overlapping. A
+`--merge` top-up adds routes without discarding the verified ones.
 
 Errors are always conservative — the cue never claims a branch is closer than it is —
 and the ranking is only wrong when a better branch was never covered.
@@ -233,11 +255,13 @@ progress, so it drew the live position on the wrong maze. Progress is now mirror
 **Stopping a batch does not stop the call in flight.** `TaskStop` killed the parent
 shell and the child kept running and wrote its empty result.
 
-**One shared `GOAL` after the exits were spread.** `audit-hints.mjs` measured every
-maze against the old exit, so the four mazes whose exit had moved came back with every
-distance unreachable — and an audit that finds nothing to compare reports **zero
-problems**, which reads exactly like a clean bill of health. Four of eight mazes
-audited as perfect while being unmeasured. Each maze now carries its own goal.
+**A module constant standing in for per-maze geometry — twice.** `audit-hints.mjs` used
+one shared `GOAL`, so the four mazes whose exit had moved came back with every distance
+unreachable, and an audit that finds nothing to compare reports **zero problems** —
+indistinguishable from a clean pass. Then `verify.mjs` and `profile()` did the same
+with `START`, reporting path lengths of 1 for mazes whose entrance had moved next to
+the old exit. Both now read each maze's own values. If geometry can vary per maze, no
+part of it may come from a module constant.
 
 **Blaming the model for your own change.** Twice now a `verified routes: 0` was read as
 the model failing when it was a name collision, and once an output-format change was
@@ -249,14 +273,14 @@ newlines inside string literals and regexes. Use `chr(92) + "n"`.
 
 ## 8. Where it stands
 
-Working: the whole flow, the metrics, the questionnaires, the eight mazes with spread
-exits, and **all eight hint sets regenerated against the new exits** (Aug 14,
-`gemini-3.5-flash-lite`, 37 calls total).
+Working: the whole flow, the metrics, the questionnaires, the eight mazes with the
+openings redistributed, and **all eight hint sets regenerated against them**
+(`gemini-3.5-flash-lite`, ~24 calls).
 
 ```
 maze   1   2   3   4   5   6   7   8
-routes 6   7   7   6   7   2   7   7
-cued  19  25  25  20  24  14  25  23   (of 25)
+routes 6   6   6   6   6   3   5   8
+cued  23  19  23  20  16  22  24  22   (of 25)
 ```
 
 Deployed. `origin/v9-mazes-module` is the branch Vercel builds, and it carries the new
@@ -305,8 +329,9 @@ npm start                                    # http://localhost:3000
 
 node mazes8/scripts/verify.mjs               # the set against the brief
 node mazes8/scripts/audit-hints.mjs          # hints against BFS ground truth
+node mazes8/scripts/coverage.mjs             # junction coverage, no AI call
 node mazes8/scripts/preview.mjs              # contact sheet
-node mazes8/scripts/set-exits.mjs --dry      # exit placement
+node mazes8/scripts/place-openings.mjs       # entrance/exit options by bearing
 
 LLM_PROVIDER=gemini GEMINI_MODEL=gemini-3.5-flash MAX_LLM_CALLS=3 \
   node mazes8/scripts/build-solutions.mjs maze-1 6 --set=mazes8

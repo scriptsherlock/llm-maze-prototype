@@ -90,9 +90,11 @@ export function loopCount(g) {
 //   choicePoints  branch points where 2+ ways out independently reach the exit,
 //                 i.e. where there really is more than one correct path
 //   pathLength    shortest route, in player moves
-// `goal` is a parameter now: the exits differ per maze, so the module constant is
-// only the default the generator uses when carving a fresh one.
-export function profile(g, goal = GOAL) {
+// `goal` and `start` are parameters now: both openings differ per maze, so the module
+// constants are only the defaults the generator uses when carving a fresh one. Passing
+// the wrong start is not a loud failure -- it silently measures a path the player never
+// walks, and a start next to the exit reports a path length of 1.
+export function profile(g, goal = GOAL, start = START) {
   let branchPoints = 0, choicePoints = 0, maxPocket = 0, deadEndBranches = 0;
   for (let y = 1; y < G; y += 2) for (let x = 1; x < G; x += 2) {
     if (!isOpen(g, x, y)) continue;
@@ -115,14 +117,14 @@ export function profile(g, goal = GOAL) {
           seen.add(k); cells.push(n); st.push(n);
         }
       }
-      if (cells.some((c) => c.x === START.x && c.y === START.y)) continue;  // the way back out
+      if (cells.some((c) => c.x === start.x && c.y === start.y)) continue;  // the way back out
       deadEndBranches += 1;
       const size = Math.round(cells.length / 2);
       if (size > maxPocket) maxPocket = size;
     }
     if (reaching >= 2) choicePoints += 1;
   }
-  const pathLength = dmap(g, START).get(key(goal));
+  const pathLength = dmap(g, start).get(key(goal));
   return { pathLength, branchPoints, choicePoints, loops: loopCount(g), deadEndBranches, maxPocket };
 }
 

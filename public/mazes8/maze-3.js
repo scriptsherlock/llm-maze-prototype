@@ -5,8 +5,8 @@
 // reaches the exit — so there is genuinely more than one correct path.
 // Dead-end pockets are capped at 6 cells.
 const WALL_ROWS = [
-  "111111111011111111111",
-  "100000001010000000001",
+  "111111111111111111111",
+  "100000001010000000000",
   "101011111010101111101",
   "100000001000100000101",
   "101110101010111110101",
@@ -25,7 +25,7 @@ const WALL_ROWS = [
   "100010001000100000101",
   "111011101010101110101",
   "100000000010000000001",
-  "111111111110111111111",
+  "101111111111111111111",
 ];
 
 export const MAZE8_3_MAZE_GRID = WALL_ROWS.map((row) => [...row].map(Number));
@@ -34,10 +34,10 @@ export const MAZE8_3_MAZE_CONFIG = {
   id: "maze8-3-10x10",
   name: "10 by 10 matched maze 3 of 8",
   maze: MAZE8_3_MAZE_GRID,
-  start: { x: 9, y: 1 },
-  entrance: { x: 9, y: 0 },
-  startFacing: 2,
-  goal: { x: 11, y: 20 },
+  start: { x: 19, y: 1 },
+  entrance: { x: 20, y: 1 },
+  startFacing: 3,
+  goal: { x: 1, y: 20 },
   hintSteps: 3,
   seed: 752,
 };

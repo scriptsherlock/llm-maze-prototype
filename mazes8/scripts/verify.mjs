@@ -8,7 +8,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { G, START, GOAL, profile, dmap, key, isOpen, divergence } from "./lib.mjs";
+import { G, profile, dmap, key, isOpen, divergence } from "./lib.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..", "..");
@@ -20,7 +20,9 @@ const mazes = ids.map((f) => {
   const src = fs.readFileSync(path.join(dir, f), "utf8");
   const g = src.match(/"[01]+"/g).map((s) => s.replace(/"/g, "")).map((r) => r.split("").map(Number));
   const goal = { x:+src.match(/goal:\s*\{\s*x:\s*(\d+)/)[1], y:+src.match(/goal:\s*\{\s*x:\s*\d+,\s*y:\s*(\d+)/)[1] };
-  return { id: f.replace(/\.js$/, ""), g, goal, src };
+  // both openings move per maze, so neither may come from a module constant
+  const start = { x:+src.match(/start:\s*\{\s*x:\s*(\d+)/)[1], y:+src.match(/start:\s*\{\s*x:\s*\d+,\s*y:\s*(\d+)/)[1] };
+  return { id: f.replace(/\.js$/, ""), g, goal, start, src };
 });
 
 let fails = 0;
@@ -29,7 +31,7 @@ const ok = (msg) => console.log(`  ok    ${msg}`);
 
 console.log(`\nmeasured from the files in public/mazes8/ (${mazes.length} mazes)\n`);
 console.log("maze      path len  branch pts  choice pts  loops  dead ends  max pocket");
-const rows = mazes.map((m) => ({ ...m, p: profile(m.g, m.goal) }));
+const rows = mazes.map((m) => ({ ...m, p: profile(m.g, m.goal, m.start) }));
 for (const r of rows) {
   const p = r.p;
   console.log(`${r.id.padEnd(10)}${String(p.pathLength).padEnd(10)}${String(p.branchPoints).padEnd(12)}` +
@@ -59,7 +61,7 @@ for (const r of rows) {
   for (let y = 2; y < G-1; y += 2) for (let x = 2; x < G-1; x += 2) {
     if (isOpen(r.g, x, y)) { bad(`${r.id}: corner post (${x},${y}) is open — that is a 2x2 room, not a corridor`); }
   }
-  const d = dmap(r.g, START);
+  const d = dmap(r.g, r.start);
   if (d.get(key(r.goal)) == null) bad(`${r.id}: the exit is not reachable from the start`);
   // every open cell should be reachable, or part of the maze is wasted
   let openCells = 0, reached = 0;
@@ -81,17 +83,31 @@ for (let i = 0; i < rows.length; i += 1) for (let j = i+1; j < rows.length; j +=
 if (minDiv > 0.05) ok(`closest pair still differs in ${(minDiv*100).toFixed(1)}% of grid squares (${pair})`);
 else bad(`${pair} are near-identical (${(minDiv*100).toFixed(1)}% different)`);
 
-// exits should not all be in one place any more
-const zones = rows.map((r) => {
-  if (r.goal.y === G - 1) return r.goal.x >= Math.floor(G * 2 / 3) ? "bottom-right"
-    : r.goal.x <= Math.floor(G / 3) ? "bottom-left" : "bottom";
-  if (r.goal.x === G - 1) return r.goal.y >= Math.floor(G * 2 / 3) ? "bottom-right" : "right";
-  return "other";
+// Where the exit is RELATIVE TO THE WAY THE PLAYER SPAWNS FACING. Map position is the
+// wrong measure and an earlier version of this check used it: it passed on exits that
+// sat in five named "zones" while seven of the eight were on the bottom wall and the
+// player, who has no map and no compass, experienced every one of them as straight
+// ahead. Rotating a maze does not change a single thing about this number, which is
+// the point -- it is measured in the only frame the participant has.
+const WALL = (p) => (p.y === 0 ? "top" : p.y === G - 1 ? "bottom" : p.x === 0 ? "left" : p.x === G - 1 ? "right" : "interior");
+const OPPOSITE = { top: "bottom", bottom: "top", left: "right", right: "left" };
+const LEFT_OF = { top: "right", bottom: "left", left: "top", right: "bottom" };
+console.log("\n--- where the exit is, from where the player starts ---");
+const bearings = rows.map((r) => {
+  const inW = WALL({ x: +r.src.match(/entrance:\s*\{\s*x:\s*(\d+)/)[1],
+                     y: +r.src.match(/entrance:\s*\{\s*x:\s*\d+,\s*y:\s*(\d+)/)[1] });
+  const outW = WALL(r.goal);
+  if (outW === OPPOSITE[inW]) return "ahead";
+  if (outW === inW) return "behind";
+  return outW === LEFT_OF[inW] ? "left" : "right";
 });
-console.log("\n--- exits ---");
-const exitZones = [...new Set(zones)];
-if (exitZones.length >= 3) ok(`exits sit in ${exitZones.length} different places (${exitZones.join(", ")})`);
-else bad(`every exit is in ${exitZones.length} place(s): ${exitZones.join(", ")}`);
+const tally = bearings.reduce((a, b) => ({ ...a, [b]: (a[b] || 0) + 1 }), {});
+const summary = Object.entries(tally).map(([k, v]) => `${v} ${k}`).join(", ");
+if ((tally.ahead || 0) <= rows.length / 2 && Object.keys(tally).length >= 2) {
+  ok(`the exit is not reliably in one direction (${summary})`);
+} else {
+  bad(`the exit is ${summary} — heading one way wins without navigating`);
+}
 
 console.log(fails ? `\n${fails} check(s) FAILED\n` : "\nall checks passed\n");
 process.exit(fails ? 1 : 0);
