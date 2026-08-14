@@ -143,19 +143,40 @@ best branch *it knows about*, which may not be the best branch. Measured on the 
 set (`audit-hints.mjs`, after the openings moved):
 
 ```
-169 of 200 junctions carry a cue      218 branches claimed, 301 silent
-134/218 distances exact (61%)         84 overstated, 0 UNDERSTATED
-25 junctions point away from the truly shortest branch
+167 of 200 junctions carry a cue      207 branches claimed, 306 silent
+159/207 distances exact (77%)         48 overstated, 0 UNDERSTATED
+19 junctions point away from the truly shortest branch
 ```
 
 Zero understated is the invariant that has to hold: the cue never claims a branch is
 closer than it can be, so its errors are always conservative.
 
-Weakest is maze-5 — 16 of 25 junctions cued, its six routes heavily overlapping. A
-`--merge` top-up adds routes without discarding the verified ones.
+Weakest is maze-3, at 16 of 25. Which maze is weakest moves between runs, though —
+maze-5 was 16/25 on the previous generation and 24/25 on this one, from the same
+prompt and model. **Run-to-run variance is larger than any prompt change measured so
+far**, which is worth remembering before attributing a coverage number to a decision.
+A `--merge` top-up adds routes to a thin maze without discarding verified ones.
 
-Errors are always conservative — the cue never claims a branch is closer than it is —
-and the ranking is only wrong when a better branch was never covered.
+### Which representation to send
+
+The maze once went in twice, as a grid AND an adjacency list. Measured on maze-5, one
+run each, then confirmed across all eight:
+
+| repr | routes | coverage | rejected for |
+|---|---|---|---|
+| graph | 6 | 25/25 | wrong endpoint |
+| both | 6 | 24/25 | revisits |
+| grid | 2 | 9/25 | **walking into walls** |
+
+Given only raw rows the model walks through hedges — deriving adjacency is the step it
+cannot do, and the 4x saving on input tokens buys nothing when two thirds of the maze
+ends up with no cue. `MAZE_REPR` in `lib/hint-engine.js` selects it; default `graph`.
+
+Across the whole set the switch did **not** improve coverage (169 -> 167, i.e. nothing).
+What it improved was accuracy: exact distances 61% -> 77%, overstatements 84 -> 48,
+misleading cues 25 -> 19, on ~20% fewer tokens. The mechanism is route quality — five
+mazes now contain a route at the true 53, against two before, and better routes make
+the derived distances tighter. Coverage was the wrong thing to watch.
 
 More AI routes help but do not fix it: routes run start→goal, so a branch into a dead
 end can never be covered by this method, whatever the model.
