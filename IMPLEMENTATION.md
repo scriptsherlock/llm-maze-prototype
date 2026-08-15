@@ -239,12 +239,32 @@ back, because "configured" and "working" are not the same thing.
 Generation is the only thing that costs money and it runs unattended.
 
 ```
-MAX_LLM_CALLS    requests a process may make      default 40
-MAX_LLM_TOKENS   input+output it may spend        default 400000
+MAX_LLM_CALLS          requests a process may make        default 40
+MAX_LLM_TOKENS         input+output for the whole run     default 400000
+MAX_OUTPUT_TOKENS      ceiling on a SINGLE reply          default 65536
+RATE_LIMIT_MAX_WAIT_MS longest pause on one retry         default 90000
+OPENAI_REASONING       low|medium|high, unset by default
 ```
 
-Checked **before** a request is sent. Every run appends its token count to
-`error_logs/llm-spend.jsonl`.
+The first two are checked **before** a request is sent, so a run that is out of budget
+never spends. `MAX_OUTPUT_TOKENS` is the per-call ceiling and matters most on a paid
+key: the OpenAI branch previously sent no cap at all, so one reply was bounded only by
+the model default. Set it too low and replies truncate mid-route, which reads as the
+model failing — 32768 was not enough, which is why the default is 65536.
+
+`OPENAI_REASONING` stays unset because `reasoning` is only accepted by reasoning
+models; sending it to a plain chat model is an error, not a no-op.
+
+**On rate limits**, `callProvider` is provider-agnostic, so all of this applies to
+OpenAI, Gemini and Venice alike. A 429 or a 5xx waits and retries rather than spending
+an attempt instantly — `Retry-After` is honoured when the provider sends one, since it
+knows when the window rolls over and a fixed guess does not, capped so an unattended
+batch cannot hang for ten minutes.
+
+Every run appends its token count to `error_logs/llm-spend.jsonl`.
+
+To dry-run any of this without spending: `MAX_LLM_CALLS=0` makes every call throw
+`Budget stop` before it is sent.
 
 ## 7. Traps already fallen into
 
