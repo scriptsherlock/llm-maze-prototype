@@ -151,11 +151,15 @@ set (`audit-hints.mjs`, after the openings moved):
 Zero understated is the invariant that has to hold: the cue never claims a branch is
 closer than it can be, so its errors are always conservative.
 
-Weakest is maze-3, at 16 of 25. Which maze is weakest moves between runs, though —
-maze-5 was 16/25 on the previous generation and 24/25 on this one, from the same
-prompt and model. **Run-to-run variance is larger than any prompt change measured so
-far**, which is worth remembering before attributing a coverage number to a decision.
-A `--merge` top-up adds routes to a thin maze without discarding verified ones.
+Per maze, after topping up: 22, **19**, 25, 25, 24, **20**, 24, 24 of 25. Maze-2 and
+maze-6 are the two that resisted merging.
+
+Which maze is weakest moves between runs — maze-5 was 16/25 on one generation and
+24/25 on the next, from the same prompt and model, and maze-3 went 16 -> 25 on three
+merge passes while maze-6 took two passes and gained nothing. **Run-to-run variance is
+larger than any prompt change measured so far**, which is worth remembering before
+attributing a coverage number to a decision. A `--merge` top-up adds routes to a thin
+maze without discarding verified ones.
 
 ### Which model
 
