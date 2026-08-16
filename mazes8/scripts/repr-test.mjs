@@ -38,11 +38,17 @@ const junctions = [];
 for (let y = 1; y < G; y += 2) for (let x = 1; x < G; x += 2) if (open(x, y) && deg(x, y) >= 3) junctions.push(`${x},${y}`);
 
 const rejects = [];
+// Errors matter as much as rejections: a request refused by the API reports zero
+// routes and zero rejections, which reads identically to a model that found nothing.
+const errors = [];
 const t0 = Date.now();
 const res = await engine.findMazeSolutions(
   { maze: config.maze, start: config.start, goal: config.goal },
   count,
-  (action, d) => { if (action === "solution_rejected") rejects.push(d.why); },
+  (action, d) => {
+    if (action === "solution_rejected") rejects.push(d.why);
+    if (action === "solutions_error") errors.push(d.message);
+  },
 );
 const secs = ((Date.now() - t0) / 1000).toFixed(1);
 
@@ -61,4 +67,5 @@ console.log(JSON.stringify({
   calls: u.calls, input_tokens: u.input, output_tokens: u.output,
   rejected: rejects.length,
   why: rejects.slice(0, 3),
+  errors: errors.slice(0, 2),
 }));
