@@ -44,7 +44,18 @@ each trial clean.
 **Questionnaire links** live in one place: `SURVEY_LINKS` in `public/maze.js`, keyed
 by condition then `start` / `mid` / `end`. An empty string still shows the step but
 offers only Continue — that is the safe state for piloting, since nothing can post
-into a real response set.
+into a real response set. `stable_ai` currently has `mid` and `end` empty, on purpose.
+
+**A bad `?condition=` stops the run.** It used to fall through to `stable_ai`, which is
+the worst possible default: silent, a real condition, and the one whose mid and end
+questionnaires are deliberately blank. So `?condition=isappear` ran a full eight-maze
+session that looked normal, showed no questionnaires, never removed the assistant, and
+filed itself under stable_ai — invisible to the participant and to the export alike.
+A missing or unrecognised condition now refuses to start, before anything is logged.
+
+This also explains a false alarm worth not repeating: a Vercel preview link opened
+without any `?condition=` at all, defaulted to `stable_ai`, and showed "a questionnaire
+goes here, it is not connected yet". The disappear links were correct throughout.
 
 **Knowing a questionnaire is finished** is unsolvable from our side: the iframe is
 another origin. Two routes are wired. Qualtrics can redirect its End of Survey to
@@ -161,30 +172,106 @@ larger than any prompt change measured so far**, which is worth remembering befo
 attributing a coverage number to a decision. A `--merge` top-up adds routes to a thin
 maze without discarding verified ones.
 
+### Why this needs a reasoning model at all
+
+The task is trivial *algorithmically* — BFS solves it exactly, in microseconds, and
+`CUE_SOURCE="bfs"` already exists and would give perfect cues for free. It is hard only
+because a language model must do graph search in a serial token stream, and we are
+paying that cost **deliberately**: the study needs an assistant that is AI-generated and
+fallible. A perfect BFS assistant would leave no reliance effect to measure.
+
+Two numbers explain the difficulty (measured on maze-5 by `scratchpad/search-space.mjs`):
+
+```
+shortest route            53 steps (54 squares to emit)
+open squares in graph     212
+distinct SHORTEST paths   1          <- exactly one, so finding 53 is not luck
+```
+
+Validation is all-or-nothing: one bad step voids a 54-cell route. So error compounds.
+
+```
+per-step accuracy 99.9%  ->  route valid 94.8%
+per-step accuracy 99.0%  ->  route valid 58.7%
+per-step accuracy 95.0%  ->  route valid  6.6%
+```
+
+That exponent is the whole story. A modest gain in per-step accuracy becomes a large
+gain in route yield, which is why effort level matters so much more than it looks.
+
+**Reasoning tokens are a scratchpad.** Without them the output tokens ARE the answer:
+every cell emitted is committed, with no way to try a corridor, hit a dead end and back
+out. The token counts show it — a 54-cell answer is only ~600 tokens:
+
+| model | output per call | what that is | valid routes |
+|---|---|---|---|
+| gpt-4.1-mini | ~900 | the answer alone | **0** |
+| gemini, medium | ~1,600 | answer plus a little | 1 |
+| gemini, high | ~2,100 | answer plus more | 6 |
+| o4-mini, medium | ~11,000 | ~95% thinking | 2, **found the unique optimum** |
+
 ### Which model
 
-`gemini-3.5-flash-lite`, on the free tier. Measured on maze-5, graph-only payload, the
-same test each time:
+`gemini-3.5-flash-lite`, on the free tier. All measurements on maze-5.
 
-| model | routes | coverage | time | output tokens | rejected |
+| model | repr | effort | routes | coverage | shortest |
 |---|---|---|---|---|---|
-| **gemini-3.5-flash-lite** | **6** | **25/25** | 133s | 5,768 | 1 |
-| gpt-4.1-mini | 0 | 0/25 | 26s | 2,462 | 3 |
-| gpt-5.4-mini (reasoning high) | 2 | 13/25 | 619s | 24,856 | 0 |
+| **gemini-3.5-flash-lite** | graph | high | **6** | **25/25** | 61 |
+| gemini-3.5-flash-lite | both | high | 6 | 23/25 | 61 |
+| gemini-3.5-flash-lite | both | medium | 1 | 8/25 | 61 |
+| gemini-3.5-flash-lite | grid | high | 2 | 9/25 | 61 |
+| gpt-5-mini | graph | medium | 5 | 18/25 | **53** |
+| o4-mini | graph | medium | 2 | 14/25 | **53** |
+| gpt-5.4-mini | graph | high | 2 | 13/25 | **53** |
+| gpt-5-nano | graph | medium | 1 | 14/25 | 73 |
+| o4-mini | both | medium | 0 | — | — |
+| gpt-4.1-mini | graph / both / graph+temp 0.6 | n/a | **0** | — | — |
 
-`gpt-4.1-mini` walks into hedges even with the adjacency list — a non-reasoning model
-answers in ~800 tokens and has not searched anything. `gpt-5.4-mini` is accurate
-(nothing it returned was rejected) but slow and narrow: two routes, half the coverage,
-five times the wall clock, four times the tokens, and it costs money.
+Three findings hold across both providers: **graph beats both beats grid**, **high
+effort beats medium**, and **non-reasoning models score zero** (gpt-4.1-mini was tried
+three ways and never returned a single valid route).
 
-**Watch out when timing a paid model.** That run reported `calls: 1` over 619 seconds,
-because usage is recorded only on a successful reply while `BATCH_TIMEOUT_MS` was 240s.
-Two attempts almost certainly timed out and were aborted — and an aborted request has
-still generated tokens at the provider, so billed spend can be several times what the
-ledger shows. Raise the timeout rather than eating silent retries.
+The split that matters: **Gemini gives breadth, the reasoning models give optimality.**
+Gemini finds 6 routes and 25/25 coverage but has never found maze-5's unique 53;
+o4-mini and gpt-5-mini find that 53 but only 2–5 routes. `--merge` can take both — one
+paid pass into the mazes lacking an optimal route, on top of the free Gemini set.
 
-The bar a paid model has to clear is not "works". The free set already gives 176/200
-junctions cued at 80% exact in 25 minutes.
+**Caveats that matter more than the table.** Every OpenAI row was taken at `medium`
+while Gemini ran at `high`, because effort used to be per-provider (now fixed, see
+below). On Gemini that same drop costs 5 of 6 routes, so the OpenAI models were
+handicapped exactly where they look weakest. Their optimal-53 findings stand; their
+narrowness does not. And every row is n=1 on a project where run-to-run variance has
+repeatedly exceeded the effects being measured.
+
+**Watch out when timing a paid model.** The gpt-5.4-mini run reported `calls: 1` over
+619 seconds, because usage is recorded only on a *successful* reply while
+`BATCH_TIMEOUT_MS` was 240s. Two attempts almost certainly timed out and were aborted —
+and an aborted request has still generated tokens at the provider, so billed spend can
+be several times what the ledger shows. Raise the timeout rather than eating silent
+retries.
+
+The bar a paid model has to clear is not "works". The free set gives 183/200 junctions
+cued at 83% exact, in 25 minutes, for nothing.
+
+### Provider-neutral settings, and two knobs that clash
+
+The prompt TEXT was always provider-neutral. The **settings** were not: Gemini had
+`reasoning_effort` hardcoded `"high"` while OpenAI read an env var defaulting to
+nothing, which silently made the first cross-provider comparison high against medium.
+`REASONING_EFFORT` is now one shared setting (default `high`) sent to both.
+
+**Temperature and reasoning are mutually exclusive on OpenAI.** Asking for both gets
+`Unsupported parameter: 'temperature' is not supported with this model`, and the request
+is refused *before generating* — which surfaces as zero routes AND zero rejections,
+identical to a model that simply found nothing. Reasoning models take effort, chat
+models take temperature, neither takes both. `TEMPERATURE` (default 0.6) is therefore
+sent only to models that do not take reasoning.
+
+Retries used to ask cold for six routes with no memory of the previous reply, so a
+low-variance model just handed back what it already gave — and duplicates were dropped
+**silently**, so "2 routes, 0 rejected" could equally mean two returned or twenty of
+which eighteen repeated. Retries now include `routes_you_already_gave`, and every
+attempt logs `returned / fresh / duplicates / invalid`.
 
 ### Which representation to send
 
@@ -201,11 +288,41 @@ Given only raw rows the model walks through hedges — deriving adjacency is the
 cannot do, and the 4x saving on input tokens buys nothing when two thirds of the maze
 ends up with no cue. `MAZE_REPR` in `lib/hint-engine.js` selects it; default `graph`.
 
-Across the whole set the switch did **not** improve coverage (169 -> 167, i.e. nothing).
-What it improved was accuracy: exact distances 61% -> 77%, overstatements 84 -> 48,
-misleading cues 25 -> 19, on ~20% fewer tokens. The mechanism is route quality — five
-mazes now contain a route at the true 53, against two before, and better routes make
-the derived distances tighter. Coverage was the wrong thing to watch.
+Confirmed on OpenAI too: o4-mini gets 2 routes and the optimal 53 on `graph`, and
+**zero** on `both`. Sending the grid alongside the graph is not merely redundant, it
+actively hurts, on every model tried.
+
+### Exactly what is sent
+
+`error_logs/last-payload.txt` holds a complete captured request (gitignored). To
+regenerate it, or a variant for another provider, intercept `fetch` and dump `o.body`
+rather than trusting a reading of the code. For maze-5, graph repr:
+
+```
+POST https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+{ "model": "gemini-3.5-flash-lite", "temperature": 0.6,
+  "max_completion_tokens": 65536, "reasoning_effort": "high",
+  "messages": [ {role: system, ~1,000 chars of rules},
+                {role: user,   {maze_size, start, goal, open_cell_graph}} ],
+  "response_format": strict json_schema -> {routes:[{path:[{x,y}]}]} }
+```
+
+The user message is ~5,100 chars of which **98% is `open_cell_graph`** — 212 entries,
+every open square with its legal neighbours. There is no `maze` key under the default
+repr: the adjacency list IS the maze, losslessly. The schema has no prose field, so the
+model cannot return an explanation even if it tries.
+
+Everything above is built in `lib/hint-engine.js`: `solutionsInstructions()` for the
+prompt text, `buildSolutionsPayload()` for the auxiliary info, `buildOpenCellGraph()`
+for the graph, `solutionsSchema()` for the response shape.
+
+Comparing the two full generations, before any merge passes, the switch did **not**
+improve coverage (169 -> 167 junctions cued, i.e. nothing). What it improved was
+accuracy: exact distances 61% -> 77%, overstatements 84 -> 48, misleading cues 25 -> 19,
+on ~20% fewer tokens. The mechanism is route quality — five mazes held a route at the
+true 53 against two before, and better routes make the derived distances tighter.
+Coverage was the wrong thing to watch. (Coverage reached 183/200 later, through
+`--merge`, which is a separate lever from the representation.)
 
 **No junction is structurally uncueable.** `uncovered.mjs` tests, for each junction
 with no cue, whether two or more of its neighbours can reach the goal without coming
@@ -342,33 +459,74 @@ with `START`, reporting path lengths of 1 for mazes whose entrance had moved nex
 the old exit. Both now read each maze's own values. If geometry can vary per maze, no
 part of it may come from a module constant.
 
-**Blaming the model for your own change.** Twice now a `verified routes: 0` was read as
-the model failing when it was a name collision, and once an output-format change was
-credited with a fix that came from raising the token budget. The rejection reason is
-printed on every rejected route — read it before concluding anything about the model.
+**Blaming the model for your own change.** Repeatedly. A `verified routes: 0` was read
+as the model failing when it was a name collision; an output-format change was credited
+with a fix that came from raising the token budget; OpenAI was called narrow when it had
+been run at half the effort Gemini got; and "maze-2 and maze-6 cannot be covered" was
+asserted as structural when `uncovered.mjs` showed **zero** structurally uncueable
+junctions. The rejection reason is printed on every rejected route. Read it first.
+
+**Zero routes AND zero rejections means the request never happened.** A refused request
+(bad parameter, auth, rate limit) produces the same shape as a model that found nothing.
+`repr-test.mjs` logged `solution_rejected` but not `solutions_error`, so a hard API
+error looked like a failed search. Both are logged now — that is how the temperature
+clash was identified rather than guessed at.
+
+**`node --check` is not a test.** Cutting the live-AI cue mode, a removal bounded by
+"the next `async function`" silently swallowed `recordJunctionDecision`, `drawRouteCues`,
+`openSurveyOverlay`, `highlightTrainingButton` and a dozen more. Syntax checking passed
+happily; the browser threw `turnLeft is not defined` on load. Anything that deletes a
+range must be bounded by explicit line numbers and then loaded in a real browser —
+deploying that would have shipped a study with its metrics recording deleted.
+
+**Committing is deploying.** Commits reach `origin/v9-mazes-module` without an explicit
+push from the terminal, and that branch is what Vercel builds. There is no "committed
+but not live" state here: anything that must not go in front of participants must not
+be committed yet. This is why the maze files and their hints have to be committed
+together — a route ending at a moved exit is worthless.
 
 **Escaping `\n` through a Python heredoc into JS.** Repeatedly produced literal
 newlines inside string literals and regexes. Use `chr(92) + "n"`.
 
 ## 8. Where it stands
 
-Working: the whole flow, the metrics, the questionnaires, the eight mazes with the
-openings redistributed, and **all eight hint sets regenerated against them**
-(`gemini-3.5-flash-lite`, ~24 calls).
+Working and deployed on `origin/v9-mazes-module`, the branch Vercel builds: the whole
+flow, the metrics, the questionnaires, the eight mazes with the openings redistributed,
+and all eight hint sets generated graph-only on `gemini-3.5-flash-lite` and topped up
+with `--merge`.
 
 ```
-maze   1   2   3   4   5   6   7   8
-routes 6   6   6   6   6   3   5   8
-cued  23  19  23  20  16  22  24  22   (of 25)
+maze     1    2    3    4    5    6    7    8
+routes   5    7   18   13    7    7   13    6
+cued    22   19   25   25   24   20   24   24   (of 25)
+
+183/200 junctions cued    208/252 distances exact (83%)
+44 overstated             0 UNDERSTATED
+18 misleading cues
 ```
 
-Deployed. `origin/v9-mazes-module` is the branch Vercel builds, and it carries the new
-mazes with the hints derived from them — the pairing that has to stay in step, since a
-route ending at a moved exit is worthless.
+The mazes and their hints must move together — a route ending at a moved exit is
+worthless — and since committing is deploying (above), they go in one commit.
 
-Note that commits reach that branch without an explicit push from the terminal, so
-"committed" and "deployed" are effectively the same event here. Anything that must not
-go live cannot simply be left committed.
+### Still open
+
+- **KV is not attached.** `/api/run-log?health=1` returns `configured:false` on the
+  deployment, so metrics live only in the participant's browser and leave with the tab.
+  This is the one item where waiting loses data that cannot be recovered. Vercel
+  dashboard action, then re-check the health endpoint — "configured" and "working" are
+  not the same thing.
+- **`stable_ai` mid and end questionnaires are empty**, by decision.
+- **Qualtrics `participant` embedded data** is not set on the five surveys, so responses
+  cannot be joined to the maze metrics. Needs the supervisor's account access.
+- **Movement animation** — requested, never started.
+- **Deliberate AI error** — now unblocked. Merging drove accidental error down to 18
+  junctions and measured it, which is the precondition: a controlled manipulation
+  layered on uncontrolled noise would be indistinguishable from it in the data. Merge
+  first, inject second.
+- **The hybrid** — one paid reasoning-model `--merge` pass into mazes 1, 5 and 8, the
+  three still without an optimal route, keeping Gemini's breadth and adding the optimum.
+- **o4-mini at high effort has never been run** — every OpenAI number was taken at
+  medium. That is the test that would actually settle the model question.
 
 ### The fix that is measured but not wired
 
@@ -391,10 +549,17 @@ because writing the route out cell by cell *is* its working, and a 32k ceiling
 truncates it mid-search. The earlier "it cannot do this" was written while a name
 collision was rejecting every route regardless of model.
 
-It finds the optimum only sometimes — two mazes in the current set have a 53-move
-route, the rest start at 57–69. That is fine for hints, which need routes that are
-genuinely walkable rather than optimal, but it is why coverage takes several routes
-per maze.
+It finds the optimum on **five of eight** (mazes 2, 3, 4, 6, 7 hold a 53-move route);
+mazes 1 and 5 are +8 and maze-8 is +4. Under the old grid+graph prompt only two of
+eight did, so the representation change more than doubled it — and that was true
+immediately after regeneration, before any merge passes, so it is not a merging
+artefact. Hints need routes that are genuinely walkable rather than optimal, but the
+mazes without an optimal route are exactly the ones with the weakest accuracy.
+
+Note the moderator legend always prints `true shortest 53` from local BFS, on every
+maze, whether or not the AI ever found it. On maze-1 that line sits beside routes of
+61 and 69 — it is us reporting what the AI *failed* to find, not something it produced.
+Easy to misread as the AI having found the shortest path.
 
 Working code for the contraction and the accumulate loop exists in the session
 scratchpad; it needs porting into `buildSolutionsPayload` and `findMazeSolutions`.
@@ -410,12 +575,26 @@ npm start                                    # http://localhost:3000
 node mazes8/scripts/verify.mjs               # the set against the brief
 node mazes8/scripts/audit-hints.mjs          # hints against BFS ground truth
 node mazes8/scripts/coverage.mjs             # junction coverage, no AI call
+node mazes8/scripts/uncovered.mjs            # are the gaps even fixable? no AI call
 node mazes8/scripts/preview.mjs              # contact sheet
 node mazes8/scripts/place-openings.mjs       # entrance/exit options by bearing
 
-LLM_PROVIDER=gemini GEMINI_MODEL=gemini-3.5-flash MAX_LLM_CALLS=3 \
-  node mazes8/scripts/build-solutions.mjs maze-1 6 --set=mazes8
+# generate (provider/model default to gemini 3.5-flash-lite; --merge keeps what exists)
+MAX_LLM_CALLS=3 BATCH_TIMEOUT_MS=240000 \
+  node mazes8/scripts/build-solutions.mjs maze-1 6 --set=mazes8 --merge
 bash mazes8/scripts/derive-all.sh            # hints from routes, no AI
+
+# compare a model/representation WITHOUT touching the deployed hints
+MAZE_REPR=graph REASONING_EFFORT=high LLM_PROVIDER=openai OPENAI_MODEL=o4-mini \
+  node mazes8/scripts/repr-test.mjs maze-5 6
+
+MAX_LLM_CALLS=0 ...                          # dry run: throws before anything is sent
 ```
 
 `?restart=1` clears the run and the practice flag. `?pid=P01` sets the participant id.
+`?cues=bfs` swaps the file cues for exact local BFS (no AI), which is the only other
+cue source left after the live-AI mode was removed.
+
+Env knobs, all in `lib/hint-engine.js`: `LLM_PROVIDER`, `GEMINI_MODEL`/`OPENAI_MODEL`,
+`MAZE_REPR` (graph|grid|both), `REASONING_EFFORT`, `TEMPERATURE`, `MAX_LLM_CALLS`,
+`MAX_LLM_TOKENS`, `MAX_OUTPUT_TOKENS`, `BATCH_TIMEOUT_MS`, `RATE_LIMIT_MAX_WAIT_MS`.
