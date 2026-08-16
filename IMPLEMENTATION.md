@@ -157,6 +157,31 @@ prompt and model. **Run-to-run variance is larger than any prompt change measure
 far**, which is worth remembering before attributing a coverage number to a decision.
 A `--merge` top-up adds routes to a thin maze without discarding verified ones.
 
+### Which model
+
+`gemini-3.5-flash-lite`, on the free tier. Measured on maze-5, graph-only payload, the
+same test each time:
+
+| model | routes | coverage | time | output tokens | rejected |
+|---|---|---|---|---|---|
+| **gemini-3.5-flash-lite** | **6** | **25/25** | 133s | 5,768 | 1 |
+| gpt-4.1-mini | 0 | 0/25 | 26s | 2,462 | 3 |
+| gpt-5.4-mini (reasoning high) | 2 | 13/25 | 619s | 24,856 | 0 |
+
+`gpt-4.1-mini` walks into hedges even with the adjacency list — a non-reasoning model
+answers in ~800 tokens and has not searched anything. `gpt-5.4-mini` is accurate
+(nothing it returned was rejected) but slow and narrow: two routes, half the coverage,
+five times the wall clock, four times the tokens, and it costs money.
+
+**Watch out when timing a paid model.** That run reported `calls: 1` over 619 seconds,
+because usage is recorded only on a successful reply while `BATCH_TIMEOUT_MS` was 240s.
+Two attempts almost certainly timed out and were aborted — and an aborted request has
+still generated tokens at the provider, so billed spend can be several times what the
+ledger shows. Raise the timeout rather than eating silent retries.
+
+The bar a paid model has to clear is not "works". The free set already gives 176/200
+junctions cued at 80% exact in 25 minutes.
+
 ### Which representation to send
 
 The maze once went in twice, as a grid AND an adjacency list. Measured on maze-5, one
