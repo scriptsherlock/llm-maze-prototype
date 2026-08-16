@@ -1,16 +1,18 @@
 {
   "maze": "maze-6",
-  "generated_at": "2026-08-15T22:36:29.043Z",
+  "generated_at": "2026-08-16T21:37:10.210Z",
   "method": "derived-from-verified-routes",
   "source_routes": [
     53,
     57,
     57,
+    65,
+    69,
     77,
     77
   ],
   "provider": "gemini",
-  "model": "gemini-3.5-flash-lite",
+  "model": "gemini-3.1-flash-lite",
   "complete": true,
   "goal": {
     "x": 0,
@@ -234,7 +236,7 @@
         {
           "x": 2,
           "y": 5,
-          "steps": 55,
+          "steps": 47,
           "verdict": "detour",
           "proven": true,
           "path": [
@@ -287,15 +289,15 @@
               "y": 5
             },
             {
-              "x": 10,
-              "y": 5
+              "x": 9,
+              "y": 6
             },
             {
-              "x": 11,
-              "y": 5
+              "x": 9,
+              "y": 7
             }
           ],
-          "reason": "~24 steps longer than the AI's best way from here"
+          "reason": "~16 steps longer than the AI's best way from here"
         },
         {
           "x": 1,
@@ -372,7 +374,7 @@
         {
           "x": 3,
           "y": 4,
-          "steps": 53,
+          "steps": 45,
           "verdict": "toward_goal",
           "proven": true,
           "path": [
@@ -417,19 +419,19 @@
               "y": 5
             },
             {
-              "x": 10,
-              "y": 5
-            },
-            {
-              "x": 11,
-              "y": 5
-            },
-            {
-              "x": 11,
+              "x": 9,
               "y": 6
             },
             {
-              "x": 11,
+              "x": 9,
+              "y": 7
+            },
+            {
+              "x": 8,
+              "y": 7
+            },
+            {
+              "x": 7,
               "y": 7
             }
           ],
@@ -445,7 +447,7 @@
           "x": 10,
           "y": 5,
           "steps": 43,
-          "verdict": "toward_goal",
+          "verdict": "detour",
           "proven": true,
           "path": [
             {
@@ -503,6 +505,72 @@
             {
               "x": 7,
               "y": 9
+            }
+          ],
+          "reason": "~8 steps longer than the AI's best way from here"
+        },
+        {
+          "x": 9,
+          "y": 6,
+          "steps": 35,
+          "verdict": "toward_goal",
+          "proven": true,
+          "path": [
+            {
+              "x": 9,
+              "y": 6
+            },
+            {
+              "x": 9,
+              "y": 7
+            },
+            {
+              "x": 8,
+              "y": 7
+            },
+            {
+              "x": 7,
+              "y": 7
+            },
+            {
+              "x": 6,
+              "y": 7
+            },
+            {
+              "x": 5,
+              "y": 7
+            },
+            {
+              "x": 4,
+              "y": 7
+            },
+            {
+              "x": 3,
+              "y": 7
+            },
+            {
+              "x": 3,
+              "y": 8
+            },
+            {
+              "x": 3,
+              "y": 9
+            },
+            {
+              "x": 2,
+              "y": 9
+            },
+            {
+              "x": 1,
+              "y": 9
+            },
+            {
+              "x": 1,
+              "y": 10
+            },
+            {
+              "x": 1,
+              "y": 11
             }
           ],
           "reason": ""
@@ -655,7 +723,7 @@
           "x": 9,
           "y": 6,
           "steps": 45,
-          "verdict": "toward_goal",
+          "verdict": "detour",
           "proven": true,
           "path": [
             {
@@ -712,6 +780,72 @@
             },
             {
               "x": 7,
+              "y": 11
+            }
+          ],
+          "reason": "~12 steps longer than the AI's best way from here"
+        },
+        {
+          "x": 8,
+          "y": 7,
+          "steps": 33,
+          "verdict": "toward_goal",
+          "proven": true,
+          "path": [
+            {
+              "x": 8,
+              "y": 7
+            },
+            {
+              "x": 7,
+              "y": 7
+            },
+            {
+              "x": 6,
+              "y": 7
+            },
+            {
+              "x": 5,
+              "y": 7
+            },
+            {
+              "x": 4,
+              "y": 7
+            },
+            {
+              "x": 3,
+              "y": 7
+            },
+            {
+              "x": 3,
+              "y": 8
+            },
+            {
+              "x": 3,
+              "y": 9
+            },
+            {
+              "x": 2,
+              "y": 9
+            },
+            {
+              "x": 1,
+              "y": 9
+            },
+            {
+              "x": 1,
+              "y": 10
+            },
+            {
+              "x": 1,
+              "y": 11
+            },
+            {
+              "x": 2,
+              "y": 11
+            },
+            {
+              "x": 3,
               "y": 11
             }
           ],
@@ -1437,6 +1571,72 @@
       "x": 7,
       "y": 15,
       "branches": [
+        {
+          "x": 8,
+          "y": 15,
+          "steps": 23,
+          "verdict": "detour",
+          "proven": true,
+          "path": [
+            {
+              "x": 8,
+              "y": 15
+            },
+            {
+              "x": 9,
+              "y": 15
+            },
+            {
+              "x": 9,
+              "y": 14
+            },
+            {
+              "x": 9,
+              "y": 13
+            },
+            {
+              "x": 10,
+              "y": 13
+            },
+            {
+              "x": 11,
+              "y": 13
+            },
+            {
+              "x": 11,
+              "y": 14
+            },
+            {
+              "x": 11,
+              "y": 15
+            },
+            {
+              "x": 11,
+              "y": 16
+            },
+            {
+              "x": 11,
+              "y": 17
+            },
+            {
+              "x": 10,
+              "y": 17
+            },
+            {
+              "x": 9,
+              "y": 17
+            },
+            {
+              "x": 8,
+              "y": 17
+            },
+            {
+              "x": 7,
+              "y": 17
+            }
+          ],
+          "reason": "~12 steps longer than the AI's best way from here"
+        },
         {
           "x": 7,
           "y": 16,

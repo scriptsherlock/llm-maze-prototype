@@ -143,9 +143,9 @@ best branch *it knows about*, which may not be the best branch. Measured on the 
 set (`audit-hints.mjs`, after the openings moved):
 
 ```
-167 of 200 junctions carry a cue      207 branches claimed, 306 silent
-159/207 distances exact (77%)         48 overstated, 0 UNDERSTATED
-19 junctions point away from the truly shortest branch
+183 of 200 junctions carry a cue      252 branches claimed, 309 silent
+208/252 distances exact (83%)         44 overstated, 0 UNDERSTATED
+18 junctions point away from the truly shortest branch
 ```
 
 Zero understated is the invariant that has to hold: the cue never claims a branch is
@@ -203,8 +203,17 @@ misleading cues 25 -> 19, on ~20% fewer tokens. The mechanism is route quality �
 mazes now contain a route at the true 53, against two before, and better routes make
 the derived distances tighter. Coverage was the wrong thing to watch.
 
-More AI routes help but do not fix it: routes run start→goal, so a branch into a dead
-end can never be covered by this method, whatever the model.
+**No junction is structurally uncueable.** `uncovered.mjs` tests, for each junction
+with no cue, whether two or more of its neighbours can reach the goal without coming
+back through it -- i.e. whether any simple route could pass through at all. Across all
+eight the answer is yes for every one: **zero pocket junctions**. The dead-end argument
+was wrong; the remaining gaps are not a property of the mazes.
+
+What actually limits coverage is model diversity. Merge passes on maze-2 and maze-6
+returned three duplicates out of six every time and moved coverage not at all, while
+the same passes took maze-4 from 21/25 to 25/25. The model converges on routes it has
+already produced. Raising temperature, or asking for routes through named junctions,
+would attack that; more passes at the same settings will not.
 
 The open decision is whether that error is acceptable as "the assistant is fallible"
 or should be replaced by **deliberate, logged error** — a policy file naming which
