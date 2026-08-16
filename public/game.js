@@ -207,7 +207,6 @@ const AUTO_HERD = false;
 // restore the path-hint arrow mechanic.
 const ROUTE_EVAL_MODE = true;
 let routeEvalText = "";
-let routeEvalInFlight = false;
 let lastPlayerCell = null;
 // Verified whole-maze routes the AI found (moderator view only).
 let aiSolutions = [];
@@ -237,26 +236,18 @@ function renderAiRoutesLegend(shortest) {
 }
 
 const junctionEvals = new Map(); // "x,y" -> [{x,y,verdict,steps,reason}] (precomputed)
-let precomputing = false;
 // CUE_SOURCE selects who produces the junction cues:
 //   "file" – load cues precomputed offline by scripts/build-cues.mjs from
 //            public/mazes8/hints/maze-N.json (no runtime AI call — the AI
 //            was run once at build time; instant, deploy-safe). DEPLOYMENT DEFAULT.
-//   "ai"   – the LLM solves the maze and returns the cues live at trial start
-//            (its own verdicts/steps/reasons, fallible; used to (re)generate).
 //   "bfs"  – computed locally from the known maze with exact BFS ground truth.
-// Default is set here; override per-session with ?cues=file / ?cues=ai / ?cues=bfs.
+// Default is set here; override per-session with ?cues=file / ?cues=bfs.
 const CUE_SOURCE_DEFAULT = "file";
 const CUE_SOURCE = (() => {
   const search = globalThis.location ? globalThis.location.search : "";
   const value = (new URLSearchParams(search).get("cues") || "").toLowerCase();
-  return ["file", "ai", "bfs"].includes(value) ? value : CUE_SOURCE_DEFAULT;
+  return ["file", "bfs"].includes(value) ? value : CUE_SOURCE_DEFAULT;
 })();
-// AI_PRECOMPUTE_ONLY (ai mode): use ONLY the cues precomputed once at trial start.
-// Never make a live per-junction call — so there is no wait at a junction, and no
-// "AI couldn't assess" when the participant has moved. A junction missing from the
-// precompute simply shows no cue. Set false to allow the live per-junction fallback.
-const AI_PRECOMPUTE_ONLY = true;
 // Rollback: set false to disable background prefetch of the next AI hint.
 const PREFETCH_HINTS = false;
 
@@ -1140,33 +1131,10 @@ async function precomputeJunctions() {
     updateUi();
     return;
   }
-  precomputing = true;
+  // Only "file" and "bfs" produce cues. The live per-junction and batch AI endpoints
+  // were removed: the study never used them, and cues are precomputed offline.
+  maybeEvaluateJunction();
   updateUi();
-  try {
-    const response = await fetch("/api/route-eval-batch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ maze, goal, junctions }),
-    });
-    const data = await response.json();
-    // Surface the raw AI output for inspection: `window.__aiCues` in the console,
-    // and a one-line dump. The server also writes it to error_logs/ai_cues.json.
-    window.__aiCues = data;
-    console.log("[AI cues JSON]", JSON.stringify(data, null, 2));
-    if (response.ok && data.status === "evaluated") {
-      for (const j of data.junctions || []) junctionEvals.set(`${j.x},${j.y}`, j.branches || []);
-      latestLatencyMs = data.latency_ms ?? latestLatencyMs;
-      logState("route_eval_precomputed", { junctions: junctionEvals.size, llm_latency_ms: data.latency_ms });
-    } else {
-      logState("route_eval_precompute_failed", { message: data.message });
-    }
-  } catch (error) {
-    logState("route_eval_precompute_failed", { message: error.message });
-  } finally {
-    precomputing = false;
-    maybeEvaluateJunction(); // reveal the starting junction now that cues are ready
-    updateUi();
-  }
 }
 
 function startRouteEval() {
@@ -1243,10 +1211,8 @@ function computeJunctionCueText() {
     routeEvalText = formatRouteEval(precomputed);
     return;
   }
-  if (precomputing) { routeEvalText = ""; return; } // cues still loading at start
-  // No live call: bfs is local, and ai precompute-only relies solely on trial-start cues.
-  if (CUE_SOURCE === "bfs" || AI_PRECOMPUTE_ONLY) { routeEvalText = ""; return; }
-  evaluateJunction(); // ai live-fallback mode: this junction wasn't precomputed → live call
+  // Never a live call: a junction missing from the precompute simply shows no cue.
+  routeEvalText = "";
 }
 
 // ---- Visual route cues: shaded floor lines at a junction (darker = shorter route) ----
@@ -1360,37 +1326,6 @@ function realignJunctionCue() {
   const precomputed = junctionEvals.get(`${player.x},${player.y}`);
   if (!precomputed) return; // nothing stored → leave the banner untouched
   routeEvalText = formatRouteEval(precomputed);
-}
-
-async function evaluateJunction() {
-  const branches = junctionBranches(player, null);
-  if (branches.length < 2) { routeEvalText = ""; return; }
-
-  routeEvalInFlight = true;
-  const requestedAt = Date.now();
-  logState("route_eval_requested", { x: player.x, y: player.y, branches: branches.length });
-  updateUi();
-
-  try {
-    const response = await fetch("/api/route-eval", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ maze, player, goal, branches }),
-    });
-    const data = await response.json();
-    if (!response.ok || data.status !== "evaluated") throw new Error(data.message || "Route evaluation failed.");
-    junctionEvals.set(`${player.x},${player.y}`, data.branches || []); // cache so cues can draw
-    routeEvalText = formatRouteEval(data.branches || []);
-    drawRouteCues();
-    latestLatencyMs = data.latency_ms ?? Date.now() - requestedAt;
-    logState("route_eval_received", { llm_latency_ms: latestLatencyMs, count: (data.branches || []).length, text: routeEvalText });
-  } catch (error) {
-    routeEvalText = "AI couldn't assess the paths — your call.";
-    logState("route_eval_failed", { message: error.message });
-  } finally {
-    routeEvalInFlight = false;
-    updateUi();
-  }
 }
 
 // ---- Task complete overlay ------------------------------------------------
@@ -2568,13 +2503,9 @@ function updateUi() {
     bannerVisible = true;
   }
   if (ROUTE_EVAL_MODE && aiCondition && currentView === "participant" && !blockedFlashActive) {
-    // Route-evaluation mechanic: show the AI's junction comparison (or its status).
-    const evalText = precomputing
-      ? "AI is studying the maze…"
-      : routeEvalInFlight
-        ? "AI weighing up the paths…"
-        : routeEvalText || "Explore the maze and find the EXIT";
-    elements.hintBanner.innerHTML = evalText;
+    // Route-evaluation mechanic: show the AI's junction comparison. Cues are read from
+    // a file at trial start, so there is never a call in flight to report.
+    elements.hintBanner.innerHTML = routeEvalText || "Explore the maze and find the EXIT";
     bannerVisible = true;
   }
   // Nothing in the banner while practising: it sits in the same part of the scene as
