@@ -149,6 +149,71 @@ function haltOnBadCondition({ raw }) {
   throw new Error(`unusable study link: condition=${JSON.stringify(raw)}`);
 }
 
+// One link for everyone: with no condition on the URL, ask the server for an id and a
+// condition and come back with them in the address bar. From that point on the run is
+// an ordinary explicit link, so reloads, the survey hand-off and the moderator mirror
+// all keep working unchanged.
+const ASSIGNED_KEY = "llm_maze_assigned";   // localStorage, survives a new tab
+
+// Reuse the assignment this browser already has. Without it, reopening the invitation
+// mints a second participant and splits one person's data across two ids -- the same
+// problem Qualtrics solves with its "prevent multiple responses" cookie. ?new=1 forces
+// a fresh one, which is what piloting needs.
+function rememberedAssignment() {
+  try {
+    if (new URLSearchParams(globalThis.location.search).get("new")) return null;
+    const saved = JSON.parse(globalThis.localStorage.getItem(ASSIGNED_KEY) || "null");
+    return saved && CONDITIONS.includes(saved.condition) && saved.participant_id ? saved : null;
+  } catch (_e) { return null; }
+}
+
+function showAssigningScreen() {
+  const doc = globalThis.document;
+  if (doc) doc.body.innerHTML = `
+    <div style="font:16px/1.6 system-ui,sans-serif;max-width:34rem;margin:14vh auto;padding:0 1.5rem;color:#101828">
+      <h1 style="font-size:1.35rem;margin:0 0 .75rem">Setting up your session…</h1>
+      <p style="margin:0;color:#475467">This takes a moment. Please do not close the tab.</p>
+    </div>`;
+}
+
+async function assignAndRedirect() {
+  showAssigningScreen();
+  let assigned = rememberedAssignment();
+  if (!assigned) {
+    try {
+      const response = await fetch("/api/assign", { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      assigned = await response.json();
+      if (!CONDITIONS.includes(assigned.condition)) throw new Error("bad condition from server");
+      try { globalThis.localStorage.setItem(ASSIGNED_KEY, JSON.stringify(assigned)); } catch (_e) { /* private mode */ }
+    } catch (error) {
+      haltOnAssignFailure(error);
+      return new Promise(() => {});
+    }
+  }
+  const url = new URL(globalThis.location.href);
+  url.searchParams.set("pid", assigned.participant_id);
+  url.searchParams.set("condition", assigned.condition);
+  url.searchParams.delete("new");
+  globalThis.location.replace(url.toString());
+  // replace() does not stop this script, and the rest of the module would run against
+  // the un-assigned URL. Never resolving parks it until the navigation lands.
+  return new Promise(() => {});
+}
+
+function haltOnAssignFailure(error) {
+  const doc = globalThis.document;
+  if (!doc) return;
+  doc.body.innerHTML = `
+    <div style="font:16px/1.6 system-ui,sans-serif;max-width:34rem;margin:14vh auto;padding:0 1.5rem;color:#101828">
+      <h1 style="font-size:1.35rem;margin:0 0 .75rem">We could not start your session</h1>
+      <p style="margin:0 0 1rem">Something went wrong setting up. Nothing has been recorded.</p>
+      <p style="margin:0;color:#475467">Please refresh the page. If it happens again, let the
+        researcher know.</p>
+    </div>`;
+  console.error("assignment failed:", error);
+}
+
 function parseProgress(raw) {
   try {
     const saved = JSON.parse(raw || "null");
@@ -202,7 +267,15 @@ const savedProgress = !isStudy || wantsRestart ? null
 // opened without ?condition.
 const conditionParam = readConditionParam();
 // Checked before anything is stored or logged, so a bad link leaves no trace.
-if (isStudy && !isModeratorView && !conditionParam.valid) haltOnBadCondition(conditionParam);
+//
+// No condition at all means the plain invitation link: assign one and come back. A
+// condition that is present but misspelled is a DIFFERENT case and still refuses --
+// "?condition=isappear" is a broken link someone built, not an anonymous arrival, and
+// silently assigning would hide the mistake behind a run that looks normal.
+if (isStudy && !isModeratorView && !conditionParam.valid) {
+  if (conditionParam.raw === "") await assignAndRedirect();
+  else haltOnBadCondition(conditionParam);
+}
 
 const CONDITION_VALUE = (isModeratorView && savedProgress && savedProgress.condition)
   ? savedProgress.condition

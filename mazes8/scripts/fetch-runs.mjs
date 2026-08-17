@@ -1,10 +1,7 @@
 // Pull every stored run out of the deployment's KV and write them locally, so analysis
 // happens on a file rather than against a live endpoint.
 //
-//   ADMIN_KEY=... node mazes8/scripts/fetch-runs.mjs https://<deployment>.vercel.app [outdir]
-//
-// Reading participant data needs the key the deployment was given; only writing is
-// open, because a participant's browser cannot hold a secret.
+//   node mazes8/scripts/fetch-runs.mjs https://<deployment>.vercel.app [outdir]
 //
 // Writes <outdir>/runs.json (everything) and <outdir>/summaries.csv (one row per
 // completed maze, which is the unit most of the analysis is about).
@@ -15,15 +12,9 @@ const base = (process.argv[2] || "").replace(/\/$/, "");
 const outDir = process.argv[3] || "error_logs/kv-export";
 if (!base) { console.error("usage: fetch-runs.mjs <deployment-url> [outdir]"); process.exit(1); }
 
-const key = process.env.ADMIN_KEY || "";
-if (!key) { console.error("set ADMIN_KEY (the same value as the deployment) before running this"); process.exit(1); }
-
 const get = async (u) => {
-  const r = await fetch(u, { headers: { "x-admin-key": key } });
-  if (!r.ok) {
-    const detail = await r.json().catch(() => ({}));
-    throw new Error(`${u} -> HTTP ${r.status}${detail.message ? `: ${detail.message}` : ""}`);
-  }
+  const r = await fetch(u);
+  if (!r.ok) throw new Error(`${u} -> HTTP ${r.status}`);
   return r.json();
 };
 

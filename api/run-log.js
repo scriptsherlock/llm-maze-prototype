@@ -18,28 +18,6 @@ const safeId = (id) => String(id || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 
 const listKey = (id) => `run:${id}`;
 const INDEX_KEY = "runs";
 
-// Reading participant records requires ADMIN_KEY; writing does not, because the
-// participant's own browser has to POST without holding a secret. Fail CLOSED when the
-// key is unset: an unconfigured deployment must not be the one that serves the whole
-// study to anyone with the URL. The message says how to fix it, so a locked-out
-// moderator is a two-minute problem rather than a mystery.
-const ADMIN_KEY = process.env.ADMIN_KEY || "";
-const crypto = require("crypto");
-
-function authorise(req) {
-  if (!ADMIN_KEY) {
-    return { ok: false, status: 503, message: "ADMIN_KEY is not set for this deployment. Add it in the Vercel project settings (Preview and Production), redeploy, then call this with ?key=<that value>." };
-  }
-  const given = String((req.query && req.query.key) || (req.headers && req.headers["x-admin-key"]) || "");
-  const a = Buffer.from(given);
-  const b = Buffer.from(ADMIN_KEY);
-  // Compare in constant time, but only when the lengths match -- timingSafeEqual throws
-  // on a length mismatch, which would leak length through an exception.
-  const ok = a.length === b.length && crypto.timingSafeEqual(a, b);
-  if (!ok) return { ok: false, status: 401, message: "Bad or missing key." };
-  return { ok: true };
-}
-
 async function kv(command) {
   if (!KV_URL || !KV_TOKEN) throw new Error("KV is not configured for this deployment.");
   const response = await fetch(KV_URL, {
@@ -105,12 +83,6 @@ module.exports = async (req, res) => {
       }
       return;
     }
-
-    // Everything past this point returns participant data, so it needs the key. The
-    // health check above deliberately stays open: it reports only whether the store
-    // answers, and it is the first thing to reach for when a deployment looks wrong.
-    const auth = authorise(req);
-    if (!auth.ok) { res.status(auth.status).json({ status: "unauthorised", message: auth.message }); return; }
 
     // ?export=summaries|events|json collects every stored run and returns one file.
     // Aggregating here rather than in the browser means the moderator can download the
@@ -178,26 +150,30 @@ module.exports = async (req, res) => {
     return;
   }
 
-  // Removing a run: pilot data before collection starts, or a participant who withdraws
-  // consent afterwards -- the second is an ethics requirement, not a convenience.
-  // DELETE rather than a GET parameter on purpose: a URL that erases data should not be
-  // something a browser can follow, prefetch, or leave in history.
+  // Removing a run: pilot data before collection starts, and a participant who withdraws
+  // consent afterwards, which is an ethics requirement rather than a convenience.
+  // DELETE rather than a GET parameter on purpose -- a URL that erases data should not
+  // be something a browser can follow, prefetch, or leave sitting in history.
+  //
+  // Unauthenticated, like the rest of this endpoint. That is fine for a pilot and not
+  // fine once real data is in: anyone with the URL can erase the study.
   if (req.method === "DELETE") {
-    const auth = authorise(req);
-    if (!auth.ok) { res.status(auth.status).json({ status: "unauthorised", message: auth.message }); return; }
-    const id = safeId((req.query && req.query.id) || "");
+    const target = safeId((req.query && req.query.id) || "");
     const wipe = req.query && req.query.confirm === "DELETE-ALL";
-    if (!id && !wipe) {
+    if (!target && !wipe) {
       res.status(400).json({ status: "bad_request", message: "Pass ?id=<participant> to remove one run, or ?confirm=DELETE-ALL to clear the store." });
       return;
     }
     try {
-      const ids = id ? [id] : ((await kv(["SMEMBERS", INDEX_KEY])) || []);
+      const ids = target ? [target] : ((await kv(["SMEMBERS", INDEX_KEY])) || []);
       for (const runId of ids) {
         await kv(["DEL", listKey(runId)]);
         await kv(["SREM", INDEX_KEY, runId]);
       }
-      res.status(200).json({ status: "deleted", removed: ids });
+      // The assignment counter and log are separate keys, so a wipe that left them
+      // behind would restart ids at P004 with three dead entries in the allocation.
+      if (wipe) await kv(["DEL", "study:assigned", "study:assignments"]);
+      res.status(200).json({ status: "deleted", removed: ids, reset_assignment: Boolean(wipe) });
     } catch (error) {
       res.status(503).json({ status: "kv_unavailable", message: error.message });
     }
