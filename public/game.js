@@ -1562,6 +1562,11 @@ function showTaskComplete() {
   // On the last maze the button still has work to do if a final questionnaire is
   // configured -- it opens it. Only a run with nothing left to show is disabled.
   button.disabled = !hasNext && !surveyUrl;
+  // Recorded when the last card is SHOWN, not when its button is clicked. With no final
+  // questionnaire that button is disabled, so the click handler holding markRunComplete
+  // could never fire -- which is precisely the stable_ai case, and left a completed run
+  // indistinguishable from one never started, free to be run again from maze 1.
+  if (!hasNext) markRunComplete();
   if (!hasNext && !surveyUrl && note) {
     note.classList.remove("hidden");
     note.textContent = "That is the end of the run. Thank you.";
