@@ -1,12 +1,15 @@
 {
   "maze": "maze-7",
-  "generated_at": "2026-08-16T21:37:11.456Z",
+  "generated_at": "2026-08-17T00:30:41.342Z",
   "method": "derived-from-verified-routes",
   "source_routes": [
+    53,
     53,
     57,
     61,
     65,
+    65,
+    69,
     69,
     69,
     69,
@@ -18,7 +21,7 @@
     85
   ],
   "provider": "gemini",
-  "model": "gemini-3.1-flash-lite",
+  "model": "gemini-3.5-flash-lite+gemini-3.1-flash-lite",
   "complete": true,
   "goal": {
     "x": 9,
@@ -662,6 +665,72 @@
       "y": 7,
       "branches": [
         {
+          "x": 13,
+          "y": 6,
+          "steps": 35,
+          "verdict": "toward_goal",
+          "proven": true,
+          "path": [
+            {
+              "x": 13,
+              "y": 6
+            },
+            {
+              "x": 13,
+              "y": 5
+            },
+            {
+              "x": 12,
+              "y": 5
+            },
+            {
+              "x": 11,
+              "y": 5
+            },
+            {
+              "x": 10,
+              "y": 5
+            },
+            {
+              "x": 9,
+              "y": 5
+            },
+            {
+              "x": 9,
+              "y": 4
+            },
+            {
+              "x": 9,
+              "y": 3
+            },
+            {
+              "x": 8,
+              "y": 3
+            },
+            {
+              "x": 7,
+              "y": 3
+            },
+            {
+              "x": 7,
+              "y": 4
+            },
+            {
+              "x": 7,
+              "y": 5
+            },
+            {
+              "x": 7,
+              "y": 6
+            },
+            {
+              "x": 7,
+              "y": 7
+            }
+          ],
+          "reason": ""
+        },
+        {
           "x": 14,
           "y": 7,
           "steps": 55,
@@ -881,16 +950,16 @@
               "y": 7
             },
             {
-              "x": 12,
-              "y": 7
-            },
-            {
-              "x": 11,
-              "y": 7
-            },
-            {
-              "x": 11,
+              "x": 13,
               "y": 6
+            },
+            {
+              "x": 13,
+              "y": 5
+            },
+            {
+              "x": 12,
+              "y": 5
             },
             {
               "x": 11,
@@ -1251,16 +1320,16 @@
               "y": 7
             },
             {
-              "x": 12,
-              "y": 7
-            },
-            {
-              "x": 11,
-              "y": 7
-            },
-            {
-              "x": 11,
+              "x": 13,
               "y": 6
+            },
+            {
+              "x": 13,
+              "y": 5
+            },
+            {
+              "x": 12,
+              "y": 5
             },
             {
               "x": 11,
@@ -1636,7 +1705,7 @@
         {
           "x": 7,
           "y": 12,
-          "steps": 31,
+          "steps": 27,
           "verdict": "toward_goal",
           "proven": true,
           "path": [
@@ -1657,44 +1726,44 @@
               "y": 11
             },
             {
-              "x": 5,
-              "y": 10
-            },
-            {
-              "x": 5,
-              "y": 9
-            },
-            {
-              "x": 6,
-              "y": 9
-            },
-            {
-              "x": 7,
-              "y": 9
-            },
-            {
-              "x": 7,
-              "y": 8
-            },
-            {
-              "x": 7,
-              "y": 7
-            },
-            {
-              "x": 6,
-              "y": 7
-            },
-            {
-              "x": 5,
-              "y": 7
-            },
-            {
               "x": 4,
-              "y": 7
+              "y": 11
             },
             {
               "x": 3,
+              "y": 11
+            },
+            {
+              "x": 2,
+              "y": 11
+            },
+            {
+              "x": 1,
+              "y": 11
+            },
+            {
+              "x": 1,
+              "y": 10
+            },
+            {
+              "x": 1,
+              "y": 9
+            },
+            {
+              "x": 1,
+              "y": 8
+            },
+            {
+              "x": 1,
               "y": 7
+            },
+            {
+              "x": 1,
+              "y": 6
+            },
+            {
+              "x": 1,
+              "y": 5
             }
           ],
           "reason": ""
@@ -1846,7 +1915,7 @@
         {
           "x": 18,
           "y": 15,
-          "steps": 69,
+          "steps": 65,
           "verdict": "detour",
           "proven": true,
           "path": [
@@ -1907,7 +1976,7 @@
               "y": 19
             }
           ],
-          "reason": "~16 steps longer than the AI's best way from here"
+          "reason": "~12 steps longer than the AI's best way from here"
         }
       ]
     },
@@ -1918,7 +1987,7 @@
         {
           "x": 1,
           "y": 16,
-          "steps": 41,
+          "steps": 37,
           "verdict": "toward_goal",
           "proven": true,
           "path": [
@@ -1991,7 +2060,7 @@
           "x": 3,
           "y": 18,
           "steps": 43,
-          "verdict": "toward_goal",
+          "verdict": "detour",
           "proven": true,
           "path": [
             {
@@ -2051,12 +2120,12 @@
               "y": 13
             }
           ],
-          "reason": ""
+          "reason": "~4 steps longer than the AI's best way from here"
         },
         {
           "x": 2,
           "y": 17,
-          "steps": 43,
+          "steps": 39,
           "verdict": "toward_goal",
           "proven": true,
           "path": [
@@ -2128,7 +2197,7 @@
         {
           "x": 14,
           "y": 17,
-          "steps": 63,
+          "steps": 59,
           "verdict": "toward_goal",
           "proven": true,
           "path": [
@@ -2200,7 +2269,7 @@
         {
           "x": 12,
           "y": 19,
-          "steps": 59,
+          "steps": 55,
           "verdict": "toward_goal",
           "proven": true,
           "path": [
@@ -2272,7 +2341,7 @@
         {
           "x": 15,
           "y": 18,
-          "steps": 65,
+          "steps": 61,
           "verdict": "detour",
           "proven": true,
           "path": [
@@ -2338,7 +2407,7 @@
         {
           "x": 14,
           "y": 19,
-          "steps": 61,
+          "steps": 57,
           "verdict": "toward_goal",
           "proven": true,
           "path": [
@@ -2410,7 +2479,7 @@
         {
           "x": 16,
           "y": 19,
-          "steps": 63,
+          "steps": 59,
           "verdict": "toward_goal",
           "proven": true,
           "path": [

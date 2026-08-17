@@ -1,6 +1,6 @@
 {
   "maze": "maze-3",
-  "generated_at": "2026-08-16T21:37:06.440Z",
+  "generated_at": "2026-08-17T00:30:35.837Z",
   "method": "derived-from-verified-routes",
   "source_routes": [
     53,
@@ -18,7 +18,11 @@
     89,
     89,
     89,
+    89,
     93,
+    93,
+    93,
+    101,
     101,
     101
   ],
@@ -595,7 +599,7 @@
         {
           "x": 5,
           "y": 4,
-          "steps": 69,
+          "steps": 65,
           "verdict": "detour",
           "proven": true,
           "path": [
@@ -656,7 +660,7 @@
               "y": 11
             }
           ],
-          "reason": "~40 steps longer than the AI's best way from here"
+          "reason": "~36 steps longer than the AI's best way from here"
         },
         {
           "x": 4,
@@ -1009,7 +1013,7 @@
         {
           "x": 4,
           "y": 5,
-          "steps": 67,
+          "steps": 63,
           "verdict": "detour",
           "proven": true,
           "path": [
@@ -1070,7 +1074,7 @@
               "y": 11
             }
           ],
-          "reason": "~36 steps longer than the AI's best way from here"
+          "reason": "~32 steps longer than the AI's best way from here"
         }
       ]
     },
@@ -1427,9 +1431,75 @@
           "reason": ""
         },
         {
+          "x": 4,
+          "y": 9,
+          "steps": 61,
+          "verdict": "detour",
+          "proven": true,
+          "path": [
+            {
+              "x": 4,
+              "y": 9
+            },
+            {
+              "x": 5,
+              "y": 9
+            },
+            {
+              "x": 6,
+              "y": 9
+            },
+            {
+              "x": 7,
+              "y": 9
+            },
+            {
+              "x": 8,
+              "y": 9
+            },
+            {
+              "x": 9,
+              "y": 9
+            },
+            {
+              "x": 9,
+              "y": 10
+            },
+            {
+              "x": 9,
+              "y": 11
+            },
+            {
+              "x": 9,
+              "y": 12
+            },
+            {
+              "x": 9,
+              "y": 13
+            },
+            {
+              "x": 10,
+              "y": 13
+            },
+            {
+              "x": 11,
+              "y": 13
+            },
+            {
+              "x": 12,
+              "y": 13
+            },
+            {
+              "x": 13,
+              "y": 13
+            }
+          ],
+          "reason": "~24 steps longer than the AI's best way from here"
+        },
+        {
           "x": 3,
           "y": 10,
-          "steps": 61,
+          "steps": 57,
           "verdict": "detour",
           "proven": true,
           "path": [
@@ -1490,7 +1560,7 @@
               "y": 13
             }
           ],
-          "reason": "~24 steps longer than the AI's best way from here"
+          "reason": "~20 steps longer than the AI's best way from here"
         }
       ]
     },
