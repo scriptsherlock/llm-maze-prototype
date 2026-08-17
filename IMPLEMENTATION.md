@@ -272,6 +272,40 @@ that found nothing, which is the same trap as the temperature clash. Everything 
 study serves comes from the free Gemini set and is unaffected; only the optimal-route
 top-up for mazes 1, 5 and 8 is blocked.
 
+### 3.5-flash-lite vs 3.1-flash-lite
+
+The only controlled model comparison in this project: both models, all eight mazes, one
+fresh pass each, identical settings (graph, high, 65536, temp 0.6, 3 attempts). Every
+earlier comparison was confounded, because the mazes built on 3.1 had reached their
+coverage through accumulated merge passes while the 3.5 numbers were single-shot.
+
+| maze | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | total |
+|---|---|---|---|---|---|---|---|---|---|
+| **3.5** | 22 | 22 | 18 | 17 | 23 | 12 | 20 | 24 | **158/200** |
+| 3.1 | 23 | 21 | 17 | 10* | 0* | 3 | 21 | 20 | 115/200 |
+
+`*` network failure, so 3.1 is handicapped there. Dropping mazes 4 and 5 entirely, 3.5
+still leads **118/150 to 105/150**. The margin is real but narrower than the totals
+suggest: 3.1 wins mazes 1 and 7, and the verdict rests mostly on mazes 6 and 8. On
+optimality the two are comparable — 3.1 found the true 53 on mazes 2 and 7.
+
+Still n=1 per maze per model. Eight paired samples beats the n=1 comparisons everything
+else here rests on, but it does not make this settled.
+
+### `fetch failed` is not a provider problem
+
+It has now appeared on **both** providers on long requests: twice on gpt-5-mini at high
+effort, twice again on Gemini 3.1. The first reading — that reasoning latency holds the
+socket open until it is reset — was too specific. Whatever this is, it is local to this
+machine or its network, it costs routes silently (the run reports fewer routes, not an
+error the caller notices), and it is a candidate explanation for any thin maze.
+
+**Timing figures from unattended runs are worthless.** The 3.1 sweep reported 4,358
+seconds for maze-4 and 27,143 for maze-5. File timestamps show it ran 01:33 to 10:34,
+so those numbers include the machine sleeping: the request, the abort timer and the
+process all suspend together, and `BATCH_TIMEOUT_MS=240000` never bounded anything.
+Coverage from such a run is still usable; latency is not.
+
 ### Provider-neutral settings, and two knobs that clash
 
 The prompt TEXT was always provider-neutral. The **settings** were not: Gemini had
