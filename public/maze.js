@@ -38,9 +38,9 @@ const STUDY_MAZES = {
 export const STUDY_SEQUENCE = ["m8-1", "m8-2", "m8-3", "m8-4", "m8-5", "m8-6", "m8-7", "m8-8"];
 const STUDY_PROGRESS_KEY = "llm_maze_study_progress";  // sessionStorage, participant
 const STUDY_LIVE_KEY = "llm_maze_study_live";          // localStorage, moderator mirror
-const TRAINING_KEY = "llm_maze_training_done";         // sessionStorage, per run
+const TRAINING_KEY = "llm_maze_training_done";         // per tab, mirrored per participant
 const PARTICIPANT_KEY = "llm_maze_participant";         // sessionStorage, per run
-const INTRO_KEY = "llm_maze_intro_done";                 // sessionStorage, per run
+const INTRO_KEY = "llm_maze_intro_done";                 // per tab, mirrored per participant
 
 // One id per run, so the eight mazes can be stitched back into a single record.
 // ?pid=... lets a moderator set it from a recruitment link; otherwise one is minted.
@@ -245,6 +245,26 @@ function readOwnProgress() {
   } catch (_e) { return null; }
 }
 
+// The introduction and the practice maze are remembered per tab too, and they have the
+// same problem progress had: a reopened invitation is a new tab but the same person, so
+// without a mirror a resumed run replays both before reaching the maze it stopped on.
+// Mirrored under the participant, so a different person on this browser is unaffected.
+function readRunFlag(key) {
+  try {
+    const own = globalThis.sessionStorage.getItem(key);
+    if (own !== null) return own;
+    const mirrored = JSON.parse(globalThis.localStorage.getItem(`${key}_mirror`) || "null");
+    return mirrored && mirrored.participant === PARTICIPANT_ID ? mirrored.value : null;
+  } catch (_e) { return null; }
+}
+
+function writeRunFlag(key, value) {
+  try { globalThis.sessionStorage.setItem(key, value); } catch (_e) { /* ignore */ }
+  try {
+    globalThis.localStorage.setItem(`${key}_mirror`, JSON.stringify({ participant: PARTICIPANT_ID, value }));
+  } catch (_e) { /* ignore */ }
+}
+
 function readLiveProgress() {
   try { return parseProgress(globalThis.localStorage.getItem(STUDY_LIVE_KEY)); } catch (_e) { return null; }
 }
@@ -380,11 +400,11 @@ export const MID_MAZE_CUTOFF = (new URLSearchParams(globalThis.location ? global
 // the condition like the other per-run flags, so switching condition shows it again.
 export const NEEDS_INTRO = isStudy && !isModeratorView && (() => {
   if (wantsRestart) return true;
-  try { return globalThis.sessionStorage.getItem(INTRO_KEY) !== CONDITION_VALUE; } catch (_e) { return true; }
+  return readRunFlag(INTRO_KEY) !== CONDITION_VALUE;
 })();
 
 export function completeIntro() {
-  try { globalThis.sessionStorage.setItem(INTRO_KEY, CONDITION_VALUE); } catch (_e) { /* ignore */ }
+  writeRunFlag(INTRO_KEY, CONDITION_VALUE);
   globalThis.location.reload();
 }
 
@@ -397,11 +417,11 @@ export function completeIntro() {
 // into maze 1.
 export const IS_TRAINING = isStudy && !isModeratorView && !NEEDS_INTRO && (() => {
   if (wantsRestart) return false;   // the introduction comes first after a restart
-  try { return globalThis.sessionStorage.getItem(TRAINING_KEY) !== CONDITION_VALUE; } catch (_e) { return true; }
+  return readRunFlag(TRAINING_KEY) !== CONDITION_VALUE;
 })();
 
 export function completeTraining() {
-  try { globalThis.sessionStorage.setItem(TRAINING_KEY, CONDITION_VALUE); } catch (_e) { /* ignore */ }
+  writeRunFlag(TRAINING_KEY, CONDITION_VALUE);
   globalThis.location.reload();
 }
 
@@ -420,6 +440,9 @@ export function resetStudyProgress() {
   try { globalThis.sessionStorage.removeItem(TRAINING_KEY); } catch (_error) { /* ignore */ }
   try { globalThis.sessionStorage.removeItem(INTRO_KEY); } catch (_error) { /* ignore */ }
   try { globalThis.localStorage.removeItem(STUDY_LIVE_KEY); } catch (_error) { /* ignore */ }
+  // the mirrors too, or ?restart replays nothing and drops straight into maze 1
+  try { globalThis.localStorage.removeItem(`${TRAINING_KEY}_mirror`); } catch (_error) { /* ignore */ }
+  try { globalThis.localStorage.removeItem(`${INTRO_KEY}_mirror`); } catch (_error) { /* ignore */ }
 }
 
 const path = (globalThis.location && globalThis.location.pathname) || "";
