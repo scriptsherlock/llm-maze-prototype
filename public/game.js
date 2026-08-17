@@ -1,6 +1,6 @@
 import * as THREE from "/vendor/three/three.module.js";
 import { GLTFLoader } from "/vendor/three/addons/loaders/GLTFLoader.js";
-import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, MAZE_AI_REMOVED, MID_MAZE_CUTOFF, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze, IS_TRAINING, completeTraining, surveyUrlFor, SURVEY_AFTER_INDEX, PARTICIPANT_ID, NEEDS_INTRO, completeIntro } from "./maze.js";
+import { DIRS, MAZE_CONFIG, MAZE_KEY, HINTS_URL, SOLUTIONS_URL, CONDITION, MAZE_AI_REMOVED, MID_MAZE_CUTOFF, IS_STUDY, STUDY_INDEX, STUDY_TOTAL, advanceStudyMaze, IS_TRAINING, completeTraining, surveyUrlFor, SURVEY_AFTER_INDEX, PARTICIPANT_ID, NEEDS_INTRO, completeIntro, markRunComplete } from "./maze.js";
 
 const maze = MAZE_CONFIG.maze;
 if (typeof window !== "undefined") window.__mazeRows = maze.map((r) => r.join("")).join("");
@@ -1539,11 +1539,13 @@ function showTaskComplete() {
   // post test responses into the real response set.
   const note = document.getElementById("surveyNote");
   const link = document.getElementById("surveyLink");
-  if (link) link.classList.add("hidden");   // questionnaires are framed, never linked
+  // Questionnaires open in the framed overlay, so the separate link is never shown --
+  // two buttons that do the same thing invite the participant to open the form twice,
+  // once in a tab that then sits behind the maze.
+  if (link) link.classList.add("hidden");
   const atSurvey = IS_STUDY && SURVEY_AFTER_INDEX.includes(STUDY_INDEX);
   const surveyUrl = atSurvey ? surveyUrlFor(STUDY_INDEX) : "";
   if (note) note.classList.toggle("hidden", !atSurvey);
-  if (link) link.classList.toggle("hidden", !atSurvey || !surveyUrl);
   if (atSurvey) {
     if (note) {
       note.textContent = surveyUrl
@@ -1577,6 +1579,8 @@ function handleNextMaze() {
     // and leaving the run framed behind it only invites a stray click.
     if (isLast) {
       logState("final_survey_opened");
+      // Marked before navigating away: once the page is gone there is no chance to.
+      markRunComplete();
       globalThis.location.href = withRunParams(surveyUrl, STUDY_INDEX + 1);
       return;
     }
@@ -1591,8 +1595,10 @@ function handleNextMaze() {
   if (button) { button.disabled = true; button.textContent = "Loading…"; }
   logState("next_maze_clicked", { from_index: STUDY_INDEX });
   // Re-inits the page on the same url; false means there is nothing left to load.
-  if (!advanceStudyMaze() && button) {
-    button.textContent = "Finished";
+  // false means there is no maze after this one, i.e. the run is over.
+  if (!advanceStudyMaze()) {
+    markRunComplete();
+    if (button) button.textContent = "Finished";
   }
 }
 

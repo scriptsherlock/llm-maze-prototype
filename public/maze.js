@@ -220,14 +220,29 @@ function parseProgress(raw) {
     if (!saved || saved.sequence !== SEQUENCE_SIGNATURE) return null; // sequence changed
     const n = Number.parseInt(saved.index, 10);
     if (!Number.isFinite(n)) return null;
-    return { condition: saved.condition, index: Math.min(Math.max(n, 0), STUDY_SEQUENCE.length - 1) };
+    return {
+      condition: saved.condition,
+      index: Math.min(Math.max(n, 0), STUDY_SEQUENCE.length - 1),
+      participant: saved.participant || "",
+      done: Boolean(saved.done),
+    };
   } catch (_error) {
     return null;
   }
 }
 
+// Progress lives in sessionStorage, which dies with the tab. That was right when a tab
+// WAS the session; now that the id survives in localStorage, a reopened invitation came
+// back as the same participant on maze 1 and appended a second set of eight summaries
+// to one record. So fall back to the mirror when it belongs to this same participant:
+// the tab is gone, the person is not.
 function readOwnProgress() {
-  try { return parseProgress(globalThis.sessionStorage.getItem(STUDY_PROGRESS_KEY)); } catch (_e) { return null; }
+  try {
+    const own = parseProgress(globalThis.sessionStorage.getItem(STUDY_PROGRESS_KEY));
+    if (own) return own;
+    const mirrored = parseProgress(globalThis.localStorage.getItem(STUDY_LIVE_KEY));
+    return mirrored && mirrored.participant === PARTICIPANT_ID ? mirrored : null;
+  } catch (_e) { return null; }
 }
 
 function readLiveProgress() {
@@ -235,10 +250,33 @@ function readLiveProgress() {
 }
 
 // The participant records where it is in its own tab AND mirrors it for the moderator.
-function writeProgress(condition, index) {
-  const payload = JSON.stringify({ sequence: SEQUENCE_SIGNATURE, condition, index });
+function writeProgress(condition, index, done = false) {
+  // participant goes in so the mirror can be told apart from someone else's run on the
+  // same browser -- without it, resuming from the mirror would adopt a stranger's place.
+  const payload = JSON.stringify({ sequence: SEQUENCE_SIGNATURE, condition, index, done, participant: PARTICIPANT_ID });
   try { globalThis.sessionStorage.setItem(STUDY_PROGRESS_KEY, payload); } catch (_e) { /* ignore */ }
   try { globalThis.localStorage.setItem(STUDY_LIVE_KEY, payload); } catch (_e) { /* ignore */ }
+}
+
+// The end of maze 8. advanceStudyMaze never records this -- it returns false without
+// writing once there is no next maze -- so without an explicit mark a finished run is
+// indistinguishable from one that has not started.
+export function markRunComplete() {
+  if (!isStudy) return;
+  writeProgress(CONDITION_VALUE, STUDY_SEQUENCE.length - 1, true);
+}
+
+function haltOnAlreadyDone() {
+  const doc = globalThis.document;
+  if (!doc) return;
+  doc.body.innerHTML = `
+    <div style="font:16px/1.6 system-ui,sans-serif;max-width:34rem;margin:14vh auto;padding:0 1.5rem;color:#101828">
+      <h1 style="font-size:1.35rem;margin:0 0 .75rem">You have already completed this study</h1>
+      <p style="margin:0 0 1rem">Your answers are saved. There is nothing more to do, and
+        there is no need to go through the mazes again.</p>
+      <p style="margin:0;color:#475467">Thank you for taking part.</p>
+    </div>`;
+  throw new Error("run already completed");
 }
 
 // ?restart clears progress, for re-running without hunting through devtools.
@@ -280,6 +318,14 @@ if (isStudy && !isModeratorView && !conditionParam.valid) {
 const CONDITION_VALUE = (isModeratorView && savedProgress && savedProgress.condition)
   ? savedProgress.condition
   : (conditionParam.valid ? conditionParam.raw : "stable_ai");
+
+// A finished run must not start again: the rows would append to the same record and the
+// export would show sixteen maze summaries for one person. ?restart still overrides,
+// which is what piloting needs.
+if (isStudy && !isModeratorView && !wantsRestart
+  && savedProgress && savedProgress.done && savedProgress.condition === CONDITION_VALUE) {
+  haltOnAlreadyDone();
+}
 
 export const STUDY_INDEX = !isStudy ? -1
   : (savedProgress && savedProgress.condition === CONDITION_VALUE) ? savedProgress.index
