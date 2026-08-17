@@ -221,6 +221,7 @@ out. The token counts show it — a 54-cell answer is only ~600 tokens:
 | gemini-3.5-flash-lite | both | medium | 1 | 8/25 | 61 |
 | gemini-3.5-flash-lite | grid | high | 2 | 9/25 | 61 |
 | gpt-5-mini | graph | medium | 5 | 18/25 | **53** |
+| gpt-5-mini | graph | **high** | 1 | 9/25 | **53** | 2 of 3 calls died `fetch failed` |
 | o4-mini | graph | medium | 2 | 14/25 | **53** |
 | gpt-5.4-mini | graph | high | 2 | 13/25 | **53** |
 | gpt-5-nano | graph | medium | 1 | 14/25 | 73 |
@@ -250,8 +251,26 @@ and an aborted request has still generated tokens at the provider, so billed spe
 be several times what the ledger shows. Raise the timeout rather than eating silent
 retries.
 
+**High effort may be self-defeating on a long request.** `gpt-5-mini` at `high` spent
+858 seconds and 19,210 output tokens to return ONE route -- the optimal 53, which is the
+second independent confirmation that this model reaches maze-5's unique shortest path.
+But two of its three attempts died with `fetch failed`, a dropped connection rather than
+an API refusal, with `BATCH_TIMEOUT_MS=900000` never firing. The likely reading is that
+the thinking which finds the optimum also holds the socket open long enough to be reset,
+in which case the fix is streaming or the background API, not a longer timeout. Do not
+read "high gave 1 route, medium gave 5" as effort hurting: that is one sample against
+three.
+
 The bar a paid model has to clear is not "works". The free set gives 183/200 junctions
 cued at 83% exact, in 25 minutes, for nothing.
+
+**The OpenAI key is out of credit** (2026-08-17). A refused request returns
+`You have no credits remaining` as an error with `calls: 0` and costs nothing, so the
+medium-effort rerun never ran. This is only visible because `repr-test.mjs` logs
+`solutions_error` alongside rejections -- without that it would have read as a model
+that found nothing, which is the same trap as the temperature clash. Everything the
+study serves comes from the free Gemini set and is unaffected; only the optimal-route
+top-up for mazes 1, 5 and 8 is blocked.
 
 ### Provider-neutral settings, and two knobs that clash
 
