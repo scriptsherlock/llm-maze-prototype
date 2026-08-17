@@ -7,3 +7,4 @@ render-*.png
 error_logs/runs/
 error_logs/llm-spend.jsonl
 error_logs/last-payload.txt
+error_logs/kv-export/
