@@ -176,12 +176,16 @@ function showAssigningScreen() {
     </div>`;
 }
 
-async function assignAndRedirect() {
+async function assignAndRedirect(fixedCondition = "") {
   showAssigningScreen();
   let assigned = rememberedAssignment();
+  // A remembered assignment from a DIFFERENT condition belongs to another run. Reusing
+  // it would silently move the participant between groups.
+  if (assigned && fixedCondition && assigned.condition !== fixedCondition) assigned = null;
   if (!assigned) {
     try {
-      const response = await fetch("/api/assign", { cache: "no-store" });
+      const query = fixedCondition ? `?condition=${encodeURIComponent(fixedCondition)}` : "";
+      const response = await fetch(`/api/assign${query}`, { cache: "no-store" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       assigned = await response.json();
       if (!CONDITIONS.includes(assigned.condition)) throw new Error("bad condition from server");
@@ -333,6 +337,14 @@ const conditionParam = readConditionParam();
 if (isStudy && !isModeratorView && !conditionParam.valid) {
   if (conditionParam.raw === "") await assignAndRedirect();
   else haltOnBadCondition(conditionParam);
+}
+
+// A per-condition link still needs an id, and it must come from the server. Minting one
+// in the page produced records nobody could attribute -- the stray "p_..." rows -- so a
+// study link without ?pid always goes and gets one, keeping its condition.
+const hasPid = Boolean(new URLSearchParams((globalThis.location && globalThis.location.search) || "").get("pid"));
+if (isStudy && !isModeratorView && conditionParam.valid && !hasPid) {
+  await assignAndRedirect(conditionParam.raw);
 }
 
 const CONDITION_VALUE = (isModeratorView && savedProgress && savedProgress.condition)

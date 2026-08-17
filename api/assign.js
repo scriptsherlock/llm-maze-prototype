@@ -1,24 +1,28 @@
-// Hand out a participant id and a condition, so everyone can be sent ONE link.
+// Hand out a participant id, and a condition if the link did not already fix one.
 //
-//   GET /api/assign  ->  { participant_id: "P007", condition: "disappear", n: 7 }
+//   GET /api/assign?condition=no_ai  ->  { participant_id: "no_ai-001", condition: "no_ai" }
+//   GET /api/assign                  ->  { participant_id: "disappear-004", condition: "disappear" }
 //
-// This is the anonymous-link pattern: the invitation carries no identity, and the
-// study assigns one on arrival. The alternative -- a unique pre-built link per person
-// -- needs a contact list before recruitment and breaks if anyone forwards their link.
+// Two ways to run the study, and the link chooses which:
 //
-// Balance is the reason this lives on the server. A coin flip in the browser drifts:
-// with 30 participants a uniform random choice lands three ways unevenly often enough
-// to matter. A counter in the store cannot drift, because INCR is atomic -- two people
-// arriving in the same second get 7 and 8, never 7 twice.
+//   ONE LINK PER CONDITION (?condition=... on the invitation). The condition is fixed
+//   by which link a participant was sent, so each group is a separate recruitment with
+//   a separate dataset. Ids are numbered per condition and carry it -- "no_ai-001" --
+//   so a row is attributable from the id alone, with no join needed to read a CSV.
 //
-// Within that, assignment is still randomised: conditions are dealt in blocks of three
-// and each block is permuted from its own index, so the groups are equal after every
-// third participant and the order is not a repeating cycle anyone could predict.
+//   ONE LINK FOR EVERYONE (no ?condition). The server assigns, balanced in permuted
+//   blocks of three. More like a real deployment, and the only way to keep allocation
+//   out of the recruiter's hands, but the groups are then interleaved in one dataset.
+//
+// Either way the ID comes from here rather than the browser. A page that mints its own
+// gets an id nothing else knows about, which is where the stray "p_msxb389n_3cc324"
+// records came from: real rows, no condition, attributable to nobody.
 const KV_URL = process.env.KV_REST_API_URL;
 const KV_TOKEN = process.env.KV_REST_API_TOKEN;
 
 const CONDITIONS = ["no_ai", "stable_ai", "disappear"];
-const COUNTER_KEY = "study:assigned";
+const BALANCED_COUNTER = "study:assigned";
+const counterFor = (condition) => `study:assigned:${condition}`;
 const ASSIGN_LOG = "study:assignments";
 
 async function kv(command) {
@@ -33,11 +37,10 @@ async function kv(command) {
   return data.result;
 }
 
-// Permute one block of three from its index. Deterministic, so the whole allocation can
-// be reproduced from the counter alone for the writeup -- no separate record to lose.
+// Permute one block of three from its index, so the groups are equal after every third
+// participant without the order being a repeating cycle. splitmix32: a plain LCG was
+// tried here and dealt every block in the SAME order, which is balanced but predictable.
 function blockOrder(block) {
-  // splitmix32. A plain LCG was tried here and every block came out in the SAME order,
-  // which is balanced but a fixed repeating cycle -- exactly what randomising is for.
   let h = block + 1;
   const next = () => {
     h = (h + 0x9e3779b9) | 0;
@@ -59,18 +62,36 @@ module.exports = async (req, res) => {
     res.status(405).json({ status: "method_not_allowed", message: "Use GET." });
     return;
   }
+  const asked = String((req.query && req.query.condition) || "").trim().toLowerCase();
+  if (asked && !CONDITIONS.includes(asked)) {
+    // Same reasoning as the client-side guard: a misspelled condition is a broken link
+    // someone built, and guessing would hide it behind a run that looks normal.
+    res.status(400).json({ status: "bad_request", message: `Unknown condition "${asked}".` });
+    return;
+  }
+
   try {
-    const n = Number(await kv(["INCR", COUNTER_KEY]));
-    const condition = blockOrder(Math.floor((n - 1) / CONDITIONS.length))[(n - 1) % CONDITIONS.length];
-    const participant_id = `P${String(n).padStart(3, "0")}`;
+    let condition = asked;
+    let n;
+    if (condition) {
+      // Numbered within its own condition, so each link produces its own 001, 002, ...
+      n = Number(await kv(["INCR", counterFor(condition)]));
+    } else {
+      const overall = Number(await kv(["INCR", BALANCED_COUNTER]));
+      condition = blockOrder(Math.floor((overall - 1) / CONDITIONS.length))[(overall - 1) % CONDITIONS.length];
+      n = Number(await kv(["INCR", counterFor(condition)]));
+    }
+    const participant_id = `${condition}-${String(n).padStart(3, "0")}`;
 
     // Written before the participant does anything, so someone who opens the link and
-    // leaves still appears in the allocation. Without it, dropouts would be invisible
-    // and the groups would look balanced when they were not.
-    await kv(["RPUSH", ASSIGN_LOG, JSON.stringify({ participant_id, condition, n, at: new Date().toISOString() })]);
+    // leaves still appears in the allocation. Without it, dropouts are invisible and
+    // the groups look balanced when they are not.
+    await kv(["RPUSH", ASSIGN_LOG, JSON.stringify({
+      participant_id, condition, n, assigned_by: asked ? "link" : "server", at: new Date().toISOString(),
+    })]);
 
     res.setHeader("Cache-Control", "no-store");
-    res.status(200).json({ participant_id, condition, n });
+    res.status(200).json({ participant_id, condition, n, assigned_by: asked ? "link" : "server" });
   } catch (error) {
     // No silent fallback to a random condition: an unbalanced study that looks fine is
     // worse than a link that plainly refuses.

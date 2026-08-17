@@ -88,8 +88,12 @@ module.exports = async (req, res) => {
     // Aggregating here rather than in the browser means the moderator can download the
     // whole study from a plain link, without having run any of the sessions themselves
     // -- the existing Save CSV buttons only ever saw the current tab's own rows.
+    // &condition=no_ai narrows the file to one group, so each condition can be pulled
+    // as its own dataset rather than filtered by hand afterwards. Filtering on the row
+    // rather than the id, because the id format has changed once already.
     if (req.query && req.query.export) {
       const kind = String(req.query.export).toLowerCase();
+      const onlyCondition = String((req.query && req.query.condition) || "").trim().toLowerCase();
       try {
         const ids = (await kv(["SMEMBERS", INDEX_KEY])) || [];
         const records = [];
@@ -100,17 +104,22 @@ module.exports = async (req, res) => {
         }
         const stamp = new Date().toISOString().slice(0, 10);
 
+        const tag = onlyCondition ? `-${onlyCondition}` : "";
         if (kind === "json") {
+          const out = onlyCondition
+            ? records.filter((r) => r.events.some((e) => e.condition === onlyCondition))
+            : records;
           res.setHeader("Content-Type", "application/json");
-          res.setHeader("Content-Disposition", `attachment; filename="llm-maze-runs-${stamp}.json"`);
-          res.status(200).send(JSON.stringify(records, null, 2));
+          res.setHeader("Content-Disposition", `attachment; filename="llm-maze-runs${tag}-${stamp}.json"`);
+          res.status(200).send(JSON.stringify(out, null, 2));
           return;
         }
 
-        const wanted = kind === "events"
+        const all = kind === "events"
           ? records.flatMap((r) => r.events.map((e) => ({ participant_id: r.participant_id, ...e })))
           : records.flatMap((r) => r.events.filter((e) => e.action === "maze_summary")
               .map((e) => ({ participant_id: r.participant_id, ...e })));
+        const wanted = onlyCondition ? all.filter((r) => r.condition === onlyCondition) : all;
 
         // Columns from the union of keys present, so a field added to the summary
         // later still comes out without touching this.
@@ -122,7 +131,7 @@ module.exports = async (req, res) => {
         };
         const csv = [cols.join(","), ...wanted.map((r) => cols.map((c) => esc(r[c])).join(","))].join("\n");
         res.setHeader("Content-Type", "text/csv; charset=utf-8");
-        res.setHeader("Content-Disposition", `attachment; filename="llm-maze-${kind}-${stamp}.csv"`);
+        res.setHeader("Content-Disposition", `attachment; filename="llm-maze-${kind}${tag}-${stamp}.csv"`);
         res.status(200).send(csv);
       } catch (error) {
         res.status(503).json({ status: "kv_unavailable", message: error.message });
