@@ -527,6 +527,41 @@ cued    22   19   25   25   24   20   24   24   (of 25)
 The mazes and their hints must move together — a route ending at a moved exit is
 worthless — and since committing is deploying (above), they go in one commit.
 
+### The generation pipeline, end to end
+
+No paid step. Everything below runs on Gemini's free tier.
+
+```
+   build-solutions.mjs            gemini-3.5-flash-lite, graph, high, 65536
+        |
+        |  each returned route is re-walked against the grid HERE, before it is
+        |  stored: start, goal, every cell open, unit steps, no revisits. Duplicates
+        |  are dropped and counted. Nothing unvalidated ever reaches a file.
+        v
+   solutions/maze-N.json          verified routes only
+        |
+        |  merge-solutions.mjs <other-dir>   union with an earlier set, re-validating
+        |  every incoming route rather than trusting the file
+        v
+   derive-hints.mjs               arithmetic over verified routes -- no AI, so a
+        |                         distance cannot be a number a model invented
+        v
+   hints/maze-N.json              what the study serves
+        |
+        +--> audit-hints.mjs      derived distances vs BFS ground truth
+        +--> verify.mjs           maze structure, path length, exit bearings
+        +--> coverage.mjs         routes, step range, junctions cued
+```
+
+**The validator is not a final gate.** It runs at every point a route enters the system
+-- at generation and again at merge -- which is why a bad route shows up as *fewer*
+routes rather than as a wrong distance. Putting it at the end of the pipeline would
+describe a system where unverified routes can be written and then caught, and that is
+not this one.
+
+**"Does this maze have a 53-step route?" is not automated.** `coverage.mjs` prints the
+step range per maze and the answer is read off it. Nothing branches on it.
+
 ### Still open
 
 - **KV is not attached.** `/api/run-log?health=1` returns `configured:false` on the
@@ -542,10 +577,14 @@ worthless — and since committing is deploying (above), they go in one commit.
   junctions and measured it, which is the precondition: a controlled manipulation
   layered on uncontrolled noise would be indistinguishable from it in the data. Merge
   first, inject second.
-- **The hybrid** — one paid reasoning-model `--merge` pass into mazes 1, 5 and 8, the
-  three still without an optimal route, keeping Gemini's breadth and adding the optimum.
-- **o4-mini at high effort has never been run** — every OpenAI number was taken at
-  medium. That is the test that would actually settle the model question.
+- **Mazes 5 and 8 hold no route at the true 53** (maze-1 gained one in the regeneration).
+  The paid top-up that was meant to close this is **dropped**: the OpenAI key is empty
+  and there is no budget to refill it. The options that cost nothing are more Gemini
+  merge passes, which returned diminishing duplicates on the mazes that stayed thin, or
+  the contracted graph below, which is measured but not wired.
+- **o4-mini at high effort has never been run**, and now cannot be. Every OpenAI number
+  on record was taken at medium, so the model comparison stays unsettled rather than
+  resolved — worth stating plainly in the writeup rather than implying a conclusion.
 
 ### The fix that is measured but not wired
 
