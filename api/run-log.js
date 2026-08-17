@@ -84,6 +84,52 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // ?export=summaries|events|json collects every stored run and returns one file.
+    // Aggregating here rather than in the browser means the moderator can download the
+    // whole study from a plain link, without having run any of the sessions themselves
+    // -- the existing Save CSV buttons only ever saw the current tab's own rows.
+    if (req.query && req.query.export) {
+      const kind = String(req.query.export).toLowerCase();
+      try {
+        const ids = (await kv(["SMEMBERS", INDEX_KEY])) || [];
+        const records = [];
+        for (const runId of ids) {
+          const raw = (await kv(["LRANGE", listKey(runId), 0, -1])) || [];
+          const events = raw.map((line) => { try { return JSON.parse(line); } catch (_e) { return null; } }).filter(Boolean);
+          records.push({ participant_id: runId, rows: events.length, events });
+        }
+        const stamp = new Date().toISOString().slice(0, 10);
+
+        if (kind === "json") {
+          res.setHeader("Content-Type", "application/json");
+          res.setHeader("Content-Disposition", `attachment; filename="llm-maze-runs-${stamp}.json"`);
+          res.status(200).send(JSON.stringify(records, null, 2));
+          return;
+        }
+
+        const wanted = kind === "events"
+          ? records.flatMap((r) => r.events.map((e) => ({ participant_id: r.participant_id, ...e })))
+          : records.flatMap((r) => r.events.filter((e) => e.action === "maze_summary")
+              .map((e) => ({ participant_id: r.participant_id, ...e })));
+
+        // Columns from the union of keys present, so a field added to the summary
+        // later still comes out without touching this.
+        const cols = [...new Set(wanted.flatMap((r) => Object.keys(r)))];
+        const esc = (v) => {
+          if (v === null || v === undefined) return "";
+          const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+          return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        };
+        const csv = [cols.join(","), ...wanted.map((r) => cols.map((c) => esc(r[c])).join(","))].join("\n");
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader("Content-Disposition", `attachment; filename="llm-maze-${kind}-${stamp}.csv"`);
+        res.status(200).send(csv);
+      } catch (error) {
+        res.status(503).json({ status: "kv_unavailable", message: error.message });
+      }
+      return;
+    }
+
     try {
       if (!id) {
         const ids = (await kv(["SMEMBERS", INDEX_KEY])) || [];
