@@ -126,26 +126,36 @@ maze, rather than assuming a fix worked. Then re-check `/api/run-log?health=1` f
 the new host, since a moved deployment is a new deployment and environment variables
 do not follow it.
 
-## Option C — DigitalOcean App Platform, Singapore (free on Student Pack credit)
+## Option C — a managed host near China, free or near-free for a student
 
-The least work of the three, and the one to use. `.do/app.yaml` holds the spec.
+DigitalOcean was dropped from the Student Pack, so `.do/app.yaml` only applies if you
+pay for it. The pack's contents change; check what is actually in yours before
+committing to any of these.
 
-1. Claim the Student Pack DigitalOcean credit and the free Namecheap domain.
-2. App Platform → Create App → from this GitHub repo, branch `v9-mazes-module`,
-   region **Singapore**. Or `doctl apps create --spec .do/app.yaml`.
-3. Add `KV_REST_API_URL` and `KV_REST_API_TOKEN` as encrypted secrets, copied from the
-   Vercel project. Nothing else is needed — no LLM key, since the study serves
-   pre-generated cues from `public/mazes8/hints/`.
-4. Attach the custom domain. HTTPS is issued automatically, which removes the mixed
-   content trap a hand-rolled server has to get right.
+What the host has to give you: a **Hong Kong, Singapore or Tokyo** region, **automatic
+HTTPS** (the questionnaire is an https iframe and breaks silently on an http page), and
+**no cold starts** — a free tier that sleeps makes the first participant of the day wait
+a minute on a blank screen and conclude the study is broken.
 
-`server.js` already reads `process.env.PORT`, so the app needs no change to run there.
+| | region | HTTPS | cost | setup |
+|---|---|---|---|---|
+| **Azure for Students** | East Asia (Hong Kong) | automatic | $100 credit, no card | deploy from GitHub |
+| **Oracle Always Free** | Singapore, Tokyo | Caddy, two lines | free with no expiry | a real VM to administer |
+| **Fly.io** | Hong Kong | automatic | pennies a month | one config file |
+| Render free tier | Singapore | automatic | free | **sleeps after 15 min** |
 
-**A custom domain is worth doing even if you stay on Vercel.** Some corporate and
-university networks block `*.vercel.app` outright, because the shared domain is heavily
-used for phishing. That failure is invisible: the participant sees a page that will not
-load and drops out, and it reads as ordinary non-response in the data.
+**Azure is the closest replacement for the DigitalOcean plan.** Hong Kong is the best
+region on this list for mainland reach. Note the F1 free tier does not do custom domains
+or certificates — you need B1, which the $100 student credit covers for several months.
+Long enough for a study, not forever.
 
-**Nobody can promise mainland reachability.** Singapore is outside the filtering and is
-generally reachable, but the only proof is the participant who was blocked opening the
-new link. Verify with them before recruiting further.
+**Oracle is the one that never expires**, which matters if the project outlives the
+credit. The cost is that it is a bare VM: you install Node, run the app under pm2, and
+put Caddy in front for HTTPS. Roughly the hour described in Option B.
+
+**Render is tempting and I would not use it.** Free web services sleep when idle, and
+the wake-up is slow enough that a participant will give up. Silent dropout that looks
+like ordinary non-response is the worst failure mode this study has.
+
+Whichever you pick, the app needs no change: `npm start`, `server.js` reads
+`process.env.PORT`, and the two KV secrets are the only configuration.
