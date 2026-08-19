@@ -128,24 +128,24 @@ do not follow it.
 
 ## Option C — DigitalOcean App Platform, Singapore (free on Student Pack credit)
 
-The least work of the three, and the one to use.  holds the spec.
+The least work of the three, and the one to use. `.do/app.yaml` holds the spec.
 
 1. Claim the Student Pack DigitalOcean credit and the free Namecheap domain.
-2. App Platform -> Create App -> from this GitHub repo, branch ,
-   region **Singapore**. Or .
-3. Add  and  as encrypted secrets, copied from
-   the Vercel project. Nothing else is needed -- no LLM key, since the study serves
-   pre-generated cues.
+2. App Platform → Create App → from this GitHub repo, branch `v9-mazes-module`,
+   region **Singapore**. Or `doctl apps create --spec .do/app.yaml`.
+3. Add `KV_REST_API_URL` and `KV_REST_API_TOKEN` as encrypted secrets, copied from the
+   Vercel project. Nothing else is needed — no LLM key, since the study serves
+   pre-generated cues from `public/mazes8/hints/`.
 4. Attach the custom domain. HTTPS is issued automatically, which removes the mixed
-   content trap that a hand-rolled server has to get right.
+   content trap a hand-rolled server has to get right.
 
- already reads , so the app needs no change to run there.
+`server.js` already reads `process.env.PORT`, so the app needs no change to run there.
 
 **A custom domain is worth doing even if you stay on Vercel.** Some corporate and
-university networks block  outright, because the shared domain is
-heavily used for phishing. That failure is invisible: the participant sees a page that
-will not load and drops out, and it reads as ordinary non-response in the data.
+university networks block `*.vercel.app` outright, because the shared domain is heavily
+used for phishing. That failure is invisible: the participant sees a page that will not
+load and drops out, and it reads as ordinary non-response in the data.
 
-**Nobody can promise mainland reachability.** Singapore is outside the filtering and
+**Nobody can promise mainland reachability.** Singapore is outside the filtering and is
 generally reachable, but the only proof is the participant who was blocked opening the
 new link. Verify with them before recruiting further.
