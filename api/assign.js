@@ -20,6 +20,12 @@
 const { kv } = require("../lib/store.js");
 
 const CONDITIONS = ["no_ai", "stable_ai", "disappear"];
+
+// Two deployments means two counters that both start at 1, so both would hand out
+// "no_ai-001" to different people and the datasets could not be concatenated. SITE_CODE
+// goes in the id -- "no_ai-cn-001" against "no_ai-001" -- so the merged file is unique
+// on participant_id and every row still says where it was collected.
+const SITE_CODE = String(process.env.SITE_CODE || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 const BALANCED_COUNTER = "study:assigned";
 const counterFor = (condition) => `study:assigned:${condition}`;
 const ASSIGN_LOG = "study:assignments";
@@ -68,17 +74,19 @@ module.exports = async (req, res) => {
       condition = blockOrder(Math.floor((overall - 1) / CONDITIONS.length))[(overall - 1) % CONDITIONS.length];
       n = Number(await kv(["INCR", counterFor(condition)]));
     }
-    const participant_id = `${condition}-${String(n).padStart(3, "0")}`;
+    const participant_id = SITE_CODE
+      ? `${condition}-${SITE_CODE}-${String(n).padStart(3, "0")}`
+      : `${condition}-${String(n).padStart(3, "0")}`;
 
     // Written before the participant does anything, so someone who opens the link and
     // leaves still appears in the allocation. Without it, dropouts are invisible and
     // the groups look balanced when they are not.
     await kv(["RPUSH", ASSIGN_LOG, JSON.stringify({
-      participant_id, condition, n, assigned_by: asked ? "link" : "server", at: new Date().toISOString(),
+      participant_id, condition, n, site: SITE_CODE || "default", assigned_by: asked ? "link" : "server", at: new Date().toISOString(),
     })]);
 
     res.setHeader("Cache-Control", "no-store");
-    res.status(200).json({ participant_id, condition, n, assigned_by: asked ? "link" : "server" });
+    res.status(200).json({ participant_id, condition, n, site: SITE_CODE || "default", assigned_by: asked ? "link" : "server" });
   } catch (error) {
     // No silent fallback to a random condition: an unbalanced study that looks fine is
     // worse than a link that plainly refuses.
