@@ -159,3 +159,42 @@ like ordinary non-response is the worst failure mode this study has.
 
 Whichever you pick, the app needs no change: `npm start`, `server.js` reads
 `process.env.PORT`, and the two KV secrets are the only configuration.
+
+## Azure App Service, step by step
+
+**Create a "Web App", not a "Static Web App".** Static Web Apps serve static files plus
+Azure Functions, and the handlers in `api/` are Express-style `(req, res)` — every one
+would need rewriting. A Web App runs `server.js` as it stands.
+
+- **Publish:** Code
+- **Runtime:** Node 20 LTS
+- **OS:** Linux
+- **Region:** East Asia (Hong Kong)
+- **Plan:** B1. The F1 free tier has no custom domains, a daily CPU quota, and sleeps
+  when idle. The student credit covers B1 for months, and this study will not run for
+  that long.
+
+Then, in **Configuration → Application settings**:
+
+| setting | value | why |
+|---|---|---|
+| `KV_REST_API_URL` | from Vercel | the store does not move |
+| `KV_REST_API_TOKEN` | from Vercel | |
+| `NPM_CONFIG_PRODUCTION` | `true` | **see below** |
+
+Turn **Always On** on, under General settings. Without it the app idles out and the
+first participant of the day waits on a blank screen.
+
+**`NPM_CONFIG_PRODUCTION=true` is not optional.** Azure's build runs a plain
+`npm install`, which pulls devDependencies — and Playwright is one, which downloads
+browser binaries and can hang or fail the deploy. `vercel.json` avoids this with
+`--omit=dev`; App Service needs the app setting instead.
+
+**You may not need a custom domain at all.** `*.azurewebsites.net` is not blocked in
+mainland China the way `*.vercel.app` is, and Azure serves HTTPS on it by default. Try
+the default URL with the participant first. A custom domain is still worth having later,
+for the corporate filters that block shared hosting domains — but it is not the thing
+standing between you and a working pilot.
+
+**Deploy:** Deployment Center → GitHub → this repo, branch `v9-mazes-module`. Azure
+writes the workflow itself and redeploys on push, the same as Vercel did.
