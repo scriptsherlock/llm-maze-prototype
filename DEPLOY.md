@@ -198,3 +198,42 @@ standing between you and a working pilot.
 
 **Deploy:** Deployment Center → GitHub → this repo, branch `v9-mazes-module`. Azure
 writes the workflow itself and redeploys on push, the same as Vercel did.
+
+---
+
+# Hosting inside mainland China (Alibaba Cloud)
+
+Needs an ICP filing (备案), which normally takes weeks and a mainland entity. If a
+collaborator already has an ICP-registered domain, that is the hard part done — what
+remains is a server for it to point at.
+
+**The filing is tied to the server**, so the ECS has to be with the provider the domain
+is filed against, in a mainland region. Real-name verification for a mainland Alibaba
+Cloud account generally needs Chinese ID, so in practice the collaborator owns the
+account and the server; the app just runs on it.
+
+## What the server needs
+
+Nothing unusual, and nothing outside China:
+
+- Node 18+ (`npm install --omit=dev`, then `npm start`)
+- 1 vCPU, 1 GB RAM
+- HTTPS, because the questionnaire is an iframe to an https Qualtrics URL and a browser
+  blocks that on an http page — the maze would work and the questionnaire would silently
+  never appear
+- a writable disk
+
+**No database service and no API keys.** With `KV_REST_API_*` unset, `lib/store.js`
+keeps everything in `error_logs/store.json` on the server's own disk. That is deliberate:
+a mainland server calling a store abroad means an outbound trip across the border on
+every write, which fails looking like lost data rather than a network problem. Cues are
+pre-generated files, so nothing calls a model at run time either.
+
+Back up `error_logs/store.json` — on this setup it is the entire study.
+
+## Ping will not tell you anything useful
+
+Managed hosts commonly drop ICMP, so a server can be perfectly reachable and still fail
+a ping. The test that matters is whether the page loads in a browser from inside China.
+On a plain Alibaba ECS ping does work, and its public IP is stable — which is exactly
+why this route suits the filing better than managed hosting does.
