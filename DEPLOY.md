@@ -63,6 +63,25 @@ block targets the `vercel.app` name itself; often not, because Vercel's IPs are 
 blocked. Cheap to try, but it needs the blocked participant to re-test, so a failure
 costs a round trip through the supervisor.
 
+## Paying for none of it
+
+**GitHub Student Developer Pack** (education.github.com/pack) — free with an Imperial
+email, and the usual reason not to bother paying for any of this. It has typically
+included a free domain for a year and hosting credit worth far more than a year of the
+small server below. Check what is currently on offer before spending anything.
+
+**Ask Imperial first, though.** Departments often host student project sites, and a
+university-hosted URL is easier to defend in an ethics application than a personal VPS.
+Dr Zhou may also have an institutional option that is reachable from the mainland
+without any of this.
+
+**Oracle Cloud Always Free** has Singapore, Tokyo and Seoul regions and is free
+indefinitely rather than for a trial period. Card needed for identity, not billed.
+
+**If none of that works**, recruit around it and say so. One participant unable to
+reach the host is a recorded limitation, not a broken study — and it costs nothing.
+Weigh that against the effort before assuming the host has to move.
+
 ## Option B — a small server in Hong Kong or Singapore (~1 hour, reliable)
 
 Reachable from the mainland without a VPN, and **no ICP licence** — that is only
