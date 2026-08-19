@@ -17,25 +17,12 @@
 // Either way the ID comes from here rather than the browser. A page that mints its own
 // gets an id nothing else knows about, which is where the stray "p_msxb389n_3cc324"
 // records came from: real rows, no condition, attributable to nobody.
-const KV_URL = process.env.KV_REST_API_URL;
-const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+const { kv } = require("../lib/store.js");
 
 const CONDITIONS = ["no_ai", "stable_ai", "disappear"];
 const BALANCED_COUNTER = "study:assigned";
 const counterFor = (condition) => `study:assigned:${condition}`;
 const ASSIGN_LOG = "study:assignments";
-
-async function kv(command) {
-  if (!KV_URL || !KV_TOKEN) throw new Error("KV is not configured for this deployment.");
-  const response = await fetch(KV_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${KV_TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify(command),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || data.error) throw new Error(data.error || `KV HTTP ${response.status}`);
-  return data.result;
-}
 
 // Permute one block of three from its index, so the groups are equal after every third
 // participant without the order being a repeating cycle. splitmix32: a plain LCG was

@@ -11,24 +11,11 @@
 //
 // One Redis list per participant, appended to, plus a set of ids so a session can be
 // found later without knowing what it was called.
-const KV_URL = process.env.KV_REST_API_URL;
-const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+const { kv, backend, usable, location } = require("../lib/store.js");
 
 const safeId = (id) => String(id || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
 const listKey = (id) => `run:${id}`;
 const INDEX_KEY = "runs";
-
-async function kv(command) {
-  if (!KV_URL || !KV_TOKEN) throw new Error("KV is not configured for this deployment.");
-  const response = await fetch(KV_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${KV_TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify(command),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || data.error) throw new Error(data.error || `KV HTTP ${response.status}`);
-  return data.result;
-}
 
 function parseBody(req) {
   if (!req.body) return {};
@@ -67,17 +54,16 @@ module.exports = async (req, res) => {
     // ?health=1 answers whether the store is attached and actually reachable, so a
     // deployment can be checked without running a participant through it.
     if (req.query && req.query.health) {
-      const configured = Boolean(KV_URL && KV_TOKEN);
-      if (!configured) {
+      if (!usable) {
         res.status(503).json({ ok: false, configured: false,
-          message: "KV_REST_API_URL and KV_REST_API_TOKEN are not set for this deployment." });
+          message: "No store: set KV_REST_API_URL and KV_REST_API_TOKEN, or deploy somewhere with a writable disk." });
         return;
       }
       try {
         await kv(["SET", "healthcheck", new Date().toISOString()]);
         const value = await kv(["GET", "healthcheck"]);
         const runs = (await kv(["SMEMBERS", INDEX_KEY])) || [];
-        res.status(200).json({ ok: true, configured: true, wrote_and_read_back: value, runs_stored: runs.length });
+        res.status(200).json({ ok: true, configured: true, backend, location, wrote_and_read_back: value, runs_stored: runs.length });
       } catch (error) {
         res.status(503).json({ ok: false, configured: true, message: error.message });
       }

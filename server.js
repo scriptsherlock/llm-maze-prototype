@@ -57,16 +57,17 @@ const runLogDir = path.join(errorLogDir, "runs");
 const safeId = (id) => String(id || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
 
 // Vercel runs everything under api/ as its own function; nothing else does. Mounting
-// those same modules here means an ordinary Node host serves identical code -- which is
-// what any move off Vercel needs, and what makes assign/export/delete testable locally
-// instead of only in production.
-// Only when KV is configured: without it the file-based handlers below are correct, and
-// a half-wired KV route would fail where writing a file would have worked.
-if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-  app.all("/api/assign", require("./api/assign.js"));
-  app.all("/api/run-log", require("./api/run-log.js"));
-  console.log("KV configured - /api/assign and /api/run-log served from api/, same code as the hosted build");
-}
+// those same modules here means an ordinary Node host serves identical code, and the
+// assign/export/delete routes exist everywhere rather than only in production.
+//
+// Always, now that lib/store.js falls back to a JSON file on disk. That fallback is the
+// point for a server inside mainland China: reaching a store outside the country means
+// an outbound call across the border on every write, which fails looking like lost data
+// rather than a network problem. A server there keeps its data on its own disk.
+const store = require("./lib/store.js");
+app.all("/api/assign", require("./api/assign.js"));
+app.all("/api/run-log", require("./api/run-log.js"));
+console.log(`store: ${store.backend} (${store.location})`);
 
 app.post("/api/run-log", (req, res) => {
   const id = safeId(req.body && req.body.participant_id);
