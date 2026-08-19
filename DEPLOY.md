@@ -237,3 +237,12 @@ Managed hosts commonly drop ICMP, so a server can be perfectly reachable and sti
 a ping. The test that matters is whether the page loads in a browser from inside China.
 On a plain Alibaba ECS ping does work, and its public IP is stable — which is exactly
 why this route suits the filing better than managed hosting does.
+
+## One instance only, on the file store
+
+`pm2 start server.js` — **not** `-i max` or cluster mode. The JSON store is
+read-modify-write, which is safe because Node handles one request at a time per
+process. Two processes on the same file can interleave and lose rows.
+
+If the study ever outgrows one instance, that is the point to move to a real database,
+not before.
