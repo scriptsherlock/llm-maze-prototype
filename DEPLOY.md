@@ -125,3 +125,27 @@ Ask the participant who was blocked to open the new link and confirm they reach 
 maze, rather than assuming a fix worked. Then re-check `/api/run-log?health=1` from
 the new host, since a moved deployment is a new deployment and environment variables
 do not follow it.
+
+## Option C — DigitalOcean App Platform, Singapore (free on Student Pack credit)
+
+The least work of the three, and the one to use.  holds the spec.
+
+1. Claim the Student Pack DigitalOcean credit and the free Namecheap domain.
+2. App Platform -> Create App -> from this GitHub repo, branch ,
+   region **Singapore**. Or .
+3. Add  and  as encrypted secrets, copied from
+   the Vercel project. Nothing else is needed -- no LLM key, since the study serves
+   pre-generated cues.
+4. Attach the custom domain. HTTPS is issued automatically, which removes the mixed
+   content trap that a hand-rolled server has to get right.
+
+ already reads , so the app needs no change to run there.
+
+**A custom domain is worth doing even if you stay on Vercel.** Some corporate and
+university networks block  outright, because the shared domain is
+heavily used for phishing. That failure is invisible: the participant sees a page that
+will not load and drops out, and it reads as ordinary non-response in the data.
+
+**Nobody can promise mainland reachability.** Singapore is outside the filtering and
+generally reachable, but the only proof is the participant who was blocked opening the
+new link. Verify with them before recruiting further.
