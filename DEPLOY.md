@@ -182,6 +182,11 @@ Then, in **Configuration → Application settings**:
 | `KV_REST_API_TOKEN` | from Vercel | |
 | `NPM_CONFIG_PRODUCTION` | `true` | **see below** |
 
+**Do not set `SITE_CODE` here.** It exists for the China server, which keeps its own
+store and its own counter — without a code both deployments would hand out `no_ai-001`
+to different people. Azure shares Upstash with Vercel, so the counter is already shared
+and the ids are already unique. Setting it here would only add noise to the ids.
+
 Turn **Always On** on, under General settings. Without it the app idles out and the
 first participant of the day waits on a blank screen.
 
