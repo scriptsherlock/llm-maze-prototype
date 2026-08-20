@@ -1,8 +1,8 @@
 # DigitalOcean App Platform spec. Deploys straight from GitHub -- no server to
-# administer, no pm2, and HTTPS is issued automatically, which matters more than it
-# sounds: the questionnaire is an iframe to an https Qualtrics URL, and a browser on an
-# http page blocks that as mixed content. The maze would work and the questionnaire
-# would silently never appear.
+# administer, no pm2, and HTTPS is issued automatically -- which matters because
+# participant data would otherwise travel unencrypted. (Not for mixed content: an http
+# page embedding an https iframe is allowed, so the questionnaire itself would load. The
+# problem is the data in the clear, which is an ethics failure, not a broken feature.)
 #
 # region sgp (Singapore) is the point of the exercise: reachable from mainland China
 # without an ICP licence, which is only required to host inside the mainland itself.

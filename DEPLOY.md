@@ -108,10 +108,10 @@ npx pm2 start server.js --name maze && npx pm2 save && npx pm2 startup
 No LLM key is needed. The study serves pre-generated cues from `public/mazes8/hints/`,
 so nothing calls a model at run time and there is no spend to watch.
 
-**HTTPS is not optional.** The questionnaire is shown in an iframe pointing at an
-`https://` Qualtrics URL, and a browser on an `http://` page blocks that as mixed
-content — the maze would work and the questionnaire would silently fail to appear,
-which is the worst way for this to break. Caddy does it in two lines:
+**HTTPS matters, for a reason I got wrong earlier.** Not mixed content — an `http`
+page embedding an `https` iframe is allowed, so the questionnaire loads fine. The real
+problem is that participant data would cross the network unencrypted, which is an ethics
+and data-protection failure rather than a visible bug. Caddy does it in two lines:
 
 ```
 your-domain.example {
@@ -133,7 +133,7 @@ pay for it. The pack's contents change; check what is actually in yours before
 committing to any of these.
 
 What the host has to give you: a **Hong Kong, Singapore or Tokyo** region, **automatic
-HTTPS** (the questionnaire is an https iframe and breaks silently on an http page), and
+HTTPS** (so participant data is not sent in the clear), and
 **no cold starts** — a free tier that sleeps makes the first participant of the day wait
 a minute on a blank screen and conclude the study is broken.
 
@@ -218,9 +218,9 @@ Nothing unusual, and nothing outside China:
 
 - Node 18+ (`npm install --omit=dev`, then `npm start`)
 - 1 vCPU, 1 GB RAM
-- HTTPS, because the questionnaire is an iframe to an https Qualtrics URL and a browser
-  blocks that on an http page — the maze would work and the questionnaire would silently
-  never appear
+- HTTPS, so participant data is not transmitted unencrypted. The questionnaire itself
+  works either way: an http page may embed an https iframe, and only the reverse is
+  blocked. This is a data-protection requirement, not a functional one
 - a writable disk
 
 **No database service and no API keys.** With `KV_REST_API_*` unset, `lib/store.js`

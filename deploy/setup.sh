@@ -5,10 +5,11 @@
 # or, having cloned already:
 #   bash deploy/setup.sh maze.example.cn
 #
-# Leave the domain off to run on the IP over plain http. Fine for a first smoke test,
-# NOT fine for the study: the questionnaire is an iframe to an https Qualtrics URL, and
-# a browser on an http page blocks it. The maze would work and the questionnaire would
-# silently never appear.
+# Leave the domain off to run on the IP over plain http. Good for a reachability test
+# from inside China, since a raw IP needs no ICP filing. NOT for the real study: the
+# page works, but participant data crosses the network unencrypted, which is an ethics
+# and data-protection problem. (The questionnaire itself is fine -- an http page may
+# embed an https iframe; browsers only block the reverse.)
 set -euo pipefail
 
 DOMAIN="${1:-}"
