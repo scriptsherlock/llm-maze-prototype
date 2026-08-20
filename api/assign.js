@@ -74,8 +74,11 @@ module.exports = async (req, res) => {
       condition = blockOrder(Math.floor((overall - 1) / CONDITIONS.length))[(overall - 1) % CONDITIONS.length];
       n = Number(await kv(["INCR", counterFor(condition)]));
     }
+    // Site first, so ids group and sort by where they were collected: cn-no_ai-001.
+    // Hyphen between the segments, not underscore -- "no_ai" and "stable_ai" already
+    // contain underscores, so splitting an id on "_" would not give back its parts.
     const participant_id = SITE_CODE
-      ? `${condition}-${SITE_CODE}-${String(n).padStart(3, "0")}`
+      ? `${SITE_CODE}-${condition}-${String(n).padStart(3, "0")}`
       : `${condition}-${String(n).padStart(3, "0")}`;
 
     // Written before the participant does anything, so someone who opens the link and
