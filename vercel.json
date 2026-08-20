@@ -9,10 +9,6 @@
   },
   "rewrites": [
     {
-      "source": "/",
-      "destination": "/mazes8.html"
-    },
-    {
       "source": "/m8",
       "destination": "/mazes8.html"
     },
@@ -87,6 +83,13 @@
     {
       "source": "/m8-8/moderator",
       "destination": "/index.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/study/participant",
+      "permanent": false
     }
   ]
 }

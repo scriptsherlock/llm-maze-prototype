@@ -20,8 +20,11 @@ app.use(express.json({ limit: "80kb" }));
 // so the same assets work locally and on a static host with no node_modules.
 app.use(express.static(path.join(__dirname, "public")));
 
+// The bare domain is what someone types or pastes, so it has to land on the study, not
+// on the developer index of the eight mazes. No condition on the end: /study/participant
+// asks the server for one, which is the anonymous-link behaviour.
 app.get("/", (_req, res) => {
-  res.redirect("/m8");
+  res.redirect("/study/participant");
 });
 
 // The eight matched mazes, viewable individually.
