@@ -1,3 +1,10 @@
+> **Archived — this describes v1 and is not how the system works.**
+>
+> The original design document. Every AI hint was a live LLM call made when the
+> participant pressed a button. That architecture was abandoned over latency: see
+> `DECISIONS.md` for what replaced it and why. Kept because it records what the project
+> set out to build, which the current code no longer shows.
+
 # Prototype-First Live LLM Maze Repository
 
 ## Summary
