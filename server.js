@@ -50,15 +50,6 @@ app.get(["/study/participant", "/study/moderator"], (_req, res) => {
 });
 
 // ---- Run records -------------------------------------------------------------
-// localStorage alone is not a record: it lives on the participant's machine and goes
-// with the browser. Rows are posted here as the run proceeds and appended to one
-// file per participant, so a session is recoverable even if nobody remembers to
-// export it. Append-only and keyed by participant id, so a reconnect or a reload
-// adds to the same file rather than replacing it.
-const runLogDir = path.join(errorLogDir, "runs");
-
-const safeId = (id) => String(id || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
-
 // Vercel runs everything under api/ as its own function; nothing else does. Mounting
 // those same modules here means an ordinary Node host serves identical code, and the
 // assign/export/delete routes exist everywhere rather than only in production.
@@ -71,61 +62,6 @@ const store = require("./lib/store.js");
 app.all("/api/assign", require("./api/assign.js"));
 app.all("/api/run-log", require("./api/run-log.js"));
 console.log(`store: ${store.backend} (${store.location})`);
-
-app.post("/api/run-log", (req, res) => {
-  const id = safeId(req.body && req.body.participant_id);
-  const rows = Array.isArray(req.body && req.body.rows) ? req.body.rows : null;
-  if (!id || !rows) {
-    res.status(400).json({ status: "bad_request", message: "participant_id and rows are required." });
-    return;
-  }
-  try {
-    fs.mkdirSync(runLogDir, { recursive: true });
-    const file = path.join(runLogDir, `${id}.jsonl`);
-    fs.appendFileSync(file, rows.map((r) => JSON.stringify(r)).join("\n") + "\n");
-    res.json({ status: "stored", participant_id: id, appended: rows.length });
-  } catch (error) {
-    res.status(500).json({ status: "write_failed", message: error.message });
-  }
-});
-
-// Read paths match the Vercel function so one url works in both places: no id lists
-// the runs, ?id=... or /api/run-log/<id> returns one.
-app.get(["/api/run-log", "/api/run-log/:id"], (req, res) => {
-  const id = safeId(req.params.id || (req.query && req.query.id));
-  if (!id) {
-    try {
-      if (!fs.existsSync(runLogDir)) { res.json({ runs: [] }); return; }
-      res.json({ runs: fs.readdirSync(runLogDir).filter((f) => f.endsWith(".jsonl")).map((f) => f.replace(/\.jsonl$/, "")) });
-    } catch (error) {
-      res.status(500).json({ status: "read_failed", message: error.message });
-    }
-    return;
-  }
-  const file = path.join(runLogDir, `${id}.jsonl`);
-  if (!id || !fs.existsSync(file)) {
-    res.status(404).json({ status: "not_found", participant_id: id });
-    return;
-  }
-  const rows = fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map((line) => {
-    try { return JSON.parse(line); } catch (_e) { return null; }
-  }).filter(Boolean);
-  res.json({ participant_id: id, rows: rows.length, summaries: rows.filter((r) => r.action === "maze_summary"), events: rows });
-});
-
-// Who has run so far, newest first.
-app.get("/api/runs", (_req, res) => {
-  try {
-    if (!fs.existsSync(runLogDir)) { res.json({ runs: [] }); return; }
-    const runs = fs.readdirSync(runLogDir).filter((f) => f.endsWith(".jsonl")).map((f) => {
-      const stat = fs.statSync(path.join(runLogDir, f));
-      return { participant_id: f.replace(/\.jsonl$/, ""), bytes: stat.size, updated_at: stat.mtime.toISOString() };
-    }).sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-    res.json({ runs });
-  } catch (error) {
-    res.status(500).json({ status: "read_failed", message: error.message });
-  }
-});
 
 app.get("/api/state", (_req, res) => {
   res.json({ ai_enabled: aiEnabled, provider, model });
@@ -148,11 +84,6 @@ app.post("/api/trial-state", (req, res) => {
 
   sharedTrialState = { ...state, server_received_at: Date.now() };
   res.json({ status: "stored" });
-});
-
-app.post("/api/moderator/ai", (req, res) => {
-  aiEnabled = Boolean(req.body && req.body.enabled);
-  res.json({ ai_enabled: aiEnabled });
 });
 
 app.post("/api/hint", async (req, res) => {
