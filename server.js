@@ -4,11 +4,11 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const { exec } = require("child_process");
-const hintEngine = require("./lib/hint-engine");
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
-const { provider, model } = hintEngine;
+// Only for /api/state, which reports which model generated the stored cues.
+const { provider, model } = require("./lib/hint-engine");
 const errorLogDir = path.join(__dirname, "error_logs");
 const serverErrorLogPath = path.join(errorLogDir, "server_errors.jsonl");
 
@@ -85,107 +85,6 @@ app.post("/api/trial-state", (req, res) => {
   sharedTrialState = { ...state, server_received_at: Date.now() };
   res.json({ status: "stored" });
 });
-
-app.post("/api/hint", async (req, res) => {
-  const startedAt = Date.now();
-
-  if (!aiEnabled) {
-    res.status(403).json({
-      status: "ai_disabled",
-      message: "AI assistance is disabled by the moderator.",
-      latency_ms: Date.now() - startedAt,
-    });
-    return;
-  }
-
-  const credentialError = hintEngine.getCredentialError();
-  if (credentialError) {
-    res.status(503).json({
-      status: "missing_api_key",
-      message: credentialError,
-      latency_ms: Date.now() - startedAt,
-    });
-    return;
-  }
-
-  const stateError = hintEngine.validateRequestState(req.body);
-  if (stateError) {
-    res.status(400).json({
-      status: "bad_request",
-      message: stateError,
-      latency_ms: Date.now() - startedAt,
-    });
-    return;
-  }
-
-  try {
-    const result = await hintEngine.requestValidatedPath(req.body, logServerError);
-    res.json({ ...result, latency_ms: Date.now() - startedAt, provider, model });
-  } catch (error) {
-    logServerError("hint_request_failed", {
-      provider,
-      model,
-      message: error.message || "The live LLM path request failed.",
-      retry_count: error.retryCount || 0,
-      validation_error: error.validationError || null,
-      player: req.body && req.body.player,
-      goal: req.body && req.body.goal,
-      elapsed_ms: Date.now() - startedAt,
-    });
-    res.status(error.statusCode || 502).json({
-      status: "llm_failed",
-      message: error.message || "The live LLM path request failed.",
-      retry_count: error.retryCount || 0,
-      validation_error: error.validationError || null,
-      latency_ms: Date.now() - startedAt,
-    });
-  }
-});
-
-function logServerError(action, details) {
-  try {
-    fs.mkdirSync(errorLogDir, { recursive: true });
-    fs.appendFileSync(
-      serverErrorLogPath,
-      JSON.stringify({ timestamp_iso: new Date().toISOString(), action, ...details }) + "\n"
-    );
-  } catch (_error) {
-    // Do not let logging failures break the participant flow.
-  }
-}
-
-function readServerLogs(limit) {
-  try {
-    if (!fs.existsSync(serverErrorLogPath)) return [];
-    const lines = fs.readFileSync(serverErrorLogPath, "utf8")
-      .split(/\r?\n/)
-      .filter(Boolean)
-      .slice(-limit);
-
-    return lines.map((line) => {
-      try {
-        return JSON.parse(line);
-      } catch (_error) {
-        return { raw: line };
-      }
-    });
-  } catch (error) {
-    return [{
-      timestamp_iso: new Date().toISOString(),
-      action: "server_log_read_failed",
-      message: error.message,
-    }];
-  }
-}
-
-function openInBrowser(url) {
-  const command = process.platform === "win32"
-    ? `start "" "${url}"`
-    : process.platform === "darwin"
-      ? `open "${url}"`
-      : `xdg-open "${url}"`;
-  exec(command, () => {});
-}
 
 app.listen(port, () => {
   console.log(`LLM maze prototype running at http://localhost:${port}`);

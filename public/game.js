@@ -61,7 +61,6 @@ let reverseMoves = 0;              // presses of Back
 const junctionDecisions = [];
 
 let aiOn = true;
-let hintRequestInFlight = false;
 let latestLatencyMs = null;
 let startTime = Date.now();
 // Time spent reading the controls card is not time spent on the task: the card shows
@@ -89,7 +88,6 @@ let activeHintPath = [];
 let activeFullPath = [];
 let visibleAiPath = [];
 let planStatus = "none";
-let remotePrefetchHint = []; // moderator view: the participant's prefetched next hint
 let remotePrefetchStatus = "none";
 let blockedFlashUntil = 0;
 let lastServerLogFetch = 0;
@@ -200,7 +198,6 @@ const aiCondition = getAiCondition();
 // v3 herding mode: one AI call at the start, then a rolling 3-step cue (arrow +
 // text) that always points at the NEXT steps and advances block by block to the
 // goal — no Ask AI button. Set false to restore the manual on-demand hint.
-const AUTO_HERD = false;
 // v5 route-evaluation mechanic: at every junction the AI compares the branches
 // ("Left: ~15 steps · Right: likely a dead end") instead of drawing a path/arrow.
 // LLM-only (it can be wrong), automatic at junctions, text only. Set false to
@@ -248,8 +245,6 @@ const CUE_SOURCE = (() => {
   const value = (new URLSearchParams(search).get("cues") || "").toLowerCase();
   return ["file", "bfs"].includes(value) ? value : CUE_SOURCE_DEFAULT;
 })();
-// Rollback: set false to disable background prefetch of the next AI hint.
-const PREFETCH_HINTS = false;
 
 const elements = {
   scene: document.getElementById("scene"),
@@ -262,7 +257,6 @@ const elements = {
   time: document.getElementById("time"),
   facingHud: document.getElementById("facingHud"),
   goalHud: document.getElementById("goalHud"),
-  hintButton: document.getElementById("hintButton"),
   hintBanner: document.getElementById("hintBanner"),
   moderatorMoves: document.getElementById("moderatorMoves"),
   moderatorTime: document.getElementById("moderatorTime"),
@@ -333,13 +327,11 @@ buildCityScene();
 buildAvatar();
 bindControls();
 setView(currentView);
-// Remove the Ask AI button (and reflow to four buttons) for the no-AI control group
-// AND for herding mode, where the hint is automatic rather than requested.
-if (!aiCondition || AUTO_HERD || ROUTE_EVAL_MODE) {
-  const controls = document.querySelector(".experiment-controls");
-  if (controls) controls.classList.add("no-ai");
-}
-loadServerState().then(() => { startAutoHerd(); startRouteEval(); });
+// Cues arrive automatically at junctions, so there is no button to press. The class
+// reflows the control row from five buttons to four.
+const controlRow = document.querySelector(".experiment-controls");
+if (controlRow) controlRow.classList.add("no-ai");
+loadServerState().then(() => { startRouteEval(); });
 loadAiSolutions();
 logState("start_trial");
 if (IS_TRAINING) {
@@ -689,7 +681,6 @@ function bindControls() {
   const nextMazeButton = document.getElementById("nextMazeButton");
   if (nextMazeButton) nextMazeButton.addEventListener("click", handleNextMaze);
   document.getElementById("backButton").addEventListener("click", moveBackward);
-  elements.hintButton.addEventListener("click", showHint);
   document.getElementById("downloadJsonButton").addEventListener("click", downloadJson);
   // plain click saves the tidy per-maze table; shift-click saves every event
   document.getElementById("downloadCsvButton").addEventListener("click", (event) => {
@@ -708,14 +699,13 @@ function bindControls() {
 
   document.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
-    if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d", "h"].includes(key)) {
+    if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d"].includes(key)) {
       event.preventDefault();
     }
     if (key === "arrowup" || key === "w") moveForward();
     if (key === "arrowdown" || key === "s") moveBackward();
     if (key === "arrowleft" || key === "a") turnLeft();
     if (key === "arrowright" || key === "d") turnRight();
-    if (key === "h") showHint();
   });
 
   window.addEventListener("resize", resizeRenderer);
@@ -804,17 +794,6 @@ function sameCell(a, b) {
   return Boolean(a && b && a.x === b.x && a.y === b.y);
 }
 
-function getHintMessageForCue(cue) {
-  const cueAngle = Math.atan2(cue.y - player.y, cue.x - player.x);
-  const relative = normalizeAngle(cueAngle - DIRS[facing].angle);
-  const deg = relative * 180 / Math.PI;
-  const absDeg = Math.abs(deg);
-
-  if (absDeg <= 35) return "AI hint trail visible";
-  if (absDeg >= 145) return "Turn around to see the AI hint";
-  return deg > 0 ? "Turn right to see the AI hint" : "Turn left to see the AI hint";
-}
-
 // Short hedged turn-by-turn justification of the visible hint (the next few legal
 // steps). Deterministic and recomputed live, so it updates as the player turns.
 // The reason is derived from goal distance, never fabricated.
@@ -880,7 +859,6 @@ function attemptMove(dx, dy, action) {
   player = { x: nx, y: ny };
   moves += 1;
   advanceStoredPathAfterMove();
-  schedulePrefetch();
   logState("move", { attempted_move: action, attempted_x: nx, attempted_y: ny, plan_status: planStatus, revisit });
 
   if (MID_MAZE_CUTOFF && aiActive) {
@@ -1641,54 +1619,7 @@ function turnRight() {
   updateUi();
 }
 
-// Build the visible hint from an AI path: the next few steps only (cap), trimmed
-// at the first illegal step so the trail never draws onto or across a wall. The
-// AI's full answer is still stored/logged; this only governs what is rendered.
-function clampHint(path) {
-  const legal = [];
-  for (let i = 0; i < path.length && legal.length < aiCueLength + 1; i += 1) {
-    const cell = path[i];
-    if (!isOpen(cell.x, cell.y)) break; // don't render onto a wall / out of bounds
-    if (i > 0) {
-      const step = Math.abs(path[i - 1].x - cell.x) + Math.abs(path[i - 1].y - cell.y);
-      if (step !== 1) break; // don't render a jump across a wall
-    }
-    legal.push(cell);
-  }
-  return legal;
-}
-
-// v3 herding: keep the full precomputed route; the visible window always shows the
-// next few legal steps from the player's CURRENT cell and rolls forward — persistent
-// but never stale — guiding them block by block to the goal.
-function advanceHerd() {
-  if (!activeFullPath.length) {
-    planStatus = "none";
-    return;
-  }
-  const idx = activeFullPath.findIndex((cell) => sameCell(cell, player));
-  if (idx === -1) {
-    // Off the route (a wrong turn at a junction): herd them back, no trail.
-    planStatus = "deviated";
-    visibleAiPath = [];
-    activeHintPath = [];
-    hintBannerText = "Head back to the route";
-    hintVisibleUntil = Number.POSITIVE_INFINITY;
-    refreshHintMarkers();
-    return;
-  }
-  visibleAiPath = clampHint(activeFullPath.slice(idx)); // next few steps from the player
-  activeHintPath = visibleAiPath.slice(1);
-  hintVisibleUntil = visibleAiPath.length > 1 ? Number.POSITIVE_INFINITY : 0;
-  planStatus = idx >= activeFullPath.length - 1 ? "complete" : "following";
-  refreshHintMarkers();
-}
-
 function advanceStoredPathAfterMove() {
-  if (AUTO_HERD) {
-    advanceHerd();
-    return;
-  }
   // The full AI route survives beyond the visible hint window: advance it while
   // the participant stays on it so later hints can be served instantly from it,
   // and drop it the moment they step off (a fresh AI call is needed then).
@@ -1779,222 +1710,6 @@ function cancelHintFade() {
   renderer.render(scene, camera);
 }
 
-// Pulsing ring at the participant's feet while the AI request is in flight, so
-// the wait reads as "thinking" instead of a frozen scene.
-let thinkingIndicator = null;
-
-function startThinkingIndicator() {
-  if (thinkingIndicator) return;
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(0.55, 0.05, 8, 32),
-    new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.75 })
-  );
-  ring.rotation.x = Math.PI / 2;
-  scene.add(ring);
-  thinkingIndicator = ring;
-
-  (function pulse() {
-    if (!thinkingIndicator) return;
-    if (!hintRequestInFlight) {
-      stopThinkingIndicator();
-      return;
-    }
-    const t = (performance.now() % 1200) / 1200;
-    // Place the ring on the floor just ahead of the player — at their feet it
-    // would sit under the first-person camera, outside the view.
-    const pos = worldFromCell(player.x, player.y);
-    const dir = DIRS[facing];
-    thinkingIndicator.position.set(pos.x + dir.dx * 2.4, 0.14, pos.z + dir.dy * 2.4);
-    const scale = 1 + t * 0.9;
-    thinkingIndicator.scale.set(scale, scale, scale);
-    thinkingIndicator.material.opacity = 0.75 * (1 - t);
-    renderer.render(scene, camera);
-    requestAnimationFrame(pulse);
-  })();
-}
-
-function stopThinkingIndicator() {
-  if (!thinkingIndicator) return;
-  scene.remove(thinkingIndicator);
-  thinkingIndicator.geometry.dispose();
-  thinkingIndicator.material.dispose();
-  thinkingIndicator = null;
-  renderer.render(scene, camera);
-}
-
-// ---- Prefetch (A): fetch the next hint in the background while the participant
-// walks, so a later Ask AI can be served instantly. All gated by PREFETCH_HINTS. ----
-let prefetch = { key: null, promise: null, data: null };
-let prefetchTimer = null;
-
-function cellKey(cell) {
-  return `${cell.x},${cell.y}`;
-}
-
-async function fetchHintData(playerCell, facingName, clientEventId) {
-  const response = await fetch("/api/hint", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      maze,
-      player: playerCell,
-      facing: facingName,
-      goal,
-      max_hint_steps: aiCueLength,
-      move_count: moves,
-      client_event_id: clientEventId,
-    }),
-  });
-  const data = await response.json();
-  if (!response.ok || data.status !== "path_found") {
-    throw new Error(data.message || "AI did not return a valid path.");
-  }
-  return data;
-}
-
-function schedulePrefetch() {
-  if (!PREFETCH_HINTS || !aiCondition || !aiOn || currentView !== "participant") return;
-  // Only worth prefetching when a fresh call would otherwise be needed, i.e. the
-  // stored route no longer starts at the player (they consumed or left it).
-  if (activeFullPath.length > 1 && sameCell(activeFullPath[0], player)) return;
-  clearTimeout(prefetchTimer);
-  prefetchTimer = setTimeout(runPrefetch, 700); // debounce: only when they pause
-}
-
-function runPrefetch() {
-  if (!PREFETCH_HINTS || hintRequestInFlight) return;
-  const key = cellKey(player);
-  if (prefetch.key === key) return; // already have / fetching this cell
-  const snapshot = { ...player };
-  const eventId = `prefetch-${Date.now()}-${++lastEventId}`;
-  const promise = fetchHintData(snapshot, DIRS[facing].name, eventId)
-    .then((data) => {
-      if (prefetch.key === key) prefetch.data = data; // ignore if player has moved on
-      return data;
-    })
-    .catch(() => {
-      if (prefetch.key === key) clearPrefetch();
-      return null;
-    });
-  prefetch = { key, promise, data: null };
-}
-
-function clearPrefetch() {
-  clearTimeout(prefetchTimer);
-  prefetch = { key: null, promise: null, data: null };
-}
-
-// v3 herding: fire the single AI call at trial start; advanceHerd() then rolls the
-// window to the goal on its own. Only the participant fetches.
-function startAutoHerd() {
-  if (!AUTO_HERD || !aiCondition || currentView !== "participant") return;
-  showHint();
-}
-
-async function showHint() {
-  if (!aiCondition) return; // no-AI (control) group: hints are disabled
-  if (currentView !== "participant") return;
-  if (hintRequestInFlight) return;
-  participantHasInteracted = true;
-
-  if (!aiOn) {
-    logState("hint_requested_ai_off");
-    hintBannerText = "AI assistance is disabled";
-    hintMessageUntil = Date.now() + hintDurationMs;
-    updateUi();
-    return;
-  }
-
-  // Serve instantly from the stored AI route when the participant is still on it.
-  // It is the same AI-computed answer (a shortest path's remainder is still the
-  // shortest path), so no new LLM call — and no "AI thinking" wait — is needed.
-  if (activeFullPath.length > 1 && sameCell(activeFullPath[0], player)) {
-    visibleAiPath = clampHint(activeFullPath);
-    activeHintPath = visibleAiPath.slice(1);
-    planStatus = "fresh";
-    hintBannerText = activeHintPath[0]
-      ? getHintMessageForCue(activeHintPath[0])
-      : sameCell(player, goal)
-        ? "You are at the goal"
-        : "AI hint unavailable — try again";
-    hintMessageUntil = Date.now() + hintDurationMs;
-    hintVisibleUntil = visibleAiPath.length > 1 ? Number.POSITIVE_INFINITY : 0;
-    refreshHintMarkers();
-    logState("hint_served_from_stored_path", { remaining_cells: activeFullPath.length });
-    updateUi();
-    return;
-  }
-
-  hintRequestInFlight = true;
-  startThinkingIndicator();
-  elements.hintButton.disabled = true;
-  elements.hintButton.textContent = "AI thinking...";
-  const clientEventId = `hint-${Date.now()}-${++lastEventId}`;
-  const requestedAt = Date.now();
-  logState("hint_requested", { client_event_id: clientEventId });
-  updateUi();
-
-  try {
-    // Use a ready (or in-flight) prefetch for this exact cell if we have one.
-    let data = null;
-    const key = cellKey(player);
-    if (PREFETCH_HINTS && prefetch.key === key && (prefetch.data || prefetch.promise)) {
-      const cached = prefetch.data || await prefetch.promise;
-      clearPrefetch();
-      if (cached && cached.status === "path_found") data = cached;
-    }
-    const servedFromPrefetch = data != null;
-    if (!data) {
-      clearPrefetch(); // cancel any pending/stale prefetch; fetching directly now
-      data = await fetchHintData(player, DIRS[facing].name, clientEventId);
-    }
-    latestLatencyMs = data.latency_ms ?? Date.now() - requestedAt;
-
-    activeFullPath = data.full_path;
-    // Reveal only the next few legal steps as the hint (not the whole route,
-    // and never through a wall).
-    visibleAiPath = clampHint(data.full_path);
-    activeHintPath = data.hint_steps;
-    planStatus = "fresh";
-    hintBannerText = activeHintPath[0]
-      ? getHintMessageForCue(activeHintPath[0])
-      : sameCell(player, goal)
-        ? "You are at the goal"
-        : "AI hint unavailable — try again";
-    hintMessageUntil = Date.now() + hintDurationMs;
-    hintVisibleUntil = visibleAiPath.length > 1 ? Number.POSITIVE_INFINITY : 0;
-    refreshHintMarkers();
-    logState("llm_response_received", {
-      client_event_id: clientEventId,
-      served_from_prefetch: servedFromPrefetch,
-      felt_latency_ms: Date.now() - requestedAt,
-      full_path_length: activeFullPath.length,
-      hint_steps_count: activeHintPath.length,
-      llm_latency_ms: latestLatencyMs,
-      retry_count: data.retry_count,
-      validation_status: data.validation_status,
-      validation_error: data.validation_error ?? null,
-      required_shortest_path_cells: data.required_shortest_path_cells ?? null,
-      reason: data.reason,
-    });
-  } catch (error) {
-    activeHintPath = [];
-    refreshHintMarkers();
-    hintVisibleUntil = visibleAiPath.length > 1 ? Number.POSITIVE_INFINITY : 0;
-    hintMessageUntil = Date.now() + hintDurationMs;
-    hintBannerText = "AI could not provide a valid path";
-    logState("llm_response_invalid", {
-      client_event_id: clientEventId,
-      message: error.message,
-      llm_latency_ms: latestLatencyMs,
-    });
-  } finally {
-    hintRequestInFlight = false;
-    stopThinkingIndicator();
-    updateUi();
-  }
-}
-
 function resetLocalTrial() {
   player = { ...start };
   facing = MAZE_CONFIG.startFacing ?? 1;
@@ -2006,7 +1721,6 @@ function resetLocalTrial() {
   aiActive = true; // the AI is back for the new trial
   clearRouteCues();
   clearVisibleHint();
-  clearPrefetch();
   activeFullPath = [];
   visibleAiPath = [];
   planStatus = "none";
@@ -2086,7 +1800,6 @@ function renderModeratorGrid() {
       if (j < path.length - 1) entry.dirs.add(stepDir(c, path[j + 1]));
     });
   });
-  const prefetchSet = pathSet(remotePrefetchHint);
 
   // Render as a line maze: this is a (2N+1) thin-wall grid, so odd tracks are the
   // real maze cells (wide) and even tracks are wall tracks drawn as thin lines.
@@ -2111,7 +1824,6 @@ function renderModeratorGrid() {
         noWall(x - 1, y) && noWall(x + 1, y) && noWall(x, y - 1) && noWall(x, y + 1);
       if (maze[y][x] === 1 && !isIsolatedPillar) cell.classList.add("wall");
       const routeLine = routeLines.get(key);
-      if (prefetchSet.has(key)) cell.classList.add("prefetch-path");
       if (aiSet.has(key)) cell.classList.add("ai-path");
       if (x === goal.x && y === goal.y) cell.classList.add("goal");
       if (x === player.x && y === player.y) {
@@ -2247,10 +1959,6 @@ function serializeTrialState() {
     plan_status: planStatus,
     latest_latency_ms: latestLatencyMs,
     hint_visible: visibleAiPath.length > 1 && hintVisibleUntil > 0,
-    // Prefetch overlay for the moderator: status + the hint the participant would
-    // get if they pressed Ask AI right now (from the background-fetched route).
-    prefetch_status: prefetch.key ? (prefetch.data ? "ready" : "fetching") : "none",
-    prefetch_hint: prefetch.data ? clampHint(prefetch.data.full_path) : [],
     reset_token: currentResetToken,
     event_log: eventLog.slice(-60),
   };
@@ -2324,7 +2032,6 @@ function applyRemoteTrialState(state) {
     : activeFullPath.map((cell) => ({ ...cell }));
   planStatus = typeof state.plan_status === "string" ? state.plan_status : planStatus;
   remotePrefetchStatus = typeof state.prefetch_status === "string" ? state.prefetch_status : "none";
-  remotePrefetchHint = Array.isArray(state.prefetch_hint) ? state.prefetch_hint.map(normalizeCell) : [];
   latestLatencyMs = state.latest_latency_ms == null ? null : Number(state.latest_latency_ms);
   hintVisibleUntil = state.hint_visible ? Number.POSITIVE_INFINITY : 0;
   if (Array.isArray(state.event_log)) {
@@ -2494,10 +2201,6 @@ function updateUi() {
   elements.moderatorMoves.textContent = moves;
   elements.moderatorTime.textContent = elapsed;
 
-  elements.hintButton.disabled = !aiOn || hintRequestInFlight;
-  elements.hintButton.textContent = hintRequestInFlight
-    ? "AI thinking..."
-    : aiOn ? "Ask AI" : "AI unavailable";
 
   const hintPlan = hintActive
     ? (STATIC_HINT_TEXT ? "Follow the red path to the exit" : describeHintPlan())
