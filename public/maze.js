@@ -84,8 +84,8 @@ const SURVEY_LINKS = {
   },
   stable_ai: {
     start: "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_a9lhU8KOfXIBJVI",
-    mid:   "",
-    end:   "",
+    mid:   "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_7TJMtSvm3S2q6do",
+    end:   "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_4NPiJFJmPhP5R0G",
   },
   disappear: {
     start: "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_a9lhU8KOfXIBJVI",
