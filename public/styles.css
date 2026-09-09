@@ -19,8 +19,9 @@
 }
 
 body {
+  --page-pad: 16px;
   margin: 0;
-  min-height: 100vh;
+  min-height: 100dvh;
   font-family: Arial, Helvetica, sans-serif;
   color: var(--ink);
   background:
@@ -28,7 +29,7 @@ body {
     linear-gradient(120deg, #e0f2fe 0, transparent 34%),
     linear-gradient(250deg, #dcfce7 0, transparent 28%),
     var(--bg);
-  padding: 24px;
+  padding: var(--page-pad);
 }
 
 button {
@@ -67,7 +68,7 @@ button.ai-action {
 }
 
 .experiment-app {
-  width: min(96vw, 1500px);
+  width: 100%;
 }
 
 .topbar {
@@ -144,23 +145,28 @@ h2 {
   padding: 18px;
 }
 
+/* About three quarters of the viewport rather than the whole of it: full-bleed left
+   nothing around the scene, and the old fixed 1280px cap wasted a large display. */
 .participant-experience {
-  width: min(80vw, 1280px);
+  width: 78%;
+  min-width: min(100%, 720px);
   margin: 0 auto;
 }
 
 .participant-shell {
-  min-height: calc(100vh - 132px);
+  height: calc(78dvh);
+  min-height: 460px;
   display: flex;
   flex-direction: column;
 }
 
 .participant-stage {
   flex: 1;
+  min-height: 0;
 }
 
 .moderator-experience {
-  width: min(96vw, 1480px);
+  width: 100%;
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
@@ -263,9 +269,11 @@ h2 {
   aspect-ratio: 860 / 520;
 }
 
+/* Let the scene take all the height the shell has left after the header and the
+   control row, rather than a fixed fraction of the viewport. */
 .participant-stage .three-scene {
-  min-height: 420px;
-  height: min(66vh, 760px);
+  min-height: 260px;
+  height: 100%;
   aspect-ratio: auto;
 }
 
@@ -329,6 +337,15 @@ h2 {
 
 .experiment-controls {
   grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+/* No-AI (control) group: hide the Ask AI button and reflow to four even columns. */
+.experiment-controls.no-ai {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.experiment-controls.no-ai #hintButton {
+  display: none;
 }
 
 .panel-section {
@@ -469,12 +486,14 @@ h2 {
   border-color: #111827;
 }
 
-.validator-cell.local-path {
-  background: #fde68a;
-}
-
 .validator-cell.ai-path {
   background: #f87171;
+}
+
+/* Prefetched (not-yet-shown) AI hint: violet, dashed to read as "pending". */
+.validator-cell.prefetch-path {
+  background: #c4b5fd;
+  box-shadow: inset 0 0 0 2px #7c3aed;
 }
 
 .validator-cell.goal {
@@ -485,6 +504,58 @@ h2 {
   background: #2563eb;
   box-shadow: inset 0 0 0 3px white;
 }
+
+/* Line-maze rendering for the live moderator view: wide cell tracks + thin wall
+   lines instead of a uniform grid of filled cells. Tune wall thickness here. */
+.validator-grid.line-maze {
+  --maze-wall-track: 0.25fr;
+  --route-line: 6px;
+  width: 100%;
+  max-width: 540px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  padding: 0;
+  gap: 0;
+  background: #22304f;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.line-maze .validator-cell {
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+}
+
+/* One bar per direction a route leaves the cell by. Each runs from its edge to
+   just past the centre, so two of them meet as a clean corner and a straight run
+   reads as one unbroken line. Thickness is --route-line on the grid above. */
+.route-seg {
+  position: absolute;
+  background: var(--route-color);
+}
+
+.route-seg.up,
+.route-seg.down {
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--route-line);
+  height: calc(50% + var(--route-line) / 2);
+}
+
+.route-seg.up { top: 0; }
+.route-seg.down { bottom: 0; }
+
+.route-seg.left,
+.route-seg.right {
+  top: 50%;
+  transform: translateY(-50%);
+  height: var(--route-line);
+  width: calc(50% + var(--route-line) / 2);
+}
+
+.route-seg.left { left: 0; }
+.route-seg.right { right: 0; }
 
 .legend-row {
   display: flex;
@@ -507,11 +578,8 @@ h2 {
 .legend-swatch.open { background: #e0f2fe; }
 .legend-swatch.player { background: #2563eb; }
 .legend-swatch.goal { background: #22c55e; }
-.legend-swatch.local { background: #fde68a; }
 .legend-swatch.ai { background: #f87171; }
-.hidden {
-  display: none;
-}
+.legend-swatch.prefetch { background: #c4b5fd; box-shadow: inset 0 0 0 2px #7c3aed; }
 
 @media (max-width: 900px) {
   body {
@@ -533,8 +601,7 @@ h2 {
   }
 
   .participant-stage .three-scene {
-    min-height: 320px;
-    height: 58vh;
+    min-height: 240px;
   }
 
   .moderator-experience {
@@ -554,4 +621,333 @@ h2 {
   .experiment-controls #hintButton {
     grid-column: 1 / -1;
   }
+
+  .experiment-controls.no-ai {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Task complete overlay — shown when the participant reaches the exit, and the
+   only way forward in a /study run. */
+.task-complete {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(11, 20, 38, 0.72);
+  backdrop-filter: blur(3px);
+  z-index: 20;
+}
+
+.task-complete.hidden { display: none; }
+
+.task-complete-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 32px 40px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(8, 15, 30, 0.35);
+  max-width: 420px;
+}
+
+.task-complete-card h2 {
+  margin: 0 0 6px;
+  font-size: 1.6rem;
+  color: #0b1426;
+}
+
+.task-complete-card p {
+  margin: 0 0 22px;
+  color: #52607a;
+  font-size: 0.98rem;
+}
+
+.task-complete-card button {
+  min-width: 200px;
+  padding: 14px 26px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 12px;
+  background: #0b1426;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.task-complete-card button:hover { background: #16233d; }
+.task-complete-card button:disabled { opacity: 0.5; cursor: default; }
+
+/* Colour key inside the AI hint: matches the line drawn on the ground. */
+.cue-dot {
+  display: inline-block;
+  width: 0.72em;
+  height: 0.72em;
+  margin-right: 0.4em;
+  border-radius: 3px;
+  vertical-align: baseline;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+/* Verified AI routes drawn on the moderator map. */
+.ai-routes-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: #33415a;
+}
+.ai-routes-legend.hidden { display: none; }
+.ai-route-item { display: inline-flex; align-items: center; gap: 6px; }
+.ai-route-dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+/* Practice run: a prompt strip under the scene telling the participant which control
+   to try next. Deliberately plain -- it is about the buttons, not about the maze. */
+.training-panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(680px, 90%);
+  padding: 26px 30px;
+  border-radius: 16px;
+  background: #0f172a;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.55);
+  color: white;
+  text-align: center;
+}
+
+.training-panel p {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.35;
+  font-weight: 800;
+}
+
+.training-progress {
+  margin-top: 12px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.training-key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  padding: 3px 8px;
+  margin: 0 2px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+/* The button the participant is being asked to press. Pulsing rather than static so
+   it reads as "this one" even against the busy hedge behind it. */
+.experiment-controls button.training-target {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.35);
+  animation: trainingPulse 1.25s ease-in-out infinite;
+}
+
+@keyframes trainingPulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.35); }
+  50%      { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0.12); }
+}
+
+.task-complete-note {
+  max-width: 42ch;
+  margin: 4px auto 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.task-complete-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.task-complete-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+/* A reminder of the controls, reachable at any time. Deliberately a card and not a
+   replay of the practice run: the practice run makes the participant MOVE, so
+   replaying it inside a trial would shift their position and add moves to the trial
+   it was meant to help with. This changes nothing in the maze. */
+.help-button {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 38px;
+  min-height: 38px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.72);
+  color: white;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.help-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, 90%);
+  padding: 24px 28px;
+  border-radius: 16px;
+  background: #0f172a;
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.55);
+  color: white;
+  text-align: left;
+}
+
+.help-dismiss {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  font-size: 21px;
+  line-height: 1;
+}
+
+.help-card h2 {
+  margin: 0 0 14px;
+  font-size: 20px;
+}
+
+.help-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  font-size: 15.5px;
+  font-weight: 600;
+}
+
+.help-goal {
+  margin: 16px 0 18px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* The card sits over the scene, so the way back needs an edge of its own rather than
+   reading as part of the maze behind it. */
+.help-card > button:not(.help-dismiss) {
+  width: 100%;
+  background: var(--accent);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+}
+
+/* The introduction covers the scene completely rather than floating over it: the
+   participant should not be looking at maze 1 while still answering what they expect
+   of the task. Opaque, full-bleed inside the stage. */
+.intro-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #0f172a;
+}
+
+.intro-card {
+  width: min(620px, 100%);
+  color: white;
+  text-align: center;
+}
+
+.intro-card h2 {
+  margin: 0 0 14px;
+  font-size: 24px;
+}
+
+.intro-card p {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.intro-para {
+  display: block;
+}
+
+.intro-para + .intro-para {
+  margin-top: 14px;
+}
+
+.intro-card .task-complete-actions {
+  margin-top: 22px;
+}
+
+/* The questionnaire runs inside the page rather than a new tab, so the run is never
+   left behind in a background window. Fills the stage; the bar on top is the only
+   part we own, since the frame itself is another origin and cannot be read into. */
+.survey-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;          /* above .task-complete (20), which opens it */
+  display: flex;
+  flex-direction: column;
+  background: #0f172a;
+}
+
+.survey-overlay-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  color: white;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.survey-overlay-bar button {
+  min-height: 38px;
+  background: var(--accent);
+}
+
+#surveyFrame {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  background: white;
+}
+
+/* Last on purpose: .hidden has to win against any rule that sets display, and several
+   of those (.task-complete-link, the panels) are declared after it. Same specificity
+   means source order decides, which is how the questionnaire link leaked onto every
+   maze. */
+.hidden {
+  display: none !important;
 }

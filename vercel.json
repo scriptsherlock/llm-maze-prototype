@@ -1,0 +1,95 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "public",
+  "installCommand": "npm install --omit=dev",
+  "build": {
+    "env": {
+      "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/m8",
+      "destination": "/mazes8.html"
+    },
+    {
+      "source": "/study/participant",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/study/moderator",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-1/participant",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-1/moderator",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-2/participant",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-2/moderator",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-3/participant",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-3/moderator",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-4/participant",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-4/moderator",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-5/participant",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-5/moderator",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-6/participant",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-6/moderator",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-7/participant",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-7/moderator",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-8/participant",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/m8-8/moderator",
+      "destination": "/index.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/study/participant",
+      "permanent": false
+    }
+  ]
+}

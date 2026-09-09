@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Live LLM Street Maze Prototype</title>
   <link rel="stylesheet" href="/styles.css" />
+  <!-- Lets the vendored three.js addons (GLTFLoader) resolve `import ... from "three"`. -->
+  <script type="importmap">
+    { "imports": { "three": "/vendor/three/three.module.js" } }
+  </script>
 </head>
 <body>
   <main class="app experiment-app">
@@ -20,6 +24,56 @@
         <div id="stage" class="stage participant-stage" aria-label="first-person street maze scene">
           <div id="scene" class="three-scene"></div>
           <div id="hintBanner" class="hint-banner">AI hint trail visible</div>
+          <div id="taskComplete" class="task-complete hidden" role="dialog" aria-live="polite">
+            <div class="task-complete-card">
+              <h2 id="taskCompleteTitle">Task complete!</h2>
+              <p id="taskCompleteSub">Maze 1 of 8</p>
+              <p id="surveyNote" class="task-complete-note hidden"></p>
+              <div class="task-complete-actions">
+                <a id="surveyLink" class="task-complete-link hidden" target="_blank" rel="noopener">Open the questionnaire</a>
+                <button id="nextMazeButton" type="button">Next maze</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="surveyOverlay" class="survey-overlay hidden" role="dialog" aria-live="polite">
+            <div class="survey-overlay-bar">
+              <span id="surveyOverlayTitle">Questionnaire</span>
+              <button id="surveyOverlayDone" type="button">I have finished — back to the maze</button>
+            </div>
+            <iframe id="surveyFrame" title="questionnaire" src="about:blank"></iframe>
+          </div>
+
+          <div id="introScreen" class="intro-screen hidden" role="dialog" aria-live="polite">
+            <div class="intro-card">
+              <h2 id="introTitle">Before you begin</h2>
+              <p id="introBody"></p>
+              <div class="task-complete-actions">
+                <a id="introLink" class="task-complete-link hidden" target="_blank" rel="noopener">Open the questionnaire</a>
+                <button id="introContinue" type="button">Continue</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="trainingPanel" class="training-panel hidden" aria-live="polite">
+            <p id="trainingStep">Practice the controls</p>
+            <p id="trainingProgress" class="training-progress"></p>
+          </div>
+          <button id="helpButton" class="help-button" type="button" aria-label="Show the controls">?</button>
+
+          <div id="helpCard" class="help-card hidden" role="dialog" aria-live="polite">
+            <button id="helpDismissButton" class="help-dismiss" type="button" aria-label="Close">&times;</button>
+            <h2>Controls</h2>
+            <ul class="help-list">
+              <li><span class="training-key">A</span> Turn left &mdash; look to your left</li>
+              <li><span class="training-key">D</span> Turn right &mdash; look to your right</li>
+              <li><span class="training-key">W</span> Forward &mdash; walk one step ahead</li>
+              <li><span class="training-key">S</span> Back &mdash; step backwards without turning</li>
+            </ul>
+            <p class="help-goal">Your goal is to find the exit.</p>
+            <button id="helpCloseButton" type="button">Back to the maze</button>
+          </div>
+
           <div class="hud">
             <div>
               <span>Facing</span>
@@ -27,17 +81,16 @@
             </div>
             <div>
               <span>Goal</span>
-              <strong id="goalHud">Ahead-right</strong>
+              <strong id="goalHud">Find the exit</strong>
             </div>
           </div>
         </div>
 
         <div class="experiment-controls" aria-label="experiment controls">
           <button id="turnLeftButton" class="secondary" type="button">Turn left</button>
-          <button id="forwardButton" type="button">Forward</button>
+          <button id="forwardButton" class="secondary" type="button">Forward</button>
           <button id="turnRightButton" class="secondary" type="button">Turn right</button>
           <button id="backButton" class="secondary" type="button">Back</button>
-          <button id="hintButton" class="ai-action" type="button">Ask AI</button>
         </div>
       </section>
     </section>
@@ -51,53 +104,20 @@
             <span>Time <strong id="moderatorTime">00:00</strong></span>
           </div>
         </div>
+        <div id="aiRoutesLegend" class="ai-routes-legend hidden"></div>
         <div id="moderatorGrid" class="validator-grid live-grid" aria-label="live bird's-eye maze"></div>
       </section>
 
       <aside id="moderatorPanel" class="panel moderator-rail">
-        <section>
-          <h2>AI availability</h2>
-          <div class="status-line">
-            <span id="moderatorAiDot" class="dot on"></span>
-            <span id="moderatorAiStatus">AI assistance ON</span>
-          </div>
-          <button id="aiToggle" class="ai-action" type="button">Disable AI for participant</button>
-        </section>
-
-        <section class="panel-section">
-          <h2>Internal state</h2>
-          <p class="muted">Position: <strong id="positionText">(0, 1)</strong></p>
-          <p class="muted">Facing: <strong id="moderatorFacing">East</strong></p>
-          <p class="muted">Goal bearing: <strong id="goalBearingText">Ahead-right</strong></p>
-          <p class="muted">Goal distance: <strong id="goalDistanceText">n/a</strong></p>
-          <p class="muted">Stored AI path: <strong id="storedPathText">none</strong></p>
-          <p class="muted">Latest latency: <strong id="latencyText">n/a</strong></p>
-        </section>
-
-        <section class="panel-section">
-          <h2>AI validator legend</h2>
-          <div class="legend-row"><span class="legend-swatch wall"></span>Wall</div>
-          <div class="legend-row"><span class="legend-swatch open"></span>Open cell</div>
-          <div class="legend-row"><span class="legend-swatch player"></span>Participant</div>
-          <div class="legend-row"><span class="legend-swatch goal"></span>Destination</div>
-          <div class="legend-row"><span class="legend-swatch local"></span>Local shortest path</div>
-          <div class="legend-row"><span class="legend-swatch ai"></span>Visible AI path</div>
-        </section>
-
         <section class="panel-section">
           <h2>Event log</h2>
           <pre id="logBox" class="log-box" aria-label="event log"></pre>
         </section>
 
-        <section class="panel-section">
-          <h2>Server-side logs</h2>
-          <pre id="serverLogBox" class="log-box server-log-box" aria-label="server-side logs">No server-side log entries yet.</pre>
-          <div class="download-row">
-            <button id="downloadCsvButton" class="secondary" type="button">CSV</button>
-            <button id="downloadJsonButton" class="secondary" type="button">JSON</button>
-            <button id="resetButton" class="secondary" type="button">Reset</button>
-          </div>
-        </section>
+        <div class="download-row">
+          <button id="downloadCsvButton" class="secondary" type="button">Save CSV</button>
+          <button id="downloadJsonButton" class="secondary" type="button">Save JSON</button>
+        </div>
       </aside>
     </section>
   </main>
