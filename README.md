@@ -7,21 +7,19 @@ analysis that produced the results.
 
 The study set out to inquire whether losing AI support is not the same as never having had it at
 all. Real participants played a game in which they had to find their way through a maze. Some were
-given hints towards the goal and then had those hints taken away midway through. Once the support
+given hints towards the goal and then had those hints taken away midway through. 
+
+<!-- Once the support
 was gone they became slower, took more moves than they needed, revisited more cells, got lost more
 often and spent longer at junctions working out where to go next. Participants who had never been
 given hints at all did better on every one of those measures. 150 participants completed 1,151
-mazes between them.
+mazes between them. -->
 
-The report is where the design decisions and the discarded versions that explain them are set out.
-What follows is only what someone needs in order to run this, read the data, or find their way
-around the source.
 
 ## The task
 
 A participant walks through a hedge maze in a modified first person view, using the keyboard or the
-on-screen controls, and sees only the walls immediately around them. There is no map and no view
-from above. Each participant worked through eight mazes in a single sitting, with questionnaires
+on-screen controls. Each participant worked through eight mazes in a single sitting, with questionnaires
 before the first, after the fourth and after the eighth, and a practice run beforehand to learn the
 controls. Where an assistant was present it marked, at each junction, the branches that lead to the
 exit, shading the shorter route more darkly and naming the direction and the relative distance.
@@ -57,24 +55,20 @@ server.js        the Express app
 analysis.R       every model, table and figure in the analysis chapter
 ```
 
-Nothing here is adapted from an existing codebase. three.js is vendored and the hedge texture is
-drawn onto a canvas at run time, so the scene depends on no external asset being retrievable.
 
 ## Where the cues come from
 
-The assistant never called a language model while anyone was playing. A model was asked offline for
+A model was asked offline for
 several complete routes through each maze, every route was re-walked against the grid and discarded
 unless every step was legal, routes from independent passes were merged, and the per junction
-claims were then computed from the survivors by arithmetic. A model error therefore cannot become a
-false statement shown to a participant. It can only leave a branch with no claim, so the failure
-mode is silence rather than misinformation.
+claims were then computed from the survivors by arithmetic.
 
 The prompts and the generation settings are in the report. Their output is
 `public/mazes8/hints/maze-N.json`.
 
 ## Identifiers and allocation
 
-Identifiers come from the server, never from the browser. `GET /api/assign?condition=no_ai` fixes
+Identifiers come from the server. `GET /api/assign?condition=no_ai` fixes
 the condition by the link a participant was sent, which is how the study ran. Without the parameter
 the server allocates one itself, dealing conditions in randomly permuted blocks of three.
 Allocation is recorded before the participant does anything, which is what makes dropout visible.
@@ -82,10 +76,7 @@ Allocation is recorded before the participant does anything, which is what makes
 
 ## What is recorded
 
-Every meaningful action produces an event, and the completion of each maze produces a summary row.
-Both are written continuously to the server rather than held in the browser, so a participant who
-abandons a session still contributes everything up to that point and a closed tab discards nothing.
-Events are queued and flushed every 1.5 seconds, and on departure by beacon. A summary carries the
+Every meaningful action produces an event, and the completion of each maze produces a summary row. A summary carries the
 identifier and condition, whether the assistant was present for that maze, completion time, moves
 against the shortest possible, revisited cells, Back presses, junctions passed and cued, cues
 followed, and the median deliberation time at a junction.
@@ -100,9 +91,7 @@ followed, and the median deliberation time at a junction.
 | `GET /api/run-log?export=events` | one CSV row per event |
 | `DELETE /api/run-log?id=no_ai-001` | removes one participant |
 
-Add `&condition=no_ai` to narrow an export to one group. Deletion is exposed only through a method
-a browser will not follow from a link, and is otherwise unauthenticated, which was acceptable for a
-pilot and would not be once real data is in.
+
 
 ## Running it
 
@@ -113,9 +102,7 @@ npm install
 npm start
 ```
 
-The study runs at `http://localhost:3000` and the bare address redirects to `/study/participant`.
-`/study/moderator` is a read-only view of the same run, `/m8` lists the eight mazes and
-`/m8-N/participant` plays one on its own. Position in the sequence is held in `sessionStorage`
+The study runs at `http://localhost:3000` and the bare address redirects to `/study/participant`. Position in the sequence is held in `sessionStorage`
 rather than in the address, so a participant cannot skip ahead and a fresh tab always starts a new
 run.
 
@@ -127,11 +114,11 @@ Copy `.env.example` to `.env`. None of it is needed to play a maze.
 
 | Variable | What it does |
 | --- | --- |
-| `PORT` | where the server listens, 3000 by default |
+| `PORT` | where the server listens, default = `3000` |
 | `SITE_CODE` | a site code carried in every identifier this deployment issues |
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | the hosted key value store |
 | `STORE_FILE` | where the file backend writes instead |
-| `LLM_PROVIDER` and a provider key | only for regenerating guidance, never for serving it |
+| `LLM_PROVIDER` and a provider key | for regenerating guidance|
 
 The store picks its backend by whether the two key value variables are set. The file backend exists
 for a host that has to keep its data on its own disk, and reports itself unusable on a serverless
@@ -148,7 +135,7 @@ Run it from the project root.
 
 `vercel.json` and `.github/workflows` describe the two targets. The study opened on
 Vercel and finished on Azure App Service, because addresses under `vercel.app` are not reachable
-from mainland China and participants recruited there could not open the study at all. The key value
+from some countries and participants recruited there could not open the study at all. The key value
 store is called from the server rather than the browser, so the move did not require the data to
 move with it.
 
