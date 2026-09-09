@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Take a blank Ubuntu server to a running study. Idempotent -- safe to run twice.
+# Take a blank Ubuntu server to a running study.
 #
 #   curl -fsSL https://raw.githubusercontent.com/<user>/<repo>/dev/deploy/setup.sh | bash -s -- <domain>
 # or, having cloned already:
@@ -8,8 +8,7 @@
 # Leave the domain off to run on the IP over plain http. Good for a reachability test
 # from inside China, since a raw IP needs no ICP filing. NOT for the real study: the
 # page works, but participant data crosses the network unencrypted, which is an ethics
-# and data-protection problem. (The questionnaire itself is fine -- an http page may
-# embed an https iframe; browsers only block the reverse.)
+# and data-protection problem.
 set -euo pipefail
 
 DOMAIN="${1:-}"
@@ -43,9 +42,9 @@ ENVEOF
 
 echo "==> service"
 sudo npm install -g pm2 >/dev/null 2>&1 || true
-# ONE instance. The JSON store is read-modify-write, which is safe because Node handles
+# One instance. The JSON store is read-modify-write, which is safe because Node handles
 # one request at a time per process; two processes on one file can interleave and lose
-# rows. Never -i max here.
+# rows.
 pm2 delete maze >/dev/null 2>&1 || true
 pm2 start server.js --name maze
 pm2 save

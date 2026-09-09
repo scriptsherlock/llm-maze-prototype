@@ -146,8 +146,9 @@ module.exports = async (req, res) => {
   }
 
   // Removing a run: pilot data before collection starts, and a participant who withdraws
-  // consent afterwards, which is an ethics requirement rather than a convenience.
-  // DELETE rather than a GET parameter on purpose -- a URL that erases data should not
+  // consent afterwards, which is an ethics requirement.
+  // DELETE rather than a GET parameter on purpose 
+  // a URL that erases data should not
   // be something a browser can follow, prefetch, or leave sitting in history.
   //
   // Unauthenticated, like the rest of this endpoint. That is fine for a pilot and not
@@ -167,8 +168,8 @@ module.exports = async (req, res) => {
       }
       // The counters and the allocation log are separate keys, so a wipe that left them
       // behind would number the next participant no_ai-004 with three dead entries in
-      // the log. Every counter, including the per-condition ones added when the links
-      // were split -- clearing only the overall one is the easy half of this to miss.
+      // the log. Every counter, including the per-condition ones added when the links were split 
+      // clearing only the overall one is the easy half of this to miss.
       if (wipe) {
         await kv(["DEL", "study:assigned", "study:assignments",
           "study:assigned:no_ai", "study:assigned:stable_ai", "study:assigned:disappear"]);

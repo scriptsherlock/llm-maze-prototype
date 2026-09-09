@@ -60,7 +60,7 @@ export const PARTICIPANT_ID = (() => {
 })();
 
 // ============================================================================
-// QUESTIONNAIRE LINKS  --  paste them in below
+// QUESTIONNAIRE LINKS 
 // ============================================================================
 // Three points in every run:
 //
@@ -74,8 +74,7 @@ export const PARTICIPANT_ID = (() => {
 //
 // Appended to every link automatically:  ?participant=...&condition=...
 // and for mid and end also              &maze=4  /  &maze=8
-// For those to survive, add Embedded Data fields named participant, condition and
-// maze in the Qualtrics survey flow -- otherwise the values arrive and are dropped.
+
 const SURVEY_LINKS = {
   no_ai: {
     start: "https://qualtricsxmqjx593lmk.qualtrics.com/jfe/form/SV_a9lhU8KOfXIBJVI",
@@ -322,7 +321,7 @@ const savedProgress = !isStudy || wantsRestart ? null
   : isModeratorView ? readLiveProgress()
   : readOwnProgress();
 // Progress is tagged with the CONDITION as well as the sequence. Switching condition
-// is a different run, so it must start from the first maze — otherwise finishing one
+// is a different run, so it must start from the first maze otherwise finishing one
 // condition and changing the url resumes on the last maze of the previous run.
 // The moderator is a spectator: it adopts whatever run the participant is on, so
 // /study/moderator lands on the right maze and the right AI state even when it was
@@ -331,7 +330,7 @@ const conditionParam = readConditionParam();
 // Checked before anything is stored or logged, so a bad link leaves no trace.
 //
 // No condition at all means the plain invitation link: assign one and come back. A
-// condition that is present but misspelled is a DIFFERENT case and still refuses --
+// condition that is present but misspelled is a DIFFERENT case and still refuses
 // "?condition=isappear" is a broken link someone built, not an anonymous arrival, and
 // silently assigning would hide the mistake behind a run that looks normal.
 if (isStudy && !isModeratorView && !conditionParam.valid) {
