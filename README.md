@@ -8,6 +8,6 @@ given hints towards the goal and then had those hints taken away midway through.
 
 ### File Structure
 ```
-analysis.html       details descriptiion of data, models fit and results and visualisations.
+analysis.html       details descripition of data, models fit and results and visualisations.
 ```
 
