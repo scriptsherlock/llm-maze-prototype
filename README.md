@@ -6,9 +6,8 @@ given hints towards the goal and then had those hints taken away midway through.
 
 `analysis.html` contains a detailed flow of the analysis, models chosen for all outcomes and generates figures and visualisations.
 
-File Structure
+### File Structure
 ```
 analysis.html       details descriptiion of data, models fit and results and visualisations.
-
 ```
 
